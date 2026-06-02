@@ -2,15 +2,15 @@
   <img src="assets/brand/codexmeter-logo.png" alt="CodexMeter 标志" width="520">
 </p>
 
-> 一个轻量的 AI 订阅配额 Android 看板。
-
-<div style="text-align: center;">
+<div align="center">
 
 [English](README.md) | 简体中文
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE) [![Android](https://img.shields.io/badge/Android-12%2B-3DDC84.svg)](https://developer.android.com/about/versions/12) [![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF.svg)](https://kotlinlang.org/) [![Status](https://img.shields.io/badge/status-Release-blue.svg)](https://github.com/KyoMio/CodexMeter/releases)
 
 </div>
+
+> 一个轻量的 AI 订阅配额 Android 看板。
 
 CodexMeter 是一个非官方 Android 应用，用来在应用首页、桌面小组件和低打扰常驻通知里查看 Codex 及其它 AI 服务商的官方配额使用情况。
 

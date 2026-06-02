@@ -2,14 +2,17 @@
   <img src="assets/brand/codexmeter-logo.png" alt="CodexMeter logo" width="520">
 </p>
 
-> A lightweight Android quota dashboard for Codex and other AI providers.
 
-<div style="text-align: center;">
+
+<div align="center">
 
 English | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE) [![Android](https://img.shields.io/badge/Android-12%2B-3DDC84.svg)](https://developer.android.com/about/versions/12) [![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF.svg)](https://kotlinlang.org/) [![Status](https://img.shields.io/badge/status-Release-blue.svg)](https://github.com/KyoMio/CodexMeter/releases)
+
 </div>
+
+> A lightweight Android quota dashboard for Codex and other AI providers.
 
 CodexMeter is an unofficial Android app for keeping an eye on official quota usage across Codex and other AI providers, from the home screen, the app dashboard, and a low-noise persistent notification.
 
