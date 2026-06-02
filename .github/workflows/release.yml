@@ -10,6 +10,10 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
+# Needed for softprops/action-gh-release to create the release & upload assets.
+permissions:
+  contents: write
+
 jobs:
   build-release:
     name: Assemble & sign release APK
