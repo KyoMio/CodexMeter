@@ -207,6 +207,32 @@ fun interface SettingsBackgroundRefreshStatusReader {
     suspend fun latestBackgroundRefreshStatus(): SettingsBackgroundRefreshStatus
 }
 
+data class DiagnosticsAccountSummary(
+    val providerId: String,
+    val accountIdHash: String,
+    val status: String,
+    val lastAttemptStatus: String,
+    val lastAttemptErrorCode: String? = null,
+    val lastAttemptAt: String? = null,
+    val lastSuccessfulRefreshAt: String? = null,
+    val latestSnapshotAt: String? = null,
+)
+
+data class DiagnosticsAccountAlertConfig(
+    val providerId: String,
+    val accountIdHash: String,
+    val enabledWindowIds: List<String>,
+)
+
+/** 结构化 WorkManager 诊断；由采集层填充，由 buildDiagnosticsCopyModel 渲染。 */
+data class WorkManagerDiagnostics(
+    val periodicStatus: String,
+    val periodicRunAttemptCount: Int? = null,
+    val periodicNextScheduleAtMillis: Long? = null,
+    val periodicStopReason: String? = null,
+    val onceStatus: String? = null,
+)
+
 data class SettingsDiagnosticsInput(
     val appVersion: String = "0.1.0",
     val buildType: String = "debug",
@@ -241,6 +267,36 @@ data class SettingsDiagnosticsInput(
     val deviceCodeLoginExpiresAt: String? = null,
     val workManagerStatus: String = "not_wired",
     val notificationPermissionStatus: String = "unknown",
+    // A: 参考时刻
+    val generatedAtMillis: Long? = null,
+    // B: 运行环境
+    val androidRelease: String? = null,
+    val deviceModel: String? = null,
+    val locale: String? = null,
+    val batteryOptimizationIgnored: Boolean? = null,
+    val backgroundRestricted: String? = null,
+    val networkType: String? = null,
+    val dataSaver: String? = null,
+    val appFirstInstallAt: String? = null,
+    val appLastUpdateAt: String? = null,
+    // C: WorkManager 加深
+    val workManagerRunAttemptCount: Int? = null,
+    val workManagerNextScheduleAt: String? = null,
+    val workManagerStopReason: String? = null,
+    val onceWorkManagerStatus: String? = null,
+    // D: 连续失败
+    val consecutiveFailures: Int? = null,
+    // E: 全账号摘要
+    val accountSummaries: List<DiagnosticsAccountSummary> = emptyList(),
+    // F: App 配置
+    val roomSchemaVersion: Int? = null,
+    val retentionDays: String? = null,
+    val refreshIntervalMinutes: Int? = null,
+    val statusNotificationEnabled: Boolean? = null,
+    val quotaAlertsEnabled: Boolean? = null,
+    val alertThresholds: String? = null,
+    val accountAlertConfigs: List<DiagnosticsAccountAlertConfig> = emptyList(),
+    val widgetCount: Int? = null,
     val unsafeDetails: String? = null,
 )
 
