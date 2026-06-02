@@ -626,6 +626,8 @@ class AppContainer private constructor(
                 refreshAttemptDao = database.refreshAttemptDao(),
                 sessionStore = sessionStore,
                 deviceCodeLoginDiagnosticsReader = deviceCodeLoginDiagnosticsReader,
+                notificationPreferenceReader = notificationPreferences,
+                retentionPreferenceReader = retentionPreferences,
             )
 
             return AppContainer(
