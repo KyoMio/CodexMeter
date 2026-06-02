@@ -11,6 +11,8 @@ import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.local.entity.QuotaSnapshotEntity
 import com.kmnexus.codexmeter.data.local.entity.RefreshAttemptEntity
 
+const val CODEXMETER_DB_SCHEMA_VERSION = 1
+
 @Database(
     entities = [
         ProviderAccountEntity::class,
@@ -18,7 +20,7 @@ import com.kmnexus.codexmeter.data.local.entity.RefreshAttemptEntity
         RefreshAttemptEntity::class,
         AlertStateEntity::class,
     ],
-    version = 1,
+    version = CODEXMETER_DB_SCHEMA_VERSION,
     exportSchema = true,
 )
 abstract class CodexMeterDatabase : RoomDatabase() {
