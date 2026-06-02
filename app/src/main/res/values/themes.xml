@@ -1,0 +1,20 @@
+<resources>
+    <style name="Theme.CodexMeter" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">@color/codexmeter_accent</item>
+        <item name="android:navigationBarColor">@color/codexmeter_background</item>
+        <item name="android:statusBarColor">@color/codexmeter_background</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+    <style name="Theme.CodexMeter.WidgetConfigurationDialog" parent="@android:style/Theme.Material.Light.Dialog.NoActionBar">
+        <item name="android:colorAccent">@color/codexmeter_accent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowMinWidthMajor">@dimen/widget_config_dialog_width_major</item>
+        <item name="android:windowMinWidthMinor">@dimen/widget_config_dialog_width_minor</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

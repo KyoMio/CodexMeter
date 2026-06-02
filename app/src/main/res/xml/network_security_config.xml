@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext stays disabled everywhere except the OAuth loopback redirect
+  (http://127.0.0.1:{ephemeral}/callback) used by the Antigravity Google OAuth flow.
+  See docs/ARCHITECTURE.md §11.3 loopback exemption.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

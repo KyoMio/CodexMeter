@@ -1,0 +1,346 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "01398fe01cb0a0af43efcdb6d5595085",
+    "entities": [
+      {
+        "tableName": "provider_accounts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`local_account_id` TEXT NOT NULL, `provider_id` TEXT NOT NULL, `provider_account_id` TEXT, `display_name` TEXT NOT NULL, `avatar_initial` TEXT NOT NULL, `avatar_color_key` TEXT NOT NULL, `status` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `last_successful_refresh_at` INTEGER, PRIMARY KEY(`local_account_id`))",
+        "fields": [
+          {
+            "fieldPath": "localAccountId",
+            "columnName": "local_account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerId",
+            "columnName": "provider_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerAccountId",
+            "columnName": "provider_account_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatarInitial",
+            "columnName": "avatar_initial",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatarColorKey",
+            "columnName": "avatar_color_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSuccessfulRefreshAt",
+            "columnName": "last_successful_refresh_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "local_account_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_provider_accounts_provider_id_provider_account_id",
+            "unique": true,
+            "columnNames": [
+              "provider_id",
+              "provider_account_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_provider_accounts_provider_id_provider_account_id` ON `${TABLE_NAME}` (`provider_id`, `provider_account_id`)"
+          },
+          {
+            "name": "index_provider_accounts_provider_id_local_account_id",
+            "unique": false,
+            "columnNames": [
+              "provider_id",
+              "local_account_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_provider_accounts_provider_id_local_account_id` ON `${TABLE_NAME}` (`provider_id`, `local_account_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "quota_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`snapshot_id` TEXT NOT NULL, `provider_id` TEXT NOT NULL, `local_account_id` TEXT NOT NULL, `provider_account_id` TEXT, `fetched_at` INTEGER NOT NULL, `source` TEXT NOT NULL, `plan_type` TEXT, `windows_json` TEXT NOT NULL, `credits_json` TEXT, `response_digest` TEXT, PRIMARY KEY(`snapshot_id`))",
+        "fields": [
+          {
+            "fieldPath": "snapshotId",
+            "columnName": "snapshot_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerId",
+            "columnName": "provider_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localAccountId",
+            "columnName": "local_account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerAccountId",
+            "columnName": "provider_account_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "planType",
+            "columnName": "plan_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "windowsJson",
+            "columnName": "windows_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creditsJson",
+            "columnName": "credits_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "responseDigest",
+            "columnName": "response_digest",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "snapshot_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_quota_snapshots_provider_id_local_account_id_fetched_at",
+            "unique": false,
+            "columnNames": [
+              "provider_id",
+              "local_account_id",
+              "fetched_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_quota_snapshots_provider_id_local_account_id_fetched_at` ON `${TABLE_NAME}` (`provider_id`, `local_account_id`, `fetched_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "refresh_attempts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`attempt_id` TEXT NOT NULL, `provider_id` TEXT NOT NULL, `local_account_id` TEXT NOT NULL, `trigger` TEXT NOT NULL, `started_at` INTEGER NOT NULL, `finished_at` INTEGER, `status` TEXT NOT NULL, `error_code` TEXT, `http_status` INTEGER, `retryable` INTEGER, `user_action_required` INTEGER, `diagnostics_digest` TEXT, PRIMARY KEY(`attempt_id`))",
+        "fields": [
+          {
+            "fieldPath": "attemptId",
+            "columnName": "attempt_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerId",
+            "columnName": "provider_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localAccountId",
+            "columnName": "local_account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trigger",
+            "columnName": "trigger",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finishedAt",
+            "columnName": "finished_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorCode",
+            "columnName": "error_code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "httpStatus",
+            "columnName": "http_status",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "retryable",
+            "columnName": "retryable",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "userActionRequired",
+            "columnName": "user_action_required",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diagnosticsDigest",
+            "columnName": "diagnostics_digest",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "attempt_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_refresh_attempts_provider_id_local_account_id_started_at",
+            "unique": false,
+            "columnNames": [
+              "provider_id",
+              "local_account_id",
+              "started_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refresh_attempts_provider_id_local_account_id_started_at` ON `${TABLE_NAME}` (`provider_id`, `local_account_id`, `started_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "alert_states",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`alert_state_id` TEXT NOT NULL, `provider_id` TEXT NOT NULL, `local_account_id` TEXT NOT NULL, `window_id` TEXT NOT NULL, `threshold` REAL NOT NULL, `reset_at` TEXT NOT NULL, `last_notified_at` TEXT NOT NULL, PRIMARY KEY(`alert_state_id`))",
+        "fields": [
+          {
+            "fieldPath": "alertStateId",
+            "columnName": "alert_state_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerId",
+            "columnName": "provider_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localAccountId",
+            "columnName": "local_account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowId",
+            "columnName": "window_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "threshold",
+            "columnName": "threshold",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resetAt",
+            "columnName": "reset_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastNotifiedAt",
+            "columnName": "last_notified_at",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "alert_state_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_alert_states_provider_id_local_account_id_window_id_reset_at_threshold",
+            "unique": true,
+            "columnNames": [
+              "provider_id",
+              "local_account_id",
+              "window_id",
+              "reset_at",
+              "threshold"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_alert_states_provider_id_local_account_id_window_id_reset_at_threshold` ON `${TABLE_NAME}` (`provider_id`, `local_account_id`, `window_id`, `reset_at`, `threshold`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '01398fe01cb0a0af43efcdb6d5595085')"
+    ]
+  }
+}
