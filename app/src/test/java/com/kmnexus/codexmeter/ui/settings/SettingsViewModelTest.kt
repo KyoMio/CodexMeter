@@ -566,6 +566,139 @@ class SettingsViewModelTest {
         assertEquals(CurrencyPreferences(targetCurrency = "CNY"), store.latest)
     }
 
+    @Test
+    fun `diagnostics output is grouped into sections`() {
+        val text = viewModel.buildDiagnosticsCopyModel(
+            SettingsDiagnosticsInput(generatedAtMillis = 1_700_000_000_000L),
+        ).text
+
+        assertTrue(text.startsWith("## GENERATED"))
+        assertTrue(text.contains("## ENVIRONMENT"))
+        assertTrue(text.contains("## WORKMANAGER"))
+        assertTrue(text.contains("## CONFIG"))
+        assertTrue(text.contains("## ACCOUNTS"))
+        assertTrue(text.contains("## CURRENT ACCOUNT"))
+        assertFalse(text.trimStart().startsWith("{"))
+        assertFalse(text.trimStart().startsWith("["))
+    }
+
+    @Test
+    fun `diagnostics renders generated time and readable timestamps`() {
+        val now = 1_700_000_000_000L
+        val text = viewModel.buildDiagnosticsCopyModel(
+            SettingsDiagnosticsInput(
+                generatedAtMillis = now,
+                latestSnapshotFetchedAt = (now - 3 * 3_600_000L).toString(),
+            ),
+        ).text
+
+        assertTrue(text.contains("generatedAt=1700000000000 (2023-11-14T22:13:20Z)"))
+        assertTrue(text.contains("latestSnapshotFetchedAt=1699989200000 (2023-11-14T19:13:20Z, 3h ago)"))
+    }
+
+    @Test
+    fun `diagnostics includes consecutive failures and environment`() {
+        val text = viewModel.buildDiagnosticsCopyModel(
+            SettingsDiagnosticsInput(
+                generatedAtMillis = 1_700_000_000_000L,
+                consecutiveFailures = 4,
+                batteryOptimizationIgnored = false,
+                backgroundRestricted = "true",
+                networkType = "wifi",
+                deviceModel = "Google Pixel 8",
+                roomSchemaVersion = 1,
+            ),
+        ).text
+
+        assertTrue(text.contains("consecutiveFailures=4"))
+        assertTrue(text.contains("batteryOptimizationIgnored=false"))
+        assertTrue(text.contains("backgroundRestricted=true"))
+        assertTrue(text.contains("networkType=wifi"))
+        assertTrue(text.contains("deviceModel=Google Pixel 8"))
+        assertTrue(text.contains("roomSchemaVersion=1"))
+    }
+
+    @Test
+    fun `diagnostics renders all-account summaries with hashed id`() {
+        val now = 1_700_000_000_000L
+        val text = viewModel.buildDiagnosticsCopyModel(
+            SettingsDiagnosticsInput(
+                generatedAtMillis = now,
+                accountSummaries = listOf(
+                    DiagnosticsAccountSummary(
+                        providerId = "codex",
+                        accountIdHash = "sha256:abcdef123456",
+                        status = "active",
+                        lastAttemptStatus = "failed",
+                        lastAttemptErrorCode = "error_network",
+                        lastAttemptAt = (now - 3 * 3_600_000L).toString(),
+                        lastSuccessfulRefreshAt = (now - 86_400_000L).toString(),
+                        latestSnapshotAt = (now - 86_400_000L).toString(),
+                    ),
+                    DiagnosticsAccountSummary(
+                        providerId = "deepseek",
+                        accountIdHash = "sha256:777888999000",
+                        status = "active",
+                        lastAttemptStatus = "none",
+                    ),
+                ),
+            ),
+        ).text
+
+        assertTrue(
+            text.contains(
+                "codex/sha256:abcdef123456 status=active lastAttempt=failed(error_network, 3h ago) lastSuccess=1d ago snapshot=1d ago",
+            ),
+        )
+        assertTrue(text.contains("deepseek/sha256:777888999000 status=active lastAttempt=none"))
+    }
+
+    @Test
+    fun `diagnostics renders alert configs with provider`() {
+        val text = viewModel.buildDiagnosticsCopyModel(
+            SettingsDiagnosticsInput(
+                generatedAtMillis = 1_700_000_000_000L,
+                alertThresholds = "caution=30,warning=10,limit=0",
+                accountAlertConfigs = listOf(
+                    DiagnosticsAccountAlertConfig(
+                        providerId = "codex",
+                        accountIdHash = "sha256:abcdef123456",
+                        enabledWindowIds = listOf("five_hour", "weekly"),
+                    ),
+                ),
+            ),
+        ).text
+
+        assertTrue(text.contains("alertThresholds=caution=30,warning=10,limit=0"))
+        assertTrue(text.contains("codex/sha256:abcdef123456=[five_hour,weekly]"))
+    }
+
+    @Test
+    fun `enriched diagnostics still redacts injected secrets`() {
+        val now = 1_700_000_000_000L
+        val text = viewModel.buildDiagnosticsCopyModel(
+            SettingsDiagnosticsInput(
+                generatedAtMillis = now,
+                deviceModel = "Pixel",
+                networkType = "wifi",
+                accountSummaries = listOf(
+                    DiagnosticsAccountSummary(
+                        providerId = "codex",
+                        accountIdHash = "sha256:abcdef123456",
+                        status = "active",
+                        lastAttemptStatus = "failed",
+                    ),
+                ),
+                unsafeDetails = "Authorization: Bearer must_not_leak\naccess_token=must_not_leak",
+            ),
+        ).text
+
+        assertTrue(text.contains("[REDACTED]"))
+        assertFalse(text.contains("must_not_leak"))
+        assertTrue(text.contains("## ENVIRONMENT"))
+        assertTrue(text.contains("deviceModel=Pixel"))
+    }
+
     private class RecordingCurrencyPreferenceStore(
         private var preferences: CurrencyPreferences,
     ) : CurrencyPreferenceStore {

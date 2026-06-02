@@ -9,6 +9,7 @@ import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.account.NoopAccountListUseCase
 import com.kmnexus.codexmeter.domain.diagnostics.DiagnosticsRedactor
+import com.kmnexus.codexmeter.domain.diagnostics.DiagnosticsTimeFormatter
 import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderId
@@ -713,27 +714,89 @@ class SettingsViewModel(
     }
 
     fun buildDiagnosticsCopyModel(input: SettingsDiagnosticsInput): SettingsDiagnosticsCopyModel {
+        val now = input.generatedAtMillis
+        fun ts(value: String?): String? = DiagnosticsTimeFormatter.render(value, now)
+        fun age(value: String?): String? = DiagnosticsTimeFormatter.renderAgeOnly(value, now)
+
         val rawDiagnostics = buildString {
+            appendLine("## GENERATED")
+            appendLine("generatedAt=${DiagnosticsTimeFormatter.render(now?.toString(), null) ?: "unavailable"}")
+
+            appendLine("## ENVIRONMENT")
             appendLine("appVersion=${input.appVersion}")
             appendLine("buildType=${input.buildType}")
             input.androidSdk?.let { appendLine("androidSdk=$it") }
+            input.androidRelease?.let { appendLine("androidRelease=$it") }
+            input.deviceModel?.let { appendLine("deviceModel=$it") }
+            input.locale?.let { appendLine("locale=$it") }
+            input.batteryOptimizationIgnored?.let { appendLine("batteryOptimizationIgnored=$it") }
+            input.backgroundRestricted?.let { appendLine("backgroundRestricted=$it") }
+            input.networkType?.let { appendLine("networkType=$it") }
+            input.dataSaver?.let { appendLine("dataSaver=$it") }
+            ts(input.appFirstInstallAt)?.let { appendLine("appFirstInstallAt=$it") }
+            ts(input.appLastUpdateAt)?.let { appendLine("appLastUpdateAt=$it") }
+
+            appendLine("## WORKMANAGER")
+            appendLine("workManagerStatus=${input.workManagerStatus}")
+            input.workManagerRunAttemptCount?.let { appendLine("workManagerRunAttemptCount=$it") }
+            ts(input.workManagerNextScheduleAt)?.let { appendLine("workManagerNextScheduleAt=$it") }
+            input.workManagerStopReason?.let { appendLine("workManagerStopReason=$it") }
+            input.onceWorkManagerStatus?.let { appendLine("onceWorkManagerStatus=$it") }
+            appendLine("notificationPermissionStatus=${input.notificationPermissionStatus}")
+
+            appendLine("## CONFIG")
+            input.roomSchemaVersion?.let { appendLine("roomSchemaVersion=$it") }
+            input.retentionDays?.let { appendLine("retentionDays=$it") }
+            input.refreshIntervalMinutes?.let { appendLine("refreshIntervalMinutes=$it") }
+            input.statusNotificationEnabled?.let { appendLine("statusNotificationEnabled=$it") }
+            input.quotaAlertsEnabled?.let { appendLine("quotaAlertsEnabled=$it") }
+            input.alertThresholds?.let { appendLine("alertThresholds=$it") }
+            if (input.accountAlertConfigs.isNotEmpty()) {
+                appendLine("accountAlertConfigs:")
+                input.accountAlertConfigs.forEach { config ->
+                    appendLine(
+                        "  ${config.providerId}/${config.accountIdHash}=" +
+                            "[${config.enabledWindowIds.joinToString(",")}]",
+                    )
+                }
+            }
+            input.widgetCount?.let { appendLine("widgetCount=$it") }
+
+            appendLine("## ACCOUNTS")
+            input.accountSummaries.forEach { summary ->
+                val attempt = if (summary.lastAttemptStatus == "none") {
+                    "none"
+                } else {
+                    val ageText = age(summary.lastAttemptAt)
+                    val parts = listOfNotNull(summary.lastAttemptErrorCode, ageText).joinToString(", ")
+                    "${summary.lastAttemptStatus}($parts)"
+                }
+                appendLine(
+                    "${summary.providerId}/${summary.accountIdHash} status=${summary.status} " +
+                        "lastAttempt=$attempt lastSuccess=${age(summary.lastSuccessfulRefreshAt) ?: "unavailable"} " +
+                        "snapshot=${age(summary.latestSnapshotAt) ?: "missing"}",
+                )
+            }
+
+            appendLine("## CURRENT ACCOUNT")
             appendLine("providerId=${input.providerId}")
             appendLine("accountDiagnosticId=${input.accountDiagnosticId}")
             appendLine("currentAccountSelectionStatus=${input.currentAccountSelectionStatus}")
             input.accountStatus?.let { appendLine("accountStatus=$it") }
             input.accountCount?.let { appendLine("accountCount=$it") }
+            input.consecutiveFailures?.let { appendLine("consecutiveFailures=$it") }
             input.sessionEnvelopeStatus?.let { appendLine("sessionEnvelopeStatus=$it") }
             input.sessionProviderAccountIdStatus?.let { appendLine("sessionProviderAccountIdStatus=$it") }
             appendLine("currentState=${input.currentState}")
             input.latestSnapshotStatus?.let { appendLine("latestSnapshotStatus=$it") }
             input.latestSnapshotSource?.let { appendLine("latestSnapshotSource=$it") }
-            input.latestSnapshotFetchedAt?.let { appendLine("latestSnapshotFetchedAt=$it") }
+            ts(input.latestSnapshotFetchedAt)?.let { appendLine("latestSnapshotFetchedAt=$it") }
             input.latestSnapshotDigestStatus?.let { appendLine("latestSnapshotDigestStatus=$it") }
-            appendLine("lastSuccessfulRefreshAt=${input.lastSuccessfulRefreshAt}")
+            appendLine("lastSuccessfulRefreshAt=${ts(input.lastSuccessfulRefreshAt) ?: input.lastSuccessfulRefreshAt}")
             appendLine("lastAttemptStatus=${input.lastAttemptStatus}")
             input.lastAttemptTrigger?.let { appendLine("lastAttemptTrigger=$it") }
-            input.lastAttemptStartedAt?.let { appendLine("lastAttemptStartedAt=$it") }
-            input.lastAttemptFinishedAt?.let { appendLine("lastAttemptFinishedAt=$it") }
+            ts(input.lastAttemptStartedAt)?.let { appendLine("lastAttemptStartedAt=$it") }
+            ts(input.lastAttemptFinishedAt)?.let { appendLine("lastAttemptFinishedAt=$it") }
             input.safeErrorCode?.let { appendLine("safeErrorCode=$it") }
             input.httpStatus?.let { appendLine("httpStatus=$it") }
             input.retryable?.let { appendLine("retryable=$it") }
@@ -745,8 +808,6 @@ class SettingsViewModel(
             input.deviceCodeLoginVerificationUriStatus?.let { appendLine("deviceCodeLoginVerificationUriStatus=$it") }
             input.deviceCodeLoginPollIntervalSeconds?.let { appendLine("deviceCodeLoginPollIntervalSeconds=$it") }
             input.deviceCodeLoginExpiresAt?.let { appendLine("deviceCodeLoginExpiresAt=$it") }
-            appendLine("workManagerStatus=${input.workManagerStatus}")
-            appendLine("notificationPermissionStatus=${input.notificationPermissionStatus}")
             input.unsafeDetails?.takeIf { it.isNotBlank() }?.let { appendLine("details=[REDACTED]") }
         }.trim()
 
