@@ -129,7 +129,13 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
           KEYSTORE_PATH="${RUNNER_TEMP}/codexmeter-release.jks"
-          echo "${KEYSTORE_BASE64}" | base64 --decode > "${KEYSTORE_PATH}"
+          # Strip any whitespace/CR/newlines the secret may carry (BSD base64
+          # wraps lines; copy/paste can add CR) — GNU base64 -d rejects them.
+          printf '%s' "${KEYSTORE_BASE64}" | tr -d '[:space:]' | base64 -d > "${KEYSTORE_PATH}"
+          if [[ ! -s "${KEYSTORE_PATH}" ]]; then
+            echo "::error::Decoded keystore is empty — check the RELEASE_KEYSTORE_BASE64 secret."
+            exit 1
+          fi
           echo "KEYSTORE_PATH=${KEYSTORE_PATH}" >> "$GITHUB_ENV"
 
       # ── 10. 编译 Release APK ──────────────────────────────────────────────
