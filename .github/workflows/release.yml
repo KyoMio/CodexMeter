@@ -93,7 +93,7 @@ jobs:
       - name: Install SDK platform & build-tools
         run: |
           sdkmanager --install \
-            "platforms;android-37" \
+            "platforms;android-37.0" \
             "build-tools;37.0.0" \
             "platform-tools"
 
