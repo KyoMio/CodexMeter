@@ -89,6 +89,11 @@ jobs:
       # ── 5. Android SDK ────────────────────────────────────────────────────
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Skip the action's default install ("tools platform-tools"); the legacy
+          # `tools` package archive is obsolete and fails with "unknown archive".
+          # Required packages are installed explicitly in the next step.
+          packages: ''
 
       - name: Install SDK platform & build-tools
         run: |
