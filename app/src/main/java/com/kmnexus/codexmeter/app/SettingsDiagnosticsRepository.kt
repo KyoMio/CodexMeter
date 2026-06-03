@@ -22,12 +22,10 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.RetentionPreference
 import com.kmnexus.codexmeter.domain.settings.RetentionPreferenceReader
 import com.kmnexus.codexmeter.refresh.RefreshWorkScheduler
-import com.kmnexus.codexmeter.ui.settings.DiagnosticsAccountAlertConfig
 import com.kmnexus.codexmeter.ui.settings.DiagnosticsAccountSummary
 import com.kmnexus.codexmeter.ui.settings.SettingsDiagnosticsInput
 import com.kmnexus.codexmeter.ui.settings.SettingsDiagnosticsReader
 import com.kmnexus.codexmeter.ui.settings.WorkManagerDiagnostics
-import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -105,7 +103,7 @@ internal class SettingsDiagnosticsRepository(
             val snapshot = quotaSnapshotDao.getLatestForAccount(acct.providerId, acct.localAccountId)
             DiagnosticsAccountSummary(
                 providerId = acct.providerId,
-                accountIdHash = "sha256:${acct.localAccountId.safeHash()}",
+                accountIdHash = "sha256:${acct.localAccountId.diagnosticsSafeHash()}",
                 status = acct.status,
                 lastAttemptStatus = attempt?.status ?: "none",
                 lastAttemptErrorCode = attempt?.errorCode,
@@ -115,24 +113,14 @@ internal class SettingsDiagnosticsRepository(
             )
         }
 
-        val accountAlertConfigs = prefs.accountQuotaAlertSettings
-            .filterValues { it }
-            .keys
-            .groupBy { it.providerId.value to it.localAccountId.value }
-            .map { (key, entries) ->
-                DiagnosticsAccountAlertConfig(
-                    providerId = key.first,
-                    accountIdHash = "sha256:${key.second.safeHash()}",
-                    enabledWindowIds = entries.map { it.windowId.value },
-                )
-            }
+        val accountAlertConfigs = buildDiagnosticsAccountAlertConfigs(prefs.accountQuotaAlertSettings)
 
         return SettingsDiagnosticsInput(
             appVersion = BuildConfig.VERSION_NAME,
             buildType = BuildConfig.BUILD_TYPE,
             androidSdk = Build.VERSION.SDK_INT.toString(),
             providerId = selectedProviderId,
-            accountDiagnosticId = selectedLocalAccountId?.let { "sha256:${it.safeHash()}" } ?: "not_connected",
+            accountDiagnosticId = selectedLocalAccountId?.let { "sha256:${it.diagnosticsSafeHash()}" } ?: "not_connected",
             currentAccountSelectionStatus = selectionStatus(
                 hasSelection = selection != null,
                 account = account,
@@ -171,7 +159,7 @@ internal class SettingsDiagnosticsRepository(
             userActionRequired = latestAttempt?.userActionRequired,
             diagnosticsDigest = latestAttempt?.diagnosticsDigest,
             deviceCodeLoginStatus = loginDiagnostics.status,
-            deviceCodeLoginAttemptId = loginDiagnostics.attemptId?.let { "sha256:${it.safeHash()}" },
+            deviceCodeLoginAttemptId = loginDiagnostics.attemptId?.let { "sha256:${it.diagnosticsSafeHash()}" },
             deviceCodeLoginSafeErrorCode = loginDiagnostics.safeErrorCode,
             deviceCodeLoginVerificationUriStatus = loginDiagnostics.verificationUriStatus,
             deviceCodeLoginPollIntervalSeconds = loginDiagnostics.pollIntervalSeconds,
@@ -274,7 +262,9 @@ private class AndroidWorkManagerStatusReader(
                 null
             },
             periodicStopReason = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                periodic?.firstOrNull()?.stopReason?.takeIf { it != WorkInfo.STOP_REASON_NOT_STOPPED }?.toString()
+                periodic?.mapNotNull { info ->
+                    info.stopReason.takeIf { it != WorkInfo.STOP_REASON_NOT_STOPPED }
+                }?.firstOrNull()?.toString()
             } else {
                 null
             },
@@ -310,7 +300,3 @@ private class AndroidNotificationPermissionReader(
         }
 }
 
-private fun String.safeHash(): String {
-    val bytes = MessageDigest.getInstance("SHA-256").digest(toByteArray())
-    return bytes.joinToString(separator = "") { byte -> "%02x".format(byte) }.take(12)
-}
