@@ -7,6 +7,31 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// App version is derived from the latest git tag (e.g. `v0.1.1`), never hardcoded.
+// versionName = tag without the leading `v`; versionCode is packed from the semver
+// (MAJOR*10000 + MINOR*100 + PATCH) so it increases monotonically across releases.
+// Falls back to 0.0.0 when no tag is reachable (e.g. a shallow checkout without tags).
+fun gitOutput(vararg args: String): String =
+    try {
+        ProcessBuilder(listOf("git", *args))
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+            .inputStream.bufferedReader()
+            .use { it.readText() }
+            .trim()
+    } catch (e: Exception) {
+        ""
+    }
+
+val gitTag = gitOutput("describe", "--tags", "--abbrev=0").ifBlank { "v0.0.0" }
+val appVersionName = gitTag.removePrefix("v")
+val appVersionCode = appVersionName.substringBefore("-").split(".").let { parts ->
+    (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 10000 +
+        (parts.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
+        (parts.getOrNull(2)?.toIntOrNull() ?: 0)
+}.coerceAtLeast(1)
+
 android {
     namespace = "com.kmnexus.codexmeter"
     compileSdk = 37
@@ -16,8 +41,8 @@ android {
         applicationId = "com.kmnexus.codexmeter"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Antigravity OAuth client secret. Extracted from the official Antigravity

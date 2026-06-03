@@ -120,14 +120,9 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # ── 8. 把 tag 版本号同步进 build.gradle.kts ──────────────────────────
-      - name: Sync versionName from tag
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${VERSION}\"/" app/build.gradle.kts
-          echo "versionName synced to ${VERSION}"
-
       # ── 9. 解码 keystore ──────────────────────────────────────────────────
+      # 注：versionName/versionCode 由 app/build.gradle.kts 直接从 git tag 派生
+      # （fetch-depth: 0 已拉全 tag），无需再在 CI 里 sed 同步。
       - name: Decode release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
