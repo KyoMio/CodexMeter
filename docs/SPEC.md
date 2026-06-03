@@ -1077,7 +1077,7 @@ Rules:
 
 - Do not include token prefix/suffix.
 - Do not include token length when it helps fingerprint secrets.
-- Diagnostics may include safe enum codes, HTTP status, timestamps, provider id, account local id hash, app version and last refresh status.
+- Diagnostics may include safe enum codes, HTTP status, human-readable timestamps with relative age, provider id, account local id hashes, app/build/device/OS info, background-execution signals (battery optimization, background restriction, network type, data saver), WorkManager state, notification permission, app configuration, and per-account refresh/alert summaries.
 
 Required tests:
 
@@ -1089,18 +1089,19 @@ Required tests:
 
 ### 14.2 Diagnostics card
 
-Copyable diagnostics must include only:
+Copyable diagnostics are grouped into sections (generated, environment, workmanager, config, accounts, current account) and must include only:
 
-- app version/build type
-- provider id
-- local account id hash or short stable diagnostic id
-- current state category
-- last success timestamp
-- last attempt status
-- safe error code
-- HTTP status if present
-- WorkManager last known status if available
-- notification permission status
+- app version / build type / Android SDK and release
+- device model and locale
+- background-execution signals: battery-optimization-ignored, background-restricted, network type, data saver
+- app first-install / last-update time
+- WorkManager state, run-attempt count, next schedule, stop reason; notification permission status
+- Room schema version, retention days, refresh interval, notification/alert toggles, alert thresholds, widget count
+- per-account alert windows (with provider id and hashed account id)
+- per-account one-line summary: provider id, hashed account id, status, last attempt result, last success / snapshot age
+- current account detail: provider id, hashed account id or short stable diagnostic id, current state category, session status, consecutive failure count
+- last success timestamp, last attempt status, safe error code, HTTP status if present
+- device-code login status, hashed attempt id, verification URI category, poll info
 
 Must not include:
 

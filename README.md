@@ -47,6 +47,19 @@ CodexMeter is an unofficial Android app for keeping an eye on official quota usa
 | Cursor | Cookie capture (in-app WebView) |
 | Kimi | Cookie capture (in-app WebView) |
 
+## Download & Install
+
+Grab the latest signed APK from the GitHub Releases page:
+
+**→ [Download the latest release](https://github.com/KyoMio/CodexMeter/releases/latest)** ([all releases](https://github.com/KyoMio/CodexMeter/releases))
+
+1. On your Android 12+ device, open the release and download the `.apk` asset.
+2. When prompted, allow your browser or file manager to "install unknown apps".
+3. Open the downloaded APK and tap **Install**.
+4. Launch CodexMeter and add an account to start tracking quota.
+
+The app checks GitHub Releases for newer versions from the Settings screen; it never auto-installs and requests no storage permission.
+
 ## Privacy
 
 CodexMeter keeps sensitive data on the device.

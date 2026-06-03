@@ -45,6 +45,19 @@ CodexMeter 是一个非官方 Android 应用，用来在应用首页、桌面小
 | Cursor | Cookie 采集（应用内 WebView） |
 | Kimi | Cookie 采集（应用内 WebView） |
 
+## 下载与安装
+
+从 GitHub Releases 页面获取最新签名 APK：
+
+**→ [下载最新版本](https://github.com/KyoMio/CodexMeter/releases/latest)**（[全部版本](https://github.com/KyoMio/CodexMeter/releases)）
+
+1. 在 Android 12+ 设备上打开该 Release，下载 `.apk` 安装包。
+2. 出现提示时，允许浏览器或文件管理器“安装未知应用”。
+3. 打开下载好的 APK，点击 **安装**。
+4. 启动 CodexMeter 并添加账号即可开始监控额度。
+
+应用可在设置页检查 GitHub Releases 的新版本；它不会自动安装，也不申请存储权限。
+
 ## 隐私与安全
 
 CodexMeter 会把敏感数据保存在设备本地。

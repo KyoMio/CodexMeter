@@ -1002,20 +1002,39 @@ CodexMeter 只提供可复制脱敏诊断摘要。
 
 ### 18.1 诊断摘要包含
 
-- App 版本。
-- Android 版本。
-- providerId。
-- 脱敏 accountId 后缀。
-- 当前账号状态。
-- session 状态。
-- 最近成功刷新时间。
-- 最近失败时间。
-- 错误类型。
-- HTTP status。
-- 数据新鲜度。
-- device-code 登录状态、脱敏 attempt id、verification URI 分类和轮询信息。
-- WorkManager 最近状态。
+诊断按分组段落输出（`## GENERATED / ENVIRONMENT / WORKMANAGER / CONFIG / ACCOUNTS / CURRENT ACCOUNT`）；时间戳同时给出可读 UTC 时间和相对时长，并以导出时刻 `generatedAt` 作为相对时长基准。
+
+环境（ENVIRONMENT）：
+
+- App 版本、build type、Android SDK 与版本号。
+- 设备型号、locale。
+- 电池优化白名单状态、后台限制状态、网络类型、Data Saver 状态。
+- App 首次安装与最近更新时间。
+
+后台调度（WORKMANAGER）：
+
+- WorkManager 周期任务状态、运行尝试次数、下次调度时间、停止原因。
+- 一次性刷新任务状态。
 - 通知权限状态。
+
+应用配置（CONFIG）：
+
+- Room schema 版本、历史保留天数、刷新间隔。
+- 状态通知开关、额度告警开关、告警阈值。
+- 各账号已开启告警的额度窗口（带 providerId 与脱敏账号哈希）。
+- 已放置的 Widget 数量。
+
+全部账号摘要（ACCOUNTS）：
+
+- 每个账号一行：providerId、脱敏账号哈希、状态、最近一次刷新结果（状态 / 错误码 / 时长）、最近成功刷新时长、最近快照时长。
+
+当前账号（CURRENT ACCOUNT）：
+
+- providerId、脱敏 accountId 哈希、账号选择状态、账号状态、账号数量、连续失败次数。
+- session 状态、session providerAccountId 状态、当前展示状态、数据新鲜度。
+- 最近快照来源 / 时间 / 摘要状态、最近成功刷新时间、最近一次刷新尝试（触发源 / 起止时间 / 状态）。
+- 安全错误类型、HTTP status、是否可重试、是否需要用户操作、诊断摘要。
+- device-code 登录状态、脱敏 attempt id、verification URI 分类和轮询信息。
 
 ### 18.2 诊断摘要禁止包含
 
