@@ -105,6 +105,7 @@ venv/
 # Local exploration / planning artifacts
 docs/plans/
 docs/superpowers/
+docs/design/
 sketches/
 spikes/
 
