@@ -11,6 +11,7 @@ import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import androidx.compose.ui.unit.DpSize
+import com.kmnexus.codexmeter.domain.theme.WidgetAppearance
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -26,6 +27,7 @@ internal object LiquidGlassWidgetBackdropRenderer {
         context: Context,
         size: DpSize,
         tone: WidgetQuotaTone,
+        appearance: WidgetAppearance,
     ): Bitmap {
         val density = context.resources.displayMetrics.density
         val width = max(MIN_WIDTH_PX, (size.width.value * density).roundToInt())
@@ -36,7 +38,7 @@ internal object LiquidGlassWidgetBackdropRenderer {
         val inset = 4f * scale
         val radius = 26f * scale
         val bounds = RectF(inset, inset, width - inset, height - inset)
-        val style = styleSpec(tone)
+        val style = styleSpec(tone, appearance)
 
         drawAttachedShadow(canvas, bounds, radius, style, scale)
         drawThinFrostedBody(canvas, bounds, radius, tone, style, scale)
@@ -47,7 +49,16 @@ internal object LiquidGlassWidgetBackdropRenderer {
         return bitmap
     }
 
-    internal fun styleSpec(tone: WidgetQuotaTone): LiquidGlassWidgetBackdropStyle {
+    internal fun styleSpec(
+        tone: WidgetQuotaTone,
+        appearance: WidgetAppearance,
+    ): LiquidGlassWidgetBackdropStyle =
+        when (appearance) {
+            WidgetAppearance.DARK -> darkStyleSpec(tone)
+            WidgetAppearance.LIGHT -> lightStyleSpec(tone)
+        }
+
+    private fun darkStyleSpec(tone: WidgetQuotaTone): LiquidGlassWidgetBackdropStyle {
         val (shadowRed, shadowGreen, shadowBlue) = when (tone) {
             WidgetQuotaTone.Success -> Triple(78, 124, 174)
             WidgetQuotaTone.Warning -> Triple(102, 116, 156)
@@ -55,6 +66,7 @@ internal object LiquidGlassWidgetBackdropRenderer {
             WidgetQuotaTone.Neutral -> Triple(76, 122, 182)
         }
         return LiquidGlassWidgetBackdropStyle(
+            appearance = WidgetAppearance.DARK,
             bottomShadowRed = shadowRed,
             bottomShadowGreen = shadowGreen,
             bottomShadowBlue = shadowBlue,
@@ -72,6 +84,50 @@ internal object LiquidGlassWidgetBackdropRenderer {
             topHighlightPeakAlpha = 18,
             sideRimPeakAlpha = 10,
             bottomRimBlueAlpha = 2,
+            outerBorderStrokeScale = 0.22f,
+            innerBorderStrokeScale = 0f,
+            topHighlightTopInsetScale = 1.0f,
+            topHighlightHeightFraction = 0.055f,
+            topHighlightSideInsetScale = 3f,
+            topHighlightMaxHeightScale = 2.2f,
+            bottomShadowCenterOffsetScale = -0.05f,
+            bottomShadowTopOffsetScale = 0.05f,
+            bottomShadowBottomOffsetScale = 0.75f,
+            bottomShadowContactTopOffsetScale = 0.05f,
+            bottomShadowContactBottomOffsetScale = 0.45f,
+        )
+    }
+
+    /**
+     * Light "liquid glass" backdrop per design Appendix A.2: a cool-white frosted body
+     * (rgba(244,249,255,.74) → rgba(228,239,252,.66)), a thin white top highlight, a hairline
+     * cool-blue rim (rgba(150,180,220,.5)) and a very light cool contact shadow. All structural
+     * passes (refraction lens, top glint, double rim, contact shadow) are preserved so the surface
+     * keeps depth and does not degrade into a plain white card (DESIGN.md §891).
+     */
+    private fun lightStyleSpec(tone: WidgetQuotaTone): LiquidGlassWidgetBackdropStyle {
+        // Cool blue-grey contact shadow base (rgba(40,70,110,.28) at peak; alphas applied per pass).
+        val (shadowRed, shadowGreen, shadowBlue) = Triple(40, 70, 110)
+        return LiquidGlassWidgetBackdropStyle(
+            appearance = WidgetAppearance.LIGHT,
+            bottomShadowRed = shadowRed,
+            bottomShadowGreen = shadowGreen,
+            bottomShadowBlue = shadowBlue,
+            // Cool-white frosted body: high opacity so dark ink text reads, tone tints subtly.
+            bodyTopAlpha = 189, // ~.74
+            bodyMiddleAlpha = 178,
+            bodyToneAlpha = 170,
+            bodyBottomAlpha = 168, // ~.66
+            frostVeilPeakAlpha = 22,
+            innerAirPeakAlpha = 18,
+            lensBluePeakAlpha = 12,
+            lensCyanPeakAlpha = 8,
+            bottomShadowPeakAlpha = 18, // ~.28 cool contact shadow, kept very light
+            bottomShadowContactAlpha = 8,
+            topEdgeRimAlpha = 36,
+            topHighlightPeakAlpha = 230, // thin white top highlight (inset 0 1px rgba(255,255,255,.9))
+            sideRimPeakAlpha = 22,
+            bottomRimBlueAlpha = 18,
             outerBorderStrokeScale = 0.22f,
             innerBorderStrokeScale = 0f,
             topHighlightTopInsetScale = 1.0f,
@@ -147,12 +203,22 @@ internal object LiquidGlassWidgetBackdropRenderer {
                 bounds.top,
                 bounds.right,
                 bounds.bottom,
-                intArrayOf(
-                    Color.argb(style.bodyTopAlpha, 62, 84, 112),
-                    Color.argb(style.bodyMiddleAlpha, 38, 56, 82),
-                    tone.darkSurfaceColor(alpha = style.bodyToneAlpha),
-                    Color.argb(style.bodyBottomAlpha, 46, 64, 92),
-                ),
+                if (style.appearance == WidgetAppearance.LIGHT) {
+                    // Cool-white frosted base: 244,249,255 -> 228,239,252, with a faint tone tint mid-way.
+                    intArrayOf(
+                        Color.argb(style.bodyTopAlpha, 244, 249, 255),
+                        Color.argb(style.bodyMiddleAlpha, 238, 245, 253),
+                        tone.lightSurfaceColor(alpha = style.bodyToneAlpha),
+                        Color.argb(style.bodyBottomAlpha, 228, 239, 252),
+                    )
+                } else {
+                    intArrayOf(
+                        Color.argb(style.bodyTopAlpha, 62, 84, 112),
+                        Color.argb(style.bodyMiddleAlpha, 38, 56, 82),
+                        tone.darkSurfaceColor(alpha = style.bodyToneAlpha),
+                        Color.argb(style.bodyBottomAlpha, 46, 64, 92),
+                    )
+                },
                 floatArrayOf(0f, 0.34f, 0.68f, 1f),
                 Shader.TileMode.CLAMP,
             )
@@ -328,6 +394,9 @@ internal object LiquidGlassWidgetBackdropRenderer {
         val saved = canvas.save()
         canvas.clipPath(Path().apply { addRoundRect(bounds.insetCopy(1.1f * scale), radius * 0.95f, radius * 0.95f, Path.Direction.CW) })
 
+        // Light glass uses a hairline cool-blue rim (rgba(150,180,220,.5)); dark keeps a white rim.
+        val (rimRed, rimGreen, rimBlue) =
+            if (style.appearance == WidgetAppearance.LIGHT) Triple(150, 180, 220) else Triple(255, 255, 255)
         val leftRim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = LinearGradient(
                 bounds.left,
@@ -335,9 +404,9 @@ internal object LiquidGlassWidgetBackdropRenderer {
                 bounds.left + bounds.width() * 0.12f,
                 bounds.bottom,
                 intArrayOf(
-                    Color.argb(style.sideRimPeakAlpha, 255, 255, 255),
-                    Color.argb(3, 255, 255, 255),
-                    Color.argb(0, 255, 255, 255),
+                    Color.argb(style.sideRimPeakAlpha, rimRed, rimGreen, rimBlue),
+                    Color.argb(3, rimRed, rimGreen, rimBlue),
+                    Color.argb(0, rimRed, rimGreen, rimBlue),
                 ),
                 floatArrayOf(0f, 0.48f, 1f),
                 Shader.TileMode.CLAMP,
@@ -379,11 +448,20 @@ internal object LiquidGlassWidgetBackdropRenderer {
                 bounds.top,
                 bounds.right,
                 bounds.bottom,
-                intArrayOf(
-                    Color.argb(18, 255, 255, 255),
-                    Color.argb(4, 208, 228, 252),
-                    Color.argb(8, 255, 255, 255),
-                ),
+                if (style.appearance == WidgetAppearance.LIGHT) {
+                    // Hairline cool-blue rim (rgba(150,180,220,.5)) with a faint white top glint.
+                    intArrayOf(
+                        Color.argb(128, 150, 180, 220),
+                        Color.argb(96, 150, 180, 220),
+                        Color.argb(60, 255, 255, 255),
+                    )
+                } else {
+                    intArrayOf(
+                        Color.argb(18, 255, 255, 255),
+                        Color.argb(4, 208, 228, 252),
+                        Color.argb(8, 255, 255, 255),
+                    )
+                },
                 floatArrayOf(0f, 0.58f, 1f),
                 Shader.TileMode.CLAMP,
             )
@@ -399,6 +477,17 @@ internal object LiquidGlassWidgetBackdropRenderer {
             WidgetQuotaTone.Warning -> Triple(76, 66, 48)
             WidgetQuotaTone.Danger -> Triple(78, 52, 62)
             WidgetQuotaTone.Neutral -> Triple(42, 62, 90)
+        }
+        return Color.argb(alpha, red, green, blue)
+    }
+
+    /** Cool-white frosted surface with a faint per-tone tint, kept light so dark ink text reads. */
+    private fun WidgetQuotaTone.lightSurfaceColor(alpha: Int): Int {
+        val (red, green, blue) = when (this) {
+            WidgetQuotaTone.Success -> Triple(232, 246, 240)
+            WidgetQuotaTone.Warning -> Triple(248, 244, 232)
+            WidgetQuotaTone.Danger -> Triple(250, 238, 240)
+            WidgetQuotaTone.Neutral -> Triple(234, 242, 252)
         }
         return Color.argb(alpha, red, green, blue)
     }
@@ -423,7 +512,25 @@ internal object LiquidGlassWidgetBackdropRenderer {
     private const val MIN_HEIGHT_PX = 120
 }
 
+/** Primary widget text color: white on dark glass, dark ink (glassInk #151821) on light glass. */
+internal fun widgetTextColor(appearance: WidgetAppearance): androidx.compose.ui.graphics.Color =
+    if (appearance == WidgetAppearance.DARK) {
+        androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+    } else {
+        androidx.compose.ui.graphics.Color(0xFF151821)
+    }
+
+/** Muted widget text color: translucent white on dark glass, translucent dark ink on light glass. */
+internal fun widgetMutedTextColor(appearance: WidgetAppearance): androidx.compose.ui.graphics.Color =
+    if (appearance == WidgetAppearance.DARK) {
+        androidx.compose.ui.graphics.Color(0xE6FFFFFF)
+    } else {
+        // rgba(21,24,33,.55) per design Appendix A.2 secondary text.
+        androidx.compose.ui.graphics.Color(0x8C151821)
+    }
+
 internal data class LiquidGlassWidgetBackdropStyle(
+    val appearance: WidgetAppearance,
     val bottomShadowRed: Int,
     val bottomShadowGreen: Int,
     val bottomShadowBlue: Int,

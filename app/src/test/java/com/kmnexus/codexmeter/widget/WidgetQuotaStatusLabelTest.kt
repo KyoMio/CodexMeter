@@ -39,10 +39,11 @@ class WidgetQuotaStatusLabelTest {
 
     @Test
     fun `quota percent color only uses semantic color when quota needs attention`() {
-        assertEquals(Color(0xFFFFFFFF), WidgetQuotaTone.Success.percentColor())
-        assertEquals(Color(0xCCFFFFFF), WidgetQuotaTone.Neutral.percentColor())
-        assertEquals(Color(0xFFFFC85A), WidgetQuotaTone.Warning.percentColor())
-        assertEquals(Color(0xFFFF6B7A), WidgetQuotaTone.Danger.percentColor())
+        val dark = com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK
+        assertEquals(Color(0xFFFFFFFF), WidgetQuotaTone.Success.percentColor(dark))
+        assertEquals(Color(0xCCFFFFFF), WidgetQuotaTone.Neutral.percentColor(dark))
+        assertEquals(Color(0xFFFFC85A), WidgetQuotaTone.Warning.percentColor(dark))
+        assertEquals(Color(0xFFFF6B7A), WidgetQuotaTone.Danger.percentColor(dark))
     }
 
     @Test

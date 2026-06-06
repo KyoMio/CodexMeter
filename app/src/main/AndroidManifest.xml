@@ -50,6 +50,10 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- Redraw the widget when system night mode changes (resolves the glass appearance
+                     under SYSTEM theme mode). Missed if the process is dead; the next periodic
+                     refresh / app open recovers it. -->
+                <action android:name="android.intent.action.CONFIGURATION_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

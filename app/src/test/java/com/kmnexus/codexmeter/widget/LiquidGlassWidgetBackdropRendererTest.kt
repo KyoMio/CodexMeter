@@ -6,7 +6,7 @@ import org.junit.Test
 class LiquidGlassWidgetBackdropRendererTest {
     @Test
     fun `backdrop style keeps the frosted body light and translucent`() {
-        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success)
+        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success, com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK)
 
         assertTrue(style.bodyTopAlpha in 102..120)
         assertTrue(style.bodyMiddleAlpha in 88..104)
@@ -18,7 +18,7 @@ class LiquidGlassWidgetBackdropRendererTest {
 
     @Test
     fun `backdrop style keeps only a close lightweight contact shadow`() {
-        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success)
+        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success, com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK)
 
         assertTrue(style.bottomShadowPeakAlpha in 3..8)
         assertTrue(style.bottomShadowContactAlpha in 1..4)
@@ -27,7 +27,7 @@ class LiquidGlassWidgetBackdropRendererTest {
 
     @Test
     fun `backdrop style uses hairline rim instead of thick stacked borders`() {
-        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success)
+        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success, com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK)
 
         assertTrue(style.topHighlightPeakAlpha in 14..24)
         assertTrue(style.topEdgeRimAlpha in 14..22)
@@ -41,7 +41,7 @@ class LiquidGlassWidgetBackdropRendererTest {
 
     @Test
     fun `backdrop style keeps highlight and shadow attached to the same thin body`() {
-        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success)
+        val style = LiquidGlassWidgetBackdropRenderer.styleSpec(WidgetQuotaTone.Success, com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK)
 
         assertTrue(style.topHighlightTopInsetScale <= 2f)
         assertTrue(style.topHighlightHeightFraction <= 0.07f)
