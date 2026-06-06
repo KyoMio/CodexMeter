@@ -78,13 +78,13 @@ fun QmLiquidGlassSurface(
                 .matchParentSize()
                 .border(
                     width = 1.dp,
-                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = if (isDark) 0.28f else 0.82f),
+                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = if (isDark) 0.24f else 0.48f),
                     shape = shape,
                 )
-                .padding(1.dp)
+                .padding(0.5.dp)
                 .border(
-                    width = 1.dp,
-                    color = CodexMeterTheme.colors.glassStrokeCool.copy(alpha = 0.52f),
+                    width = 0.5.dp,
+                    color = CodexMeterTheme.colors.glassStrokeCool.copy(alpha = if (isDark) 0.30f else 0.36f),
                     shape = shape,
                 ),
         )
@@ -146,7 +146,6 @@ private fun LiquidGlassFallback(
     val neutralAlt = CodexMeterTheme.colors.neutralAlt
     val tintBlue = CodexMeterTheme.colors.glassTintBlue
     val tintCyan = CodexMeterTheme.colors.glassTintCyan
-    val tintViolet = CodexMeterTheme.colors.glassTintViolet
     val strokeLight = CodexMeterTheme.colors.glassStrokeLight
     val strokeCool = CodexMeterTheme.colors.glassStrokeCool
     val isDark = CodexMeterTheme.colors.isDark
@@ -177,20 +176,17 @@ private fun LiquidGlassFallback(
             cornerRadius = CornerRadius(radiusPx, radiusPx),
         )
         if (role == LiquidGlassSurfaceRole.Navigation) {
+            // Keep the caustic lenses faint and tucked inward so they don't bleed onto the
+            // pill edge and make the rim look unevenly thick.
             drawCircle(
-                color = tintBlue.copy(alpha = 0.10f),
-                radius = size.minDimension * 0.74f,
-                center = Offset(size.width * 0.13f, size.height * 0.12f),
+                color = tintBlue.copy(alpha = 0.05f),
+                radius = size.minDimension * 0.52f,
+                center = Offset(size.width * 0.18f, size.height * 0.30f),
             )
             drawCircle(
-                color = tintCyan.copy(alpha = 0.08f),
-                radius = size.minDimension * 0.44f,
-                center = Offset(size.width * 0.78f, size.height * 0.30f),
-            )
-            drawCircle(
-                color = tintViolet.copy(alpha = 0.06f),
-                radius = size.minDimension * 0.40f,
-                center = Offset(size.width * 0.72f, size.height * 0.92f),
+                color = tintCyan.copy(alpha = 0.04f),
+                radius = size.minDimension * 0.34f,
+                center = Offset(size.width * 0.72f, size.height * 0.40f),
             )
         }
         // Top sheen: a soft white highlight on light glass; on dark glass keep it a faint
@@ -208,7 +204,7 @@ private fun LiquidGlassFallback(
         )
         if (role == LiquidGlassSurfaceRole.Navigation) {
             drawRoundRect(
-                color = Color.White.copy(alpha = if (isDark) 0.08f else 0.20f),
+                color = Color.White.copy(alpha = if (isDark) 0.05f else 0.10f),
                 topLeft = Offset(1.8.dp.toPx(), 1.8.dp.toPx()),
                 size = androidx.compose.ui.geometry.Size(
                     width = size.width - 3.6.dp.toPx(),
@@ -413,9 +409,9 @@ private class LiquidGlassSourceView(context: Context) : View(context) {
         )
         canvas.drawRect(0f, 0f, width, height, paint)
         if (role == LiquidGlassSurfaceRole.Navigation) {
-            drawLens(canvas, width * 0.18f, height * 0.18f, height * 0.86f, android.graphics.Color.argb(46, 93, 184, 255))
-            drawLens(canvas, width * 0.74f, height * 0.22f, height * 0.64f, android.graphics.Color.argb(32, 126, 244, 232))
-            drawLens(canvas, width * 0.76f, height * 0.86f, height * 0.56f, android.graphics.Color.argb(24, 157, 140, 255))
+            // Softer, inward caustics so the refracted glass reads evenly across the pill edge.
+            drawLens(canvas, width * 0.22f, height * 0.34f, height * 0.66f, android.graphics.Color.argb(22, 93, 184, 255))
+            drawLens(canvas, width * 0.74f, height * 0.40f, height * 0.52f, android.graphics.Color.argb(16, 126, 244, 232))
         }
         // Top sheen: bright on light glass, a much fainter gleam on dark glass.
         val sheenAlpha = if (isDark) 22 else if (role == LiquidGlassSurfaceRole.Hero) 76 else 78
