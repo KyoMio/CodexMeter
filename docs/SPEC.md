@@ -157,6 +157,7 @@ Permissions:
 - Required: `android.permission.INTERNET`.
 - Required: `android.permission.ACCESS_NETWORK_STATE`.
 - Optional/runtime: `android.permission.POST_NOTIFICATIONS` for Android 13+.
+- Optional: `android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, only to offer (never force) the user a system dialog so Doze defers periodic refresh less aggressively. Surfaced from the background-refresh settings card when the app is not yet exempt.
 - Not allowed: storage permissions, exact alarm, foreground service, location, contacts, phone, SMS.
 
 Security manifest rules:

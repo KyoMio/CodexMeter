@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -107,6 +108,14 @@ fun SettingsRoute(
     val coroutineScope = rememberCoroutineScope()
     val diagnosticsClipboardLabel = stringResource(R.string.settings_diagnostics_clipboard_label)
     var pendingPermissionTarget by remember { mutableStateOf<SettingsNotificationPermissionTarget?>(null) }
+    var batteryOptimizationIgnored by remember { mutableStateOf(context.isIgnoringBatteryOptimizations()) }
+    // The system dialog always returns RESULT_CANCELED, so re-read PowerManager on return instead of
+    // trusting the result code to decide whether the hint should disappear.
+    val batteryOptimizationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        batteryOptimizationIgnored = context.isIgnoringBatteryOptimizations()
+    }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -196,6 +205,17 @@ fun SettingsRoute(
         onAppUpdateCheckClick = viewModel::checkForUpdates,
         onAppUpdateDismiss = viewModel::dismissPendingUpdate,
         onAppUpdateDownloadClick = viewModel::downloadPendingUpdate,
+        showBatteryOptimizationHint = SettingsBatteryOptimizationGate.shouldOfferExemption(
+            batteryOptimizationIgnored = batteryOptimizationIgnored,
+            backgroundRefreshEnabled = uiState.refresh.backgroundRefreshEnabled,
+        ),
+        onBatteryOptimizationClick = {
+            runCatching {
+                batteryOptimizationLauncher.launch(
+                    SettingsBatteryOptimizationTarget.requestExemptionIntent(context.packageName),
+                )
+            }
+        },
     )
     pendingPermissionTarget?.let {
         NotificationPermissionRationaleDialog(
@@ -239,6 +259,8 @@ fun SettingsScreen(
     onAppUpdateCheckClick: () -> Unit = {},
     onAppUpdateDismiss: () -> Unit = {},
     onAppUpdateDownloadClick: () -> Unit = {},
+    showBatteryOptimizationHint: Boolean = false,
+    onBatteryOptimizationClick: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -276,6 +298,8 @@ fun SettingsScreen(
             refresh = uiState.refresh,
             onBackgroundRefreshChanged = onBackgroundRefreshChanged,
             onIntervalClick = { onChoiceDialogRequested(SettingsChoiceDialog.RefreshInterval) },
+            showBatteryOptimizationHint = showBatteryOptimizationHint,
+            onBatteryOptimizationClick = onBatteryOptimizationClick,
         )
         SettingsSectionLabel(R.string.settings_group_data)
         DataCard(
@@ -568,3 +592,8 @@ private fun Context.hasNotificationPermission(): Boolean =
             this,
             Manifest.permission.POST_NOTIFICATIONS,
         ) == PackageManager.PERMISSION_GRANTED
+
+// Null when PowerManager is unavailable so the hint stays hidden rather than guessing.
+private fun Context.isIgnoringBatteryOptimizations(): Boolean? =
+    (getSystemService(Context.POWER_SERVICE) as? PowerManager)
+        ?.isIgnoringBatteryOptimizations(packageName)

@@ -298,6 +298,9 @@
     <string name="settings_balance_amount_format">%1$s%2$d</string>
     <string name="settings_background_refresh_title">Background refresh</string>
     <string name="settings_background_refresh_description">Refresh all accounts in the background when Android allows it.</string>
+    <string name="settings_battery_optimization_title">Improve background reliability</string>
+    <string name="settings_battery_optimization_description">When the screen is off, Android battery saving delays background refresh. Allowing this app to ignore battery optimization keeps refresh closer to your interval (still subject to system scheduling).</string>
+    <string name="settings_battery_optimization_action">Allow</string>
     <string name="settings_refresh_interval_title">Refresh interval</string>
     <string name="settings_refresh_interval_description">How often to refresh quota in the background.</string>
     <string name="settings_refresh_interval_15min">Every 15 min</string>

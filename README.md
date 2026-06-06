@@ -60,6 +60,12 @@ Grab the latest signed APK from the GitHub Releases page:
 
 The app checks GitHub Releases for newer versions from the Settings screen; it never auto-installs and requests no storage permission.
 
+## Background Refresh
+
+CodexMeter refreshes quota in the background with WorkManager (default every ~15 minutes), and never runs a foreground service for refresh. When the screen is off, Android's Doze mode batches background work into maintenance windows, so the actual cadence stretches well beyond your configured interval — this is expected OS behavior, not a bug.
+
+To improve reliability (especially on OEM ROMs that aggressively kill background apps), Settings → Refresh shows an optional **Allow** action that asks the system to exempt CodexMeter from battery optimization. It is never forced and only appears when the app is not yet exempt; even when granted, exact intervals are still subject to system scheduling.
+
 ## Privacy
 
 CodexMeter keeps sensitive data on the device.

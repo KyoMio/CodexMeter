@@ -270,6 +270,8 @@ internal fun RefreshCard(
     refresh: SettingsRefreshUi,
     onBackgroundRefreshChanged: (Boolean) -> Unit,
     onIntervalClick: () -> Unit,
+    showBatteryOptimizationHint: Boolean = false,
+    onBatteryOptimizationClick: () -> Unit = {},
 ) {
     SettingsSurfaceCard {
         Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
@@ -293,6 +295,21 @@ internal fun RefreshCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (showBatteryOptimizationHint) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
+                ) {
+                    SettingsItemText(
+                        titleResId = R.string.settings_battery_optimization_title,
+                        descriptionResId = R.string.settings_battery_optimization_description,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onBatteryOptimizationClick, shape = CodexMeterShapes.md) {
+                        Text(text = stringResource(R.string.settings_battery_optimization_action))
+                    }
+                }
+            }
         }
     }
 }
