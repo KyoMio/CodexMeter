@@ -293,6 +293,9 @@
     <string name="settings_balance_amount_format">%1$s%2$d</string>
     <string name="settings_background_refresh_title">后台刷新</string>
     <string name="settings_background_refresh_description">Android 允许时在后台刷新所有账号。</string>
+    <string name="settings_battery_optimization_title">提升后台刷新可靠性</string>
+    <string name="settings_battery_optimization_description">息屏后 Android 省电策略会推迟后台刷新。允许本应用忽略电池优化，可让刷新更接近你设置的间隔（仍受系统调度限制）。</string>
+    <string name="settings_battery_optimization_action">去允许</string>
     <string name="settings_refresh_interval_title">刷新间隔</string>
     <string name="settings_refresh_interval_description">后台刷新额度的频率。</string>
     <string name="settings_refresh_interval_15min">每 15 分钟</string>
