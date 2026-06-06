@@ -28,10 +28,12 @@ class MainActivity : ComponentActivity() {
             val darkAppearance = resolveDarkAppearance(themeMode, isSystemInDarkTheme())
 
             val view = LocalView.current
-            SideEffect {
-                val controller = WindowCompat.getInsetsController(window, view)
-                controller.isAppearanceLightStatusBars = !darkAppearance
-                controller.isAppearanceLightNavigationBars = !darkAppearance
+            if (!view.isInEditMode) {
+                SideEffect {
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    controller.isAppearanceLightStatusBars = !darkAppearance
+                    controller.isAppearanceLightNavigationBars = !darkAppearance
+                }
             }
 
             CodexMeterTheme(themeMode = themeMode, fontScheme = CodexMeterFontScheme.MonoFocusGeistMono) {
