@@ -1,6 +1,5 @@
 package com.kmnexus.codexmeter.widget
 
-import androidx.compose.ui.graphics.Color
 import com.kmnexus.codexmeter.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -35,26 +34,6 @@ class WidgetQuotaStatusLabelTest {
         assertEquals(R.string.widget_status_auth_required, stateWith(WidgetQuotaStatus.AuthRequired).statusLabelResId())
         assertEquals(R.string.widget_status_refresh_failed, stateWith(WidgetQuotaStatus.ErrorWithLastKnownGood).statusLabelResId())
         assertEquals(R.string.widget_status_no_data, stateWith(WidgetQuotaStatus.NoData).statusLabelResId())
-    }
-
-    @Test
-    fun `quota percent color only uses semantic color when quota needs attention`() {
-        val dark = com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK
-        assertEquals(Color(0xFFFFFFFF), WidgetQuotaTone.Success.percentColor(dark))
-        assertEquals(Color(0xCCFFFFFF), WidgetQuotaTone.Neutral.percentColor(dark))
-        assertEquals(Color(0xFFFFC85A), WidgetQuotaTone.Warning.percentColor(dark))
-        assertEquals(Color(0xFFFF6B7A), WidgetQuotaTone.Danger.percentColor(dark))
-    }
-
-    @Test
-    fun `semantic accents stay luminous on dark glass`() {
-        val dark = com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK
-        assertEquals(Color(0xFF5CF2A6), WidgetQuotaTone.Success.statusAccentColor(dark))
-        assertEquals(Color(0xFFFFC85A), WidgetQuotaTone.Warning.statusAccentColor(dark))
-        assertEquals(Color(0xFFFF6B7A), WidgetQuotaTone.Danger.statusAccentColor(dark))
-        assertEquals(Color(0x335CF2A6), WidgetQuotaTone.Success.statusGlowColor())
-        assertEquals(Color(0x33FFC85A), WidgetQuotaTone.Warning.statusGlowColor())
-        assertEquals(Color(0x33FF6B7A), WidgetQuotaTone.Danger.statusGlowColor())
     }
 
     @Test

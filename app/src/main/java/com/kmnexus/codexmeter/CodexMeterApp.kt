@@ -37,13 +37,10 @@ import com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader
 import com.kmnexus.codexmeter.ui.account.AccountQuotaAlertEvaluationRequester
 import com.kmnexus.codexmeter.ui.settings.SettingsBackgroundRefreshStatusReader
 import com.kmnexus.codexmeter.ui.settings.SettingsDiagnosticsReader
-import androidx.glance.appwidget.updateAll
-import com.kmnexus.codexmeter.widget.CodexMeterWidget
 import com.kmnexus.codexmeter.widget.WidgetQuotaStateLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 class CodexMeterApp : Application(), Configuration.Provider, QuotaRefreshDependenciesProvider {
@@ -158,24 +155,6 @@ class CodexMeterApp : Application(), Configuration.Provider, QuotaRefreshDepende
                 appContainer.notificationPreferences.notificationPreferences().backgroundRefreshIntervalMinutes
             }.getOrDefault(DEFAULT_REFRESH_INTERVAL_MINUTES)
             scheduler.applyIntervalMinutes(minutes)
-        }
-        observeThemeModeForWidgetRedraw()
-    }
-
-    /**
-     * Redraw the launcher widget whenever the user changes the in-app appearance preference while
-     * the process is alive. [drop] skips the initial replayed value so we don't redraw on startup;
-     * each later change reuses the same [CodexMeterWidget.updateAll] path as the quota updater.
-     * System night-mode changes are handled separately via ACTION_CONFIGURATION_CHANGED (and missed
-     * only when the process is dead, in which case the next periodic refresh / app open redraws it).
-     */
-    private fun observeThemeModeForWidgetRedraw() {
-        applicationScope.launch {
-            appContainer.appearancePreferences.themeMode
-                .drop(1)
-                .collect {
-                    runCatching { CodexMeterWidget().updateAll(applicationContext) }
-                }
         }
     }
 

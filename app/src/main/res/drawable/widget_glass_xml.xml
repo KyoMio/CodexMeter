@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LIGHT "liquid glass" widget backdrop, pure <layer-list>/<shape> reproduction.
+  A/B spike artifact compared against the runtime-bitmap renderer; DESIGN.md §912.
+  Layers bottom->top: contact shadow, frosted body, internal refraction lens,
+  top highlight, double hairline rim (outer cool-blue + inner near-white).
+  Corner radius ~24dp; ~3dp inset so the contact shadow/rim read.
+  Pure XML can do no Gaussian blur and no off-bounds clipping, so the refraction
+  lens is kept fully internal (upper-left, not reaching the edges).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Contact shadow: cool blue-gray, offset down a few dp so it reads as an attached drop shadow. rgba(40,70,110,0.28) -> #47284A6E -->
+    <item
+        android:left="3dp"
+        android:right="3dp"
+        android:top="6dp"
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#47284A6E" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- Frosted body: cool-white frosted glass, diagonal gradient. start rgba(244,249,255,0.74)->#BCF4F9FF, end rgba(228,239,252,0.66)->#A8E4EFFC -->
+    <item
+        android:left="3dp"
+        android:right="3dp"
+        android:top="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:startColor="#BCF4F9FF"
+                android:endColor="#A8E4EFFC"
+                android:type="linear" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- Internal refraction lens: faint cool-blue radial oval tucked upper-left, fading to transparent. Kept internal (large insets) so it never reaches the edges. glassTintBlue #5DB8FF @ ~0.24 -> #3D5DB8FF -->
+    <item
+        android:left="14dp"
+        android:right="46dp"
+        android:top="12dp"
+        android:bottom="44dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="55%"
+                android:centerX="0.32"
+                android:centerY="0.30"
+                android:startColor="#3D5DB8FF"
+                android:endColor="#005DB8FF" />
+        </shape>
+    </item>
+
+    <!-- Top highlight: near-opaque white glint along the top, fading down (occupies the top band). rgba(255,255,255,0.9) -> #E6FFFFFF -->
+    <item
+        android:left="6dp"
+        android:right="6dp"
+        android:top="4dp"
+        android:bottom="60dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#E6FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:type="linear" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+
+    <!-- Double rim, inner near-white hairline highlight. rgba(255,255,255,0.5) -> #80FFFFFF -->
+    <item
+        android:left="4dp"
+        android:right="4dp"
+        android:top="4dp"
+        android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <stroke
+                android:width="1dp"
+                android:color="#80FFFFFF" />
+            <corners android:radius="23dp" />
+        </shape>
+    </item>
+
+    <!-- Double rim, outer cool-blue hairline. rgba(150,180,220,0.5) -> #8096B4DC -->
+    <item
+        android:left="3dp"
+        android:right="3dp"
+        android:top="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <stroke
+                android:width="1dp"
+                android:color="#8096B4DC" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+</layer-list>

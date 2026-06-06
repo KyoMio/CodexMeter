@@ -21,12 +21,6 @@ class AppearanceResolversTest {
         assertFalse(resolveDarkAppearance(ThemeMode.SYSTEM, systemDark = false))
     }
 
-    @Test fun `widget appearance maps from resolved dark`() {
-        assertEquals(WidgetAppearance.DARK, resolveWidgetAppearance(ThemeMode.DARK, systemDark = false))
-        assertEquals(WidgetAppearance.LIGHT, resolveWidgetAppearance(ThemeMode.LIGHT, systemDark = true))
-        assertEquals(WidgetAppearance.DARK, resolveWidgetAppearance(ThemeMode.SYSTEM, systemDark = true))
-    }
-
     @Test fun `unknown storage value falls back to system`() {
         assertEquals(ThemeMode.SYSTEM, ThemeMode.fromStorage("bogus"))
         assertEquals(ThemeMode.SYSTEM, ThemeMode.fromStorage(null))

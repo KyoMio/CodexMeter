@@ -54,7 +54,7 @@ The MVP must support:
 - Home dashboard with 5h quota, weekly quota, 24h trend, freshness and refresh state.
 - Account tab with current account, account switching, add account, rename and delete.
 - Settings tab with persistent notification configuration, thresholds, refresh, account-error notifications, retention, data management, diagnostics, and manual GitHub Releases APK update checks.
-- Settings tab includes an appearance preference (Light / Dark / Follow System, default Follow System) that persists independently of accounts and applies immediately to both app and widget; the widget re-renders on theme change, with the known limitation that re-render is deferred to the next periodic refresh or app open when the app process is dead.
+- Settings tab includes an appearance preference (Light / Dark / Follow System, default Follow System) that persists independently of accounts and applies immediately to the app. The home-screen widget ALWAYS follows the system theme (independent of the app preference): its glass background is a `drawable`/`drawable-night` resource and its text uses Glance `ColorProvider(day, night)`, so the launcher re-resolves them instantly on a system night-mode change with no app process involvement.
 - Resizable home-screen widget driven by persisted widget state, with optional per-widget account and compact primary-window configuration.
 - Optional persistent status notification.
 - Threshold behavior uses remaining quota percent: 30/10/0 defaults; 30% only changes state color/copy; 10% and 0% may notify.

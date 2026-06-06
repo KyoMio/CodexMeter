@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.lifecycle.lifecycleScope
-import com.kmnexus.codexmeter.domain.theme.WidgetAppearance
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import kotlinx.coroutines.launch
@@ -39,19 +38,12 @@ class WidgetPreviewActivity : ComponentActivity() {
 
         val specName = intent?.getStringExtra("spec") ?: "4x2"
         val spec = specFor(specName)
-        // Optional `--es appearance light|dark` so the light/dark glass can be visually accepted.
-        val appearance =
-            if (intent?.getStringExtra("appearance")?.equals("dark", ignoreCase = true) == true) {
-                WidgetAppearance.DARK
-            } else {
-                WidgetAppearance.LIGHT
-            }
 
         lifecycleScope.launch {
             val glance = GlanceRemoteViews()
             val size = DpSize(spec.widthDp.dp, spec.heightDp.dp)
             val remoteViews = glance.compose(this@WidgetPreviewActivity, size) {
-                CodexMeterWidgetContent(this@WidgetPreviewActivity, spec.state, size, spec.variant, appearance)
+                CodexMeterWidgetContent(this@WidgetPreviewActivity, spec.state, size, spec.variant)
             }.remoteViews
             val container = FrameLayout(this@WidgetPreviewActivity)
             val view = remoteViews.apply(this@WidgetPreviewActivity, container)

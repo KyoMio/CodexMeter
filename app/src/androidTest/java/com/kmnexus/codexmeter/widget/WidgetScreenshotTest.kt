@@ -131,7 +131,7 @@ class WidgetScreenshotTest {
         for (spec in specs) {
             val size = DpSize(spec.widthDp.dp, spec.heightDp.dp)
             val remoteViews = glance.compose(context, size) {
-                CodexMeterWidgetContent(context, spec.state, size, spec.variant, com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK)
+                CodexMeterWidgetContent(context, spec.state, size, spec.variant)
             }.remoteViews
 
             val parent = FrameLayout(context)
