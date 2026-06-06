@@ -41,10 +41,12 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateInfo
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -148,6 +150,10 @@ data class SettingsCurrencyUi(
     val supportedCurrencies: List<String> = CurrencyPreferences.SUPPORTED_TARGET_CURRENCIES,
 )
 
+data class SettingsAppearanceUi(
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+)
+
 /** Reschedules the background refresh worker when the interval changes (0 minutes = cancel/manual). */
 fun interface BackgroundRefreshScheduler {
     fun applyIntervalMinutes(minutes: Int)
@@ -162,13 +168,8 @@ internal object NoopCurrencyPreferenceStore : CurrencyPreferenceStore {
     override suspend fun updateCurrencyPreferences(preferences: CurrencyPreferences) = Unit
 }
 
-data class SettingsAppearanceUi(
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
-)
-
 internal object NoopAppearancePreferenceStore : AppearancePreferenceStore {
-    override val themeMode: kotlinx.coroutines.flow.Flow<ThemeMode> =
-        kotlinx.coroutines.flow.flowOf(ThemeMode.SYSTEM)
+    override val themeMode: Flow<ThemeMode> = flowOf(ThemeMode.SYSTEM)
 
     override suspend fun setThemeMode(mode: ThemeMode) = Unit
 }

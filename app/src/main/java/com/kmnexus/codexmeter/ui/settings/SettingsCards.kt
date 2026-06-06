@@ -4,6 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +41,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -56,11 +59,6 @@ internal fun AppearanceCard(
 ) {
     SettingsSurfaceCard {
         Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
-            Text(
-                text = stringResource(R.string.settings_appearance_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
             ThemeModeSegmentedControl(
                 selected = appearance.themeMode,
                 onSelected = onThemeModeSelected,
@@ -97,18 +95,22 @@ private fun ThemeModeSegmentedControl(
             .border(1.dp, CodexMeterTheme.colors.border, pillShape)
             .padding(4.dp),
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().selectableGroup()) {
             options.forEach { (mode, labelResId) ->
                 val isSelected = selected == mode
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .height(48.dp)
                         .background(
                             color = if (isSelected) selectedColor else Color.Transparent,
                             shape = pillShape,
                         )
-                        .clickable { onSelected(mode) }
-                        .padding(vertical = CodexMeterSpacing.sm),
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.RadioButton,
+                            onClick = { onSelected(mode) },
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(

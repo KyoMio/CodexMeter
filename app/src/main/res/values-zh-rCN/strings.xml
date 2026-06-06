@@ -187,7 +187,6 @@
     <string name="settings_title">设置</string>
     <string name="settings_description">通知、刷新、告警、数据和诊断设置。</string>
     <string name="settings_group_appearance">外观</string>
-    <string name="settings_appearance_title">外观</string>
     <string name="settings_appearance_light">浅色</string>
     <string name="settings_appearance_dark">深色</string>
     <string name="settings_appearance_system">跟随系统</string>

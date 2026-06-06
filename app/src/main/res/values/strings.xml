@@ -187,7 +187,6 @@
     <string name="settings_title">Settings</string>
     <string name="settings_description">Notification, refresh, alerts, data, and diagnostics preferences.</string>
     <string name="settings_group_appearance">Appearance</string>
-    <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_light">Light</string>
     <string name="settings_appearance_dark">Dark</string>
     <string name="settings_appearance_system">Follow system</string>
