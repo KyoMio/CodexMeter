@@ -60,7 +60,12 @@ fun QmLiquidGlassSurface(
             radiusPx = radiusPx,
             modifier = Modifier.matchParentSize(),
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // The QmDeve glass shader brightens its refraction edges toward white (its `whitePoint`
+        // is not externally settable). On the thin dark navigation pill that reads as bright
+        // top/bottom edge bands, so dark navigation uses the fully theme-controlled fallback only.
+        val useRealGlass = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !(isDark && role == LiquidGlassSurfaceRole.Navigation)
+        if (useRealGlass) {
             AndroidView(
                 factory = { context -> QmLiquidGlassHostView(context) },
                 update = { view ->
@@ -175,9 +180,10 @@ private fun LiquidGlassFallback(
             ),
             cornerRadius = CornerRadius(radiusPx, radiusPx),
         )
-        if (role == LiquidGlassSurfaceRole.Navigation) {
-            // Keep the caustic lenses faint and tucked inward so they don't bleed onto the
-            // pill edge and make the rim look unevenly thick.
+        // Light navigation keeps faint caustic lenses (softened by the real glass layered on
+        // top). Dark navigation renders the fallback alone, so skip the lenses to keep the
+        // frosted pill perfectly even.
+        if (role == LiquidGlassSurfaceRole.Navigation && !isDark) {
             drawCircle(
                 color = tintBlue.copy(alpha = 0.05f),
                 radius = size.minDimension * 0.52f,
