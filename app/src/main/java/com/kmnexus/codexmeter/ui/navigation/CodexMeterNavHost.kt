@@ -95,6 +95,8 @@ import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferences
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.ui.settings.NoopAppearancePreferenceStore
 import com.kmnexus.codexmeter.ui.settings.NoopCurrencyPreferenceStore
 import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
@@ -155,6 +157,7 @@ fun CodexMeterNavHost(
     notificationWindowChoicesLoader: NotificationWindowChoicesLoader =
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
+    appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
 ) {
     val tabs = CodexMeterRoute.bottomTabs
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -559,6 +562,7 @@ fun CodexMeterNavHost(
                         },
                         notificationWindowChoicesLoader = notificationWindowChoicesLoader,
                         currencyPreferenceStore = currencyPreferenceStore,
+                        appearancePreferenceStore = appearancePreferenceStore,
                     )
                 }
             }

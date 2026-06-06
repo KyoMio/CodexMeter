@@ -3,14 +3,17 @@ package com.kmnexus.codexmeter.ui.settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,10 +43,84 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+
+@Composable
+internal fun AppearanceCard(
+    appearance: SettingsAppearanceUi,
+    onThemeModeSelected: (ThemeMode) -> Unit,
+) {
+    SettingsSurfaceCard {
+        Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
+            Text(
+                text = stringResource(R.string.settings_appearance_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            ThemeModeSegmentedControl(
+                selected = appearance.themeMode,
+                onSelected = onThemeModeSelected,
+            )
+            Text(
+                text = stringResource(R.string.settings_appearance_widget_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeModeSegmentedControl(
+    selected: ThemeMode,
+    onSelected: (ThemeMode) -> Unit,
+) {
+    val options = listOf(
+        ThemeMode.LIGHT to R.string.settings_appearance_light,
+        ThemeMode.DARK to R.string.settings_appearance_dark,
+        ThemeMode.SYSTEM to R.string.settings_appearance_system,
+    )
+    val pillShape = RoundedCornerShape(999.dp)
+    val trackColor = CodexMeterTheme.colors.neutralAlt
+    val selectedColor = CodexMeterTheme.colors.accent
+    val onSelectedColor = Color.White
+    val onUnselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(trackColor, pillShape)
+            .border(1.dp, CodexMeterTheme.colors.border, pillShape)
+            .padding(4.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            options.forEach { (mode, labelResId) ->
+                val isSelected = selected == mode
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = if (isSelected) selectedColor else Color.Transparent,
+                            shape = pillShape,
+                        )
+                        .clickable { onSelected(mode) }
+                        .padding(vertical = CodexMeterSpacing.sm),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(labelResId),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isSelected) onSelectedColor else onUnselectedColor,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 internal fun PersistentNotificationCard(

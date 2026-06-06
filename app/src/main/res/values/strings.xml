@@ -186,6 +186,12 @@
     <string name="account_delete_dialog_cancel">Cancel</string>
     <string name="settings_title">Settings</string>
     <string name="settings_description">Notification, refresh, alerts, data, and diagnostics preferences.</string>
+    <string name="settings_group_appearance">Appearance</string>
+    <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_appearance_light">Light</string>
+    <string name="settings_appearance_dark">Dark</string>
+    <string name="settings_appearance_system">Follow system</string>
+    <string name="settings_appearance_widget_hint">Widgets follow the system theme; they refresh on the next update.</string>
     <string name="settings_group_persistent_notification">Persistent notification</string>
     <string name="settings_group_alerts">Alerts</string>
     <string name="settings_group_refresh">Refresh</string>

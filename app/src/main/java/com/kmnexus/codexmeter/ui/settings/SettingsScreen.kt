@@ -53,6 +53,8 @@ import com.kmnexus.codexmeter.domain.account.NoopAccountListUseCase
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.domain.settings.NoopQuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.RetentionPreferenceStore
@@ -81,6 +83,7 @@ fun SettingsRoute(
     notificationWindowChoicesLoader: NotificationWindowChoicesLoader =
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
+    appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
     viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModel.factory(
             accountListUseCase = accountListUseCase,
@@ -94,6 +97,7 @@ fun SettingsRoute(
             backgroundRefreshScheduler = backgroundRefreshScheduler,
             notificationWindowChoicesLoader = notificationWindowChoicesLoader,
             currencyPreferenceStore = currencyPreferenceStore,
+            appearancePreferenceStore = appearancePreferenceStore,
         ),
     ),
 ) {
@@ -170,6 +174,7 @@ fun SettingsRoute(
         onBackgroundRefreshChanged = viewModel::setBackgroundRefreshEnabled,
         onRefreshIntervalSelected = viewModel::updateRefreshInterval,
         onCurrencyTargetSelected = viewModel::updateCurrencyTarget,
+        onThemeModeSelected = viewModel::updateThemeMode,
         onRetentionSelected = viewModel::updateRetention,
         onClearCurrentHistoryClick = viewModel::requestClearCurrentHistory,
         onClearAllHistoryClick = viewModel::requestClearAllHistory,
@@ -221,6 +226,7 @@ fun SettingsScreen(
     onBackgroundRefreshChanged: (Boolean) -> Unit = {},
     onRefreshIntervalSelected: (SettingsRefreshInterval) -> Unit = {},
     onCurrencyTargetSelected: (String) -> Unit = {},
+    onThemeModeSelected: (ThemeMode) -> Unit = {},
     onRetentionSelected: (SettingsRetentionOption) -> Unit = {},
     onClearCurrentHistoryClick: () -> Unit = {},
     onClearAllHistoryClick: () -> Unit = {},
@@ -242,6 +248,11 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.lg),
     ) {
         SettingsHeader()
+        SettingsSectionLabel(R.string.settings_group_appearance)
+        AppearanceCard(
+            appearance = uiState.appearance,
+            onThemeModeSelected = onThemeModeSelected,
+        )
         SettingsSectionLabel(R.string.settings_group_persistent_notification)
         PersistentNotificationCard(
             persistentNotification = uiState.persistentNotification,

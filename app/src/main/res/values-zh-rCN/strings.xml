@@ -186,6 +186,12 @@
     <string name="account_delete_dialog_cancel">取消</string>
     <string name="settings_title">设置</string>
     <string name="settings_description">通知、刷新、告警、数据和诊断设置。</string>
+    <string name="settings_group_appearance">外观</string>
+    <string name="settings_appearance_title">外观</string>
+    <string name="settings_appearance_light">浅色</string>
+    <string name="settings_appearance_dark">深色</string>
+    <string name="settings_appearance_system">跟随系统</string>
+    <string name="settings_appearance_widget_hint">微件跟随系统主题，将在下次更新时刷新。</string>
     <string name="settings_group_persistent_notification">常驻通知</string>
     <string name="settings_group_alerts">通知与告警</string>
     <string name="settings_group_refresh">刷新</string>
