@@ -12,7 +12,7 @@ class MainActivityFontPolicyTest {
 
         assertTrue(
             "CodexMeter should be fixed to Mono Focus in the app theme.",
-            source.contains("CodexMeterTheme(fontScheme = CodexMeterFontScheme.MonoFocusGeistMono)"),
+            source.contains("fontScheme = CodexMeterFontScheme.MonoFocusGeistMono"),
         )
         assertFalse(
             "Runtime font preference collection must not override the fixed Mono Focus scheme.",

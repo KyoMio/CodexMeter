@@ -21,6 +21,8 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.RetentionPreferenceStore
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.refresh.ExchangeRateRefresher
@@ -134,6 +136,12 @@ class CodexMeterApp : Application(), Configuration.Provider, QuotaRefreshDepende
 
     val notificationWindowChoicesLoader: NotificationWindowChoicesLoader
         get() = appContainer.notificationWindowChoicesLoader
+
+    val appearancePreferenceStore: AppearancePreferenceStore
+        get() = appContainer.appearancePreferences
+
+    val initialThemeMode: ThemeMode
+        get() = appContainer.initialThemeMode
 
     override fun onCreate() {
         super.onCreate()
