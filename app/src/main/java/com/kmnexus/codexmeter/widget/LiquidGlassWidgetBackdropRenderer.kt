@@ -58,6 +58,27 @@ internal object LiquidGlassWidgetBackdropRenderer {
             WidgetAppearance.LIGHT -> lightStyleSpec(tone)
         }
 
+    /**
+     * Geometry constants shared between dark and light style specs.
+     *
+     * These are pure layout/shape scale values (stroke widths, highlight dimensions, shadow offsets).
+     * They are intentionally kept here — separate from appearance-tinted color/alpha fields — so that
+     * a future color-tuning pass cannot silently drift the widget's shape between the two appearances.
+     */
+    private object BaseGeometry {
+        const val OUTER_BORDER_STROKE_SCALE = 0.22f
+        const val INNER_BORDER_STROKE_SCALE = 0f
+        const val TOP_HIGHLIGHT_TOP_INSET_SCALE = 1.0f
+        const val TOP_HIGHLIGHT_HEIGHT_FRACTION = 0.055f
+        const val TOP_HIGHLIGHT_SIDE_INSET_SCALE = 3f
+        const val TOP_HIGHLIGHT_MAX_HEIGHT_SCALE = 2.2f
+        const val BOTTOM_SHADOW_CENTER_OFFSET_SCALE = -0.05f
+        const val BOTTOM_SHADOW_TOP_OFFSET_SCALE = 0.05f
+        const val BOTTOM_SHADOW_BOTTOM_OFFSET_SCALE = 0.75f
+        const val BOTTOM_SHADOW_CONTACT_TOP_OFFSET_SCALE = 0.05f
+        const val BOTTOM_SHADOW_CONTACT_BOTTOM_OFFSET_SCALE = 0.45f
+    }
+
     private fun darkStyleSpec(tone: WidgetQuotaTone): LiquidGlassWidgetBackdropStyle {
         val (shadowRed, shadowGreen, shadowBlue) = when (tone) {
             WidgetQuotaTone.Success -> Triple(78, 124, 174)
@@ -84,17 +105,17 @@ internal object LiquidGlassWidgetBackdropRenderer {
             topHighlightPeakAlpha = 18,
             sideRimPeakAlpha = 10,
             bottomRimBlueAlpha = 2,
-            outerBorderStrokeScale = 0.22f,
-            innerBorderStrokeScale = 0f,
-            topHighlightTopInsetScale = 1.0f,
-            topHighlightHeightFraction = 0.055f,
-            topHighlightSideInsetScale = 3f,
-            topHighlightMaxHeightScale = 2.2f,
-            bottomShadowCenterOffsetScale = -0.05f,
-            bottomShadowTopOffsetScale = 0.05f,
-            bottomShadowBottomOffsetScale = 0.75f,
-            bottomShadowContactTopOffsetScale = 0.05f,
-            bottomShadowContactBottomOffsetScale = 0.45f,
+            outerBorderStrokeScale = BaseGeometry.OUTER_BORDER_STROKE_SCALE,
+            innerBorderStrokeScale = BaseGeometry.INNER_BORDER_STROKE_SCALE,
+            topHighlightTopInsetScale = BaseGeometry.TOP_HIGHLIGHT_TOP_INSET_SCALE,
+            topHighlightHeightFraction = BaseGeometry.TOP_HIGHLIGHT_HEIGHT_FRACTION,
+            topHighlightSideInsetScale = BaseGeometry.TOP_HIGHLIGHT_SIDE_INSET_SCALE,
+            topHighlightMaxHeightScale = BaseGeometry.TOP_HIGHLIGHT_MAX_HEIGHT_SCALE,
+            bottomShadowCenterOffsetScale = BaseGeometry.BOTTOM_SHADOW_CENTER_OFFSET_SCALE,
+            bottomShadowTopOffsetScale = BaseGeometry.BOTTOM_SHADOW_TOP_OFFSET_SCALE,
+            bottomShadowBottomOffsetScale = BaseGeometry.BOTTOM_SHADOW_BOTTOM_OFFSET_SCALE,
+            bottomShadowContactTopOffsetScale = BaseGeometry.BOTTOM_SHADOW_CONTACT_TOP_OFFSET_SCALE,
+            bottomShadowContactBottomOffsetScale = BaseGeometry.BOTTOM_SHADOW_CONTACT_BOTTOM_OFFSET_SCALE,
         )
     }
 
@@ -128,17 +149,17 @@ internal object LiquidGlassWidgetBackdropRenderer {
             topHighlightPeakAlpha = 230, // thin white top highlight (inset 0 1px rgba(255,255,255,.9))
             sideRimPeakAlpha = 22,
             bottomRimBlueAlpha = 18,
-            outerBorderStrokeScale = 0.22f,
-            innerBorderStrokeScale = 0f,
-            topHighlightTopInsetScale = 1.0f,
-            topHighlightHeightFraction = 0.055f,
-            topHighlightSideInsetScale = 3f,
-            topHighlightMaxHeightScale = 2.2f,
-            bottomShadowCenterOffsetScale = -0.05f,
-            bottomShadowTopOffsetScale = 0.05f,
-            bottomShadowBottomOffsetScale = 0.75f,
-            bottomShadowContactTopOffsetScale = 0.05f,
-            bottomShadowContactBottomOffsetScale = 0.45f,
+            outerBorderStrokeScale = BaseGeometry.OUTER_BORDER_STROKE_SCALE,
+            innerBorderStrokeScale = BaseGeometry.INNER_BORDER_STROKE_SCALE,
+            topHighlightTopInsetScale = BaseGeometry.TOP_HIGHLIGHT_TOP_INSET_SCALE,
+            topHighlightHeightFraction = BaseGeometry.TOP_HIGHLIGHT_HEIGHT_FRACTION,
+            topHighlightSideInsetScale = BaseGeometry.TOP_HIGHLIGHT_SIDE_INSET_SCALE,
+            topHighlightMaxHeightScale = BaseGeometry.TOP_HIGHLIGHT_MAX_HEIGHT_SCALE,
+            bottomShadowCenterOffsetScale = BaseGeometry.BOTTOM_SHADOW_CENTER_OFFSET_SCALE,
+            bottomShadowTopOffsetScale = BaseGeometry.BOTTOM_SHADOW_TOP_OFFSET_SCALE,
+            bottomShadowBottomOffsetScale = BaseGeometry.BOTTOM_SHADOW_BOTTOM_OFFSET_SCALE,
+            bottomShadowContactTopOffsetScale = BaseGeometry.BOTTOM_SHADOW_CONTACT_TOP_OFFSET_SCALE,
+            bottomShadowContactBottomOffsetScale = BaseGeometry.BOTTOM_SHADOW_CONTACT_BOTTOM_OFFSET_SCALE,
         )
     }
 
