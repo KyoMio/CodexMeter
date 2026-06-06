@@ -10,5 +10,6 @@ fun resolveDarkAppearance(mode: ThemeMode, systemDark: Boolean): Boolean =
         ThemeMode.SYSTEM -> systemDark
     }
 
+/** Maps the resolved dark flag to a [WidgetAppearance] for widget rendering. */
 fun resolveWidgetAppearance(mode: ThemeMode, systemDark: Boolean): WidgetAppearance =
     if (resolveDarkAppearance(mode, systemDark)) WidgetAppearance.DARK else WidgetAppearance.LIGHT

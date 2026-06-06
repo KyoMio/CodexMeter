@@ -8,10 +8,12 @@ import org.junit.Test
 class AppearanceResolversTest {
     @Test fun `light is never dark`() {
         assertFalse(resolveDarkAppearance(ThemeMode.LIGHT, systemDark = true))
+        assertFalse(resolveDarkAppearance(ThemeMode.LIGHT, systemDark = false))
     }
 
     @Test fun `dark is always dark`() {
         assertTrue(resolveDarkAppearance(ThemeMode.DARK, systemDark = false))
+        assertTrue(resolveDarkAppearance(ThemeMode.DARK, systemDark = true))
     }
 
     @Test fun `system follows system flag`() {
