@@ -6,6 +6,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 data class CodexMeterColorPalette(
+    val isDark: Boolean,
     val primary: Color, val secondary: Color, val tertiary: Color,
     val neutral: Color, val neutralAlt: Color, val surface: Color, val surfaceSoft: Color,
     val border: Color, val accent: Color, val accentSoft: Color,
@@ -18,6 +19,7 @@ data class CodexMeterColorPalette(
 )
 
 val LightCodexMeterColors = CodexMeterColorPalette(
+    isDark = false,
     primary = Color(0xFF17181C), secondary = Color(0xFF6A7280), tertiary = Color(0xFF8A94A6),
     neutral = Color(0xFFF5F7FB), neutralAlt = Color(0xFFEEF2F8), surface = Color(0xFFFFFFFF), surfaceSoft = Color(0xFFFAFCFF),
     border = Color(0xFFE5EAF2), accent = Color(0xFF0071E3), accentSoft = Color(0xFFF8FBFF),
@@ -30,6 +32,7 @@ val LightCodexMeterColors = CodexMeterColorPalette(
 )
 
 val DarkCodexMeterColors = CodexMeterColorPalette(
+    isDark = true,
     primary = Color(0xFFEEF1F6), secondary = Color(0xFF9AA4B2), tertiary = Color(0xFF6B7484),
     neutral = Color(0xFF0E1218), neutralAlt = Color(0xFF141B25), surface = Color(0xFF171F2B), surfaceSoft = Color(0xFF10151D),
     border = Color(0xFF28313F), accent = Color(0xFF4C9EFF), accentSoft = Color(0xFF15314F),

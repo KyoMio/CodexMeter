@@ -53,6 +53,7 @@ fun QmLiquidGlassSurface(
         LiquidGlassSurfaceRole.Navigation -> CodexMeterShapes.pill
     }
     val radiusPx = with(LocalDensity.current) { cornerRadius.toPx() }
+    val isDark = CodexMeterTheme.colors.isDark
     Box(modifier = modifier.clip(shape)) {
         LiquidGlassFallback(
             role = role,
@@ -66,6 +67,7 @@ fun QmLiquidGlassSurface(
                     view.configure(
                         role = role,
                         cornerRadiusPx = radiusPx,
+                        isDark = isDark,
                     )
                 },
                 modifier = Modifier.matchParentSize(),
@@ -76,7 +78,7 @@ fun QmLiquidGlassSurface(
                 .matchParentSize()
                 .border(
                     width = 1.dp,
-                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = 0.82f),
+                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = if (isDark) 0.28f else 0.82f),
                     shape = shape,
                 )
                 .padding(1.dp)
@@ -101,6 +103,9 @@ fun CodexMeterBackdrop(modifier: Modifier = Modifier) {
     val neutralAlt = CodexMeterTheme.colors.neutralAlt
     val tintBlue = CodexMeterTheme.colors.glassTintBlue
     val tintCyan = CodexMeterTheme.colors.glassTintCyan
+    // Theme-aware soft glow: white-ish in light, but the palette surface in dark so the
+    // ambient blob stays a subtle tint instead of a bright grey smudge on the dark backdrop.
+    val glow = CodexMeterTheme.colors.surface
     Canvas(modifier = modifier) {
         drawRect(
             brush = Brush.verticalGradient(
@@ -122,7 +127,7 @@ fun CodexMeterBackdrop(modifier: Modifier = Modifier) {
             center = Offset(size.width * 0.08f, size.height * 0.22f),
         )
         drawCircle(
-            color = Color.White.copy(alpha = 0.62f),
+            color = glow.copy(alpha = 0.62f),
             radius = size.minDimension * 0.28f,
             center = Offset(size.width * 0.12f, size.height * 0.02f),
         )
@@ -136,6 +141,7 @@ private fun LiquidGlassFallback(
     modifier: Modifier = Modifier,
 ) {
     val glassBase = CodexMeterTheme.colors.glassBase
+    val surface = CodexMeterTheme.colors.surface
     val surfaceSoft = CodexMeterTheme.colors.surfaceSoft
     val neutralAlt = CodexMeterTheme.colors.neutralAlt
     val tintBlue = CodexMeterTheme.colors.glassTintBlue
@@ -143,17 +149,18 @@ private fun LiquidGlassFallback(
     val tintViolet = CodexMeterTheme.colors.glassTintViolet
     val strokeLight = CodexMeterTheme.colors.glassStrokeLight
     val strokeCool = CodexMeterTheme.colors.glassStrokeCool
+    val isDark = CodexMeterTheme.colors.isDark
     Canvas(modifier = modifier) {
         val baseColors = when (role) {
             LiquidGlassSurfaceRole.Hero -> listOf(
-                Color(0xFFE1EFFB).copy(alpha = 0.58f),
+                glassBase.copy(alpha = 0.58f),
                 glassBase.copy(alpha = 0.50f),
-                Color(0xFFF8FCFF).copy(alpha = 0.46f),
+                surfaceSoft.copy(alpha = 0.46f),
             )
             LiquidGlassSurfaceRole.Card -> listOf(
-                Color(0xFFF7FBFF).copy(alpha = 0.70f),
+                surfaceSoft.copy(alpha = 0.70f),
                 glassBase.copy(alpha = 0.48f),
-                Color(0xFFFFFFFF).copy(alpha = 0.56f),
+                surface.copy(alpha = 0.56f),
             )
             LiquidGlassSurfaceRole.Navigation -> listOf(
                 surfaceSoft.copy(alpha = 0.90f),
@@ -186,15 +193,22 @@ private fun LiquidGlassFallback(
                 center = Offset(size.width * 0.72f, size.height * 0.92f),
             )
         }
+        // Top sheen: a soft white highlight on light glass; on dark glass keep it a faint
+        // edge gleam so it doesn't wash out the content beneath it.
+        val topSheenAlpha = when {
+            isDark -> 0.05f
+            role == LiquidGlassSurfaceRole.Hero -> 0.16f
+            else -> 0.18f
+        }
         drawRoundRect(
-            color = Color.White.copy(alpha = if (role == LiquidGlassSurfaceRole.Hero) 0.16f else 0.18f),
+            color = Color.White.copy(alpha = topSheenAlpha),
             topLeft = Offset(1.2f, 1.2f),
             size = androidx.compose.ui.geometry.Size(size.width - 2.4f, size.height * 0.44f),
             cornerRadius = CornerRadius(radiusPx, radiusPx),
         )
         if (role == LiquidGlassSurfaceRole.Navigation) {
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.20f),
+                color = Color.White.copy(alpha = if (isDark) 0.08f else 0.20f),
                 topLeft = Offset(1.8.dp.toPx(), 1.8.dp.toPx()),
                 size = androidx.compose.ui.geometry.Size(
                     width = size.width - 3.6.dp.toPx(),
@@ -273,6 +287,7 @@ private class QmLiquidGlassHostView(context: Context) : FrameLayout(context) {
     fun configure(
         role: LiquidGlassSurfaceRole,
         cornerRadiusPx: Float,
+        isDark: Boolean,
     ) {
         val density = resources.displayMetrics.density.coerceAtLeast(1f)
         alpha = when (role) {
@@ -280,6 +295,7 @@ private class QmLiquidGlassHostView(context: Context) : FrameLayout(context) {
             LiquidGlassSurfaceRole.Card -> 0.46f
             LiquidGlassSurfaceRole.Navigation -> 0.52f
         }
+        sourceView.isDark = isDark
         sourceView.role = role
         glassView.apply {
             setCornerRadius(cornerRadiusPx)
@@ -311,14 +327,22 @@ private class QmLiquidGlassHostView(context: Context) : FrameLayout(context) {
                     LiquidGlassSurfaceRole.Navigation -> 5.8f * density
                 },
             )
-            setTintColorRed(0.94f)
-            setTintColorGreen(0.98f)
-            setTintColorBlue(1f)
+            // Glass tint: a cool near-white veil on light glass; a cool dark veil on dark glass
+            // so the blurred backdrop stays dark instead of washing the content to grey.
+            if (isDark) {
+                setTintColorRed(0.10f)
+                setTintColorGreen(0.13f)
+                setTintColorBlue(0.19f)
+            } else {
+                setTintColorRed(0.94f)
+                setTintColorGreen(0.98f)
+                setTintColorBlue(1f)
+            }
             setTintAlpha(
                 when (role) {
-                    LiquidGlassSurfaceRole.Hero -> 0.15f
-                    LiquidGlassSurfaceRole.Card -> 0.13f
-                    LiquidGlassSurfaceRole.Navigation -> 0.18f
+                    LiquidGlassSurfaceRole.Hero -> if (isDark) 0.34f else 0.15f
+                    LiquidGlassSurfaceRole.Card -> if (isDark) 0.30f else 0.13f
+                    LiquidGlassSurfaceRole.Navigation -> if (isDark) 0.38f else 0.18f
                 },
             )
             setDraggableEnabled(false)
@@ -351,22 +375,39 @@ private class LiquidGlassSourceView(context: Context) : View(context) {
             invalidate()
         }
 
+    var isDark: Boolean = false
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     override fun onDraw(canvas: AndroidCanvas) {
         super.onDraw(canvas)
         val width = width.toFloat().coerceAtLeast(1f)
         val height = height.toFloat().coerceAtLeast(1f)
+        // The glass refracts this source; on dark glass it must be a cool dark base, otherwise
+        // the refracted/blurred content reads as a light wash over the dark backdrop.
+        val baseColors = if (isDark) {
+            intArrayOf(
+                android.graphics.Color.rgb(28, 38, 54),
+                android.graphics.Color.rgb(20, 28, 41),
+                android.graphics.Color.rgb(34, 46, 64),
+            )
+        } else {
+            intArrayOf(
+                android.graphics.Color.rgb(232, 243, 255),
+                android.graphics.Color.rgb(216, 234, 251),
+                android.graphics.Color.rgb(241, 248, 255),
+            )
+        }
         paint.shader = LinearGradient(
             0f,
             0f,
             width,
             height,
-            intArrayOf(
-                android.graphics.Color.rgb(232, 243, 255),
-                android.graphics.Color.rgb(216, 234, 251),
-                android.graphics.Color.rgb(241, 248, 255),
-            ),
+            baseColors,
             floatArrayOf(0f, 0.52f, 1f),
             Shader.TileMode.CLAMP,
         )
@@ -376,12 +417,14 @@ private class LiquidGlassSourceView(context: Context) : View(context) {
             drawLens(canvas, width * 0.74f, height * 0.22f, height * 0.64f, android.graphics.Color.argb(32, 126, 244, 232))
             drawLens(canvas, width * 0.76f, height * 0.86f, height * 0.56f, android.graphics.Color.argb(24, 157, 140, 255))
         }
+        // Top sheen: bright on light glass, a much fainter gleam on dark glass.
+        val sheenAlpha = if (isDark) 22 else if (role == LiquidGlassSurfaceRole.Hero) 76 else 78
         paint.shader = LinearGradient(
             0f,
             0f,
             0f,
             height * 0.56f,
-            android.graphics.Color.argb(if (role == LiquidGlassSurfaceRole.Hero) 76 else 78, 255, 255, 255),
+            android.graphics.Color.argb(sheenAlpha, 255, 255, 255),
             android.graphics.Color.argb(0, 255, 255, 255),
             Shader.TileMode.CLAMP,
         )
