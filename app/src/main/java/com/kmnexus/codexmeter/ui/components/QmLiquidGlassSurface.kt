@@ -29,7 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.qmdeve.liquidglass.widget.LiquidGlassView
 
@@ -76,13 +76,13 @@ fun QmLiquidGlassSurface(
                 .matchParentSize()
                 .border(
                     width = 1.dp,
-                    color = CodexMeterColors.glassStrokeLight.copy(alpha = 0.82f),
+                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = 0.82f),
                     shape = shape,
                 )
                 .padding(1.dp)
                 .border(
                     width = 1.dp,
-                    color = CodexMeterColors.glassStrokeCool.copy(alpha = 0.52f),
+                    color = CodexMeterTheme.colors.glassStrokeCool.copy(alpha = 0.52f),
                     shape = shape,
                 ),
         )
@@ -96,23 +96,28 @@ fun QmLiquidGlassSurface(
 
 @Composable
 fun CodexMeterBackdrop(modifier: Modifier = Modifier) {
+    val surfaceSoft = CodexMeterTheme.colors.surfaceSoft
+    val neutral = CodexMeterTheme.colors.neutral
+    val neutralAlt = CodexMeterTheme.colors.neutralAlt
+    val tintBlue = CodexMeterTheme.colors.glassTintBlue
+    val tintCyan = CodexMeterTheme.colors.glassTintCyan
     Canvas(modifier = modifier) {
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    CodexMeterColors.surfaceSoft,
-                    CodexMeterColors.neutral,
-                    CodexMeterColors.neutralAlt,
+                    surfaceSoft,
+                    neutral,
+                    neutralAlt,
                 ),
             ),
         )
         drawCircle(
-            color = CodexMeterColors.glassTintBlue.copy(alpha = 0.18f),
+            color = tintBlue.copy(alpha = 0.18f),
             radius = size.minDimension * 0.46f,
             center = Offset(size.width * 0.92f, size.height * 0.03f),
         )
         drawCircle(
-            color = CodexMeterColors.glassTintCyan.copy(alpha = 0.10f),
+            color = tintCyan.copy(alpha = 0.10f),
             radius = size.minDimension * 0.35f,
             center = Offset(size.width * 0.08f, size.height * 0.22f),
         )
@@ -130,22 +135,30 @@ private fun LiquidGlassFallback(
     radiusPx: Float,
     modifier: Modifier = Modifier,
 ) {
+    val glassBase = CodexMeterTheme.colors.glassBase
+    val surfaceSoft = CodexMeterTheme.colors.surfaceSoft
+    val neutralAlt = CodexMeterTheme.colors.neutralAlt
+    val tintBlue = CodexMeterTheme.colors.glassTintBlue
+    val tintCyan = CodexMeterTheme.colors.glassTintCyan
+    val tintViolet = CodexMeterTheme.colors.glassTintViolet
+    val strokeLight = CodexMeterTheme.colors.glassStrokeLight
+    val strokeCool = CodexMeterTheme.colors.glassStrokeCool
     Canvas(modifier = modifier) {
         val baseColors = when (role) {
             LiquidGlassSurfaceRole.Hero -> listOf(
                 Color(0xFFE1EFFB).copy(alpha = 0.58f),
-                CodexMeterColors.glassBase.copy(alpha = 0.50f),
+                glassBase.copy(alpha = 0.50f),
                 Color(0xFFF8FCFF).copy(alpha = 0.46f),
             )
             LiquidGlassSurfaceRole.Card -> listOf(
                 Color(0xFFF7FBFF).copy(alpha = 0.70f),
-                CodexMeterColors.glassBase.copy(alpha = 0.48f),
+                glassBase.copy(alpha = 0.48f),
                 Color(0xFFFFFFFF).copy(alpha = 0.56f),
             )
             LiquidGlassSurfaceRole.Navigation -> listOf(
-                CodexMeterColors.surfaceSoft.copy(alpha = 0.90f),
-                CodexMeterColors.glassBase.copy(alpha = 0.82f),
-                CodexMeterColors.neutralAlt.copy(alpha = 0.88f),
+                surfaceSoft.copy(alpha = 0.90f),
+                glassBase.copy(alpha = 0.82f),
+                neutralAlt.copy(alpha = 0.88f),
             )
         }
         drawRoundRect(
@@ -158,17 +171,17 @@ private fun LiquidGlassFallback(
         )
         if (role == LiquidGlassSurfaceRole.Navigation) {
             drawCircle(
-                color = CodexMeterColors.glassTintBlue.copy(alpha = 0.10f),
+                color = tintBlue.copy(alpha = 0.10f),
                 radius = size.minDimension * 0.74f,
                 center = Offset(size.width * 0.13f, size.height * 0.12f),
             )
             drawCircle(
-                color = CodexMeterColors.glassTintCyan.copy(alpha = 0.08f),
+                color = tintCyan.copy(alpha = 0.08f),
                 radius = size.minDimension * 0.44f,
                 center = Offset(size.width * 0.78f, size.height * 0.30f),
             )
             drawCircle(
-                color = CodexMeterColors.glassTintViolet.copy(alpha = 0.06f),
+                color = tintViolet.copy(alpha = 0.06f),
                 radius = size.minDimension * 0.40f,
                 center = Offset(size.width * 0.72f, size.height * 0.92f),
             )
@@ -191,13 +204,13 @@ private fun LiquidGlassFallback(
             )
         }
         drawRoundRect(
-            color = CodexMeterColors.glassStrokeLight.copy(alpha = 0.62f),
+            color = strokeLight.copy(alpha = 0.62f),
             style = Stroke(width = 1.dp.toPx()),
             cornerRadius = CornerRadius(radiusPx, radiusPx),
         )
         if (role == LiquidGlassSurfaceRole.Hero) {
             drawRoundRect(
-                color = CodexMeterColors.glassStrokeCool.copy(alpha = 0.48f),
+                color = strokeCool.copy(alpha = 0.48f),
                 topLeft = Offset(1.6.dp.toPx(), 1.6.dp.toPx()),
                 size = androidx.compose.ui.geometry.Size(
                     width = size.width - 3.2.dp.toPx(),

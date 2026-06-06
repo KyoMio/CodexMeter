@@ -14,7 +14,7 @@ class AccountActionButtonPolicyTest {
         val setCurrent = actions.buttonBlock("account_set_current")
         assertTrue(
             "Disabled 'set current' must keep an explicit outline instead of relying on a Material disabled border.",
-            setCurrent.contains("border = AccountActionButtonBorder"),
+            setCurrent.contains("border = actionButtonBorder"),
         )
 
         val delete = actions.buttonBlock("account_delete")
@@ -28,7 +28,7 @@ class AccountActionButtonPolicyTest {
         )
         assertTrue(
             "Delete must keep an explicit outline while using danger-colored text.",
-            delete.contains("border = AccountActionButtonBorder"),
+            delete.contains("border = actionButtonBorder"),
         )
     }
 

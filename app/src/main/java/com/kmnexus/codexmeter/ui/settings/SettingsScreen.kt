@@ -60,7 +60,7 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
@@ -339,7 +339,7 @@ internal fun DestructiveActionRow(@StringRes titleResId: Int, @StringRes descrip
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
         TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
-            Text(text = stringResource(R.string.settings_data_clear_action), color = CodexMeterColors.danger)
+            Text(text = stringResource(R.string.settings_data_clear_action), color = CodexMeterTheme.colors.danger)
         }
     }
 }
@@ -395,7 +395,7 @@ private fun ConfirmDataActionDialog(
         text = { Text(text = stringResource(action.messageResId)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(text = stringResource(R.string.settings_data_confirm_clear), color = CodexMeterColors.danger)
+                Text(text = stringResource(R.string.settings_data_confirm_clear), color = CodexMeterTheme.colors.danger)
             }
         },
         dismissButton = {
@@ -537,8 +537,8 @@ private fun NotificationPermissionRationaleDialog(
 internal fun SettingsSurfaceCard(content: @Composable () -> Unit) {
     Card(
         shape = CodexMeterShapes.xl,
-        colors = CardDefaults.cardColors(containerColor = CodexMeterColors.surface),
-        border = BorderStroke(1.dp, CodexMeterColors.border),
+        colors = CardDefaults.cardColors(containerColor = CodexMeterTheme.colors.surface),
+        border = BorderStroke(1.dp, CodexMeterTheme.colors.border),
     ) {
         Box(modifier = Modifier.fillMaxWidth().padding(CodexMeterSpacing.lg)) {
             content()

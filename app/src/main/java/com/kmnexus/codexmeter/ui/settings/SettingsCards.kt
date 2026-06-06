@@ -41,7 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
@@ -102,14 +102,14 @@ internal fun AlertsCard(
                 titleResId = R.string.settings_threshold_caution,
                 value = alerts.thresholds.caution,
                 valueRange = 2f..99f,
-                color = CodexMeterColors.warning,
+                color = CodexMeterTheme.colors.warning,
                 onValueChange = onCautionThresholdChanged,
             )
             ThresholdSlider(
                 titleResId = R.string.settings_threshold_warning,
                 value = alerts.thresholds.warning,
                 valueRange = 1f..98f,
-                color = CodexMeterColors.danger,
+                color = CodexMeterTheme.colors.danger,
                 onValueChange = onWarningThresholdChanged,
             )
             Text(
@@ -133,7 +133,7 @@ internal fun AlertsCard(
             val symbol = com.kmnexus.codexmeter.ui.quota.currencySymbol(targetCurrency)
             BalanceStepperRow(
                 titleResId = R.string.settings_threshold_caution,
-                color = CodexMeterColors.warning,
+                color = CodexMeterTheme.colors.warning,
                 currencySymbol = symbol,
                 value = alerts.balanceCaution,
                 onDecrement = { onBalanceCautionChanged(alerts.balanceCaution - 1) },
@@ -141,7 +141,7 @@ internal fun AlertsCard(
             )
             BalanceStepperRow(
                 titleResId = R.string.settings_threshold_warning,
-                color = CodexMeterColors.danger,
+                color = CodexMeterTheme.colors.danger,
                 currencySymbol = symbol,
                 value = alerts.balanceWarning,
                 onDecrement = { onBalanceWarningChanged(alerts.balanceWarning - 1) },
@@ -300,7 +300,7 @@ internal fun ThresholdSlider(
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
                 activeTrackColor = color,
-                inactiveTrackColor = CodexMeterColors.neutralAlt,
+                inactiveTrackColor = CodexMeterTheme.colors.neutralAlt,
             ),
             thumb = {
                 AppleThresholdThumb(color)
@@ -346,6 +346,7 @@ private fun AppleThresholdTrack(
     valueRange: ClosedFloatingPointRange<Float>,
     color: Color,
 ) {
+    val trackColor = CodexMeterTheme.colors.neutralAlt
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -358,7 +359,7 @@ private fun AppleThresholdTrack(
             .coerceIn(0f, 1f)
 
         drawRoundRect(
-            color = CodexMeterColors.neutralAlt,
+            color = trackColor,
             topLeft = Offset(0f, trackTop),
             size = Size(size.width, trackHeight),
             cornerRadius = corner,

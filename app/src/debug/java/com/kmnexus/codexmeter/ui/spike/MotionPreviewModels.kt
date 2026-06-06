@@ -1,11 +1,13 @@
 package com.kmnexus.codexmeter.ui.spike
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.kmnexus.codexmeter.R
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 
 internal object MotionPreviewFonts {
     val geistSans = FontFamily(
@@ -44,11 +46,13 @@ internal enum class MotionPreviewTone {
     Stale,
 }
 
+@Composable
+@ReadOnlyComposable
 internal fun MotionPreviewTone.statusColor(): Color = when (this) {
-    MotionPreviewTone.Normal -> CodexMeterColors.success
-    MotionPreviewTone.Watch -> CodexMeterColors.warning
-    MotionPreviewTone.Critical -> CodexMeterColors.danger
-    MotionPreviewTone.Stale -> CodexMeterColors.tertiary
+    MotionPreviewTone.Normal -> CodexMeterTheme.colors.success
+    MotionPreviewTone.Watch -> CodexMeterTheme.colors.warning
+    MotionPreviewTone.Critical -> CodexMeterTheme.colors.danger
+    MotionPreviewTone.Stale -> CodexMeterTheme.colors.tertiary
 }
 
 internal fun MotionPreviewTone.statusLabel(): String = when (this) {

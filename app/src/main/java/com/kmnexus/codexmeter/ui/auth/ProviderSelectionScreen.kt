@@ -36,7 +36,7 @@ import com.kmnexus.codexmeter.providers.ProviderAuthKind
 import com.kmnexus.codexmeter.providers.ProviderConfig
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 import com.kmnexus.codexmeter.ui.components.CodexMeterBackdrop
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
@@ -121,8 +121,8 @@ internal fun ProviderListItem(
             .background(
                 Brush.linearGradient(
                     listOf(
-                        CodexMeterColors.surface,
-                        CodexMeterColors.surfaceSoft,
+                        CodexMeterTheme.colors.surface,
+                        CodexMeterTheme.colors.surfaceSoft,
                     ),
                 ),
             )
@@ -135,13 +135,13 @@ internal fun ProviderListItem(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(CodexMeterColors.accentSoft),
+                .background(CodexMeterTheme.colors.accentSoft),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(provider.iconResId),
                 contentDescription = null,
-                tint = CodexMeterColors.primary,
+                tint = CodexMeterTheme.colors.primary,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -167,7 +167,7 @@ internal fun ProviderListItem(
         Icon(
             painter = painterResource(R.drawable.ic_chevron_down),
             contentDescription = null,
-            tint = CodexMeterColors.tertiary,
+            tint = CodexMeterTheme.colors.tertiary,
             modifier = Modifier
                 .size(20.dp)
                 .rotate(-90f),

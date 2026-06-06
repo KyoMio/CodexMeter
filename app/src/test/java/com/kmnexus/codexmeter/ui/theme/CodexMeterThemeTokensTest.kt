@@ -13,22 +13,22 @@ import org.junit.Test
 class CodexMeterThemeTokensTest {
     @Test
     fun `air glass color tokens match design values`() {
-        assertEquals(Color(0xFF17181C), CodexMeterColors.primary)
-        assertEquals(Color(0xFF6A7280), CodexMeterColors.secondary)
-        assertEquals(Color(0xFF8A94A6), CodexMeterColors.tertiary)
-        assertEquals(Color(0xFFF5F7FB), CodexMeterColors.neutral)
-        assertEquals(Color(0xFFEEF2F8), CodexMeterColors.neutralAlt)
-        assertEquals(Color(0xFFFFFFFF), CodexMeterColors.surface)
-        assertEquals(Color(0xFFFAFCFF), CodexMeterColors.surfaceSoft)
-        assertEquals(Color(0xFFE5EAF2), CodexMeterColors.border)
-        assertEquals(Color(0xFF0071E3), CodexMeterColors.accent)
-        assertEquals(Color(0xFFF8FBFF), CodexMeterColors.accentSoft)
-        assertEquals(Color(0xFF18A058), CodexMeterColors.success)
-        assertEquals(Color(0xFFEAF7F0), CodexMeterColors.successSoft)
-        assertEquals(Color(0xFFD97706), CodexMeterColors.warning)
-        assertEquals(Color(0xFFFFF4E4), CodexMeterColors.warningSoft)
-        assertEquals(Color(0xFFDC2626), CodexMeterColors.danger)
-        assertEquals(Color(0xFFFEEDEE), CodexMeterColors.dangerSoft)
+        assertEquals(Color(0xFF17181C), LightCodexMeterColors.primary)
+        assertEquals(Color(0xFF6A7280), LightCodexMeterColors.secondary)
+        assertEquals(Color(0xFF8A94A6), LightCodexMeterColors.tertiary)
+        assertEquals(Color(0xFFF5F7FB), LightCodexMeterColors.neutral)
+        assertEquals(Color(0xFFEEF2F8), LightCodexMeterColors.neutralAlt)
+        assertEquals(Color(0xFFFFFFFF), LightCodexMeterColors.surface)
+        assertEquals(Color(0xFFFAFCFF), LightCodexMeterColors.surfaceSoft)
+        assertEquals(Color(0xFFE5EAF2), LightCodexMeterColors.border)
+        assertEquals(Color(0xFF0071E3), LightCodexMeterColors.accent)
+        assertEquals(Color(0xFFF8FBFF), LightCodexMeterColors.accentSoft)
+        assertEquals(Color(0xFF18A058), LightCodexMeterColors.success)
+        assertEquals(Color(0xFFEAF7F0), LightCodexMeterColors.successSoft)
+        assertEquals(Color(0xFFD97706), LightCodexMeterColors.warning)
+        assertEquals(Color(0xFFFFF4E4), LightCodexMeterColors.warningSoft)
+        assertEquals(Color(0xFFDC2626), LightCodexMeterColors.danger)
+        assertEquals(Color(0xFFFEEDEE), LightCodexMeterColors.dangerSoft)
     }
 
     @Test
@@ -103,13 +103,13 @@ class CodexMeterThemeTokensTest {
 
     @Test
     fun `material color roles map to codexmeter tokens`() {
-        val material = CodexMeterColorScheme
+        val material = materialScheme(LightCodexMeterColors, dark = false)
 
-        assertEquals(CodexMeterColors.accentSoft, material.primaryContainer)
-        assertEquals(CodexMeterColors.border, material.outlineVariant)
-        assertEquals(CodexMeterColors.accent, material.surfaceTint)
-        assertEquals(CodexMeterColors.surfaceSoft, material.surfaceContainerLow)
-        assertEquals(CodexMeterColors.neutral, material.surfaceContainer)
-        assertEquals(CodexMeterColors.neutralAlt, material.surfaceContainerHighest)
+        assertEquals(LightCodexMeterColors.accentSoft, material.primaryContainer)
+        assertEquals(LightCodexMeterColors.border, material.outlineVariant)
+        assertEquals(LightCodexMeterColors.accent, material.surfaceTint)
+        assertEquals(LightCodexMeterColors.surfaceSoft, material.surfaceContainerLow)
+        assertEquals(LightCodexMeterColors.neutral, material.surfaceContainer)
+        assertEquals(LightCodexMeterColors.neutralAlt, material.surfaceContainerHighest)
     }
 }

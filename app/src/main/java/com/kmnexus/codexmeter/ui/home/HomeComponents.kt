@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
@@ -32,7 +33,7 @@ internal fun AccountLabel(account: HomeAccountUi) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(CodexMeterShapes.lg)
-            .background(CodexMeterColors.surface)
+            .background(CodexMeterTheme.colors.surface)
             .padding(CodexMeterSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
@@ -43,13 +44,13 @@ internal fun AccountLabel(account: HomeAccountUi) {
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
-                    .background(CodexMeterColors.accentSoft),
+                    .background(CodexMeterTheme.colors.accentSoft),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = null,
-                    tint = CodexMeterColors.primary,
+                    tint = CodexMeterTheme.colors.primary,
                     modifier = Modifier.size(21.dp),
                 )
             }
@@ -86,7 +87,9 @@ internal fun AccountLabel(account: HomeAccountUi) {
     }
 }
 
+@Composable
+@ReadOnlyComposable
 internal fun avatarColor(key: String): Color {
-    val colors = listOf(CodexMeterColors.accent, CodexMeterColors.secondary, CodexMeterColors.warning)
+    val colors = listOf(CodexMeterTheme.colors.accent, CodexMeterTheme.colors.secondary, CodexMeterTheme.colors.warning)
     return colors[Math.floorMod(key.hashCode(), colors.size)]
 }

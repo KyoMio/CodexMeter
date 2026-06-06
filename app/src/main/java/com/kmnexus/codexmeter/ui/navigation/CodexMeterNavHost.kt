@@ -104,7 +104,7 @@ import com.kmnexus.codexmeter.ui.home.HomeRoute
 import com.kmnexus.codexmeter.ui.motion.CodexMeterMotion
 import com.kmnexus.codexmeter.ui.motion.CodexMeterPageCascade
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
@@ -649,8 +649,8 @@ private fun CodexMeterBottomBar(
                 Brush.verticalGradient(
                     0.00f to Color.Transparent,
                     0.24f to Color.Transparent,
-                    0.58f to CodexMeterColors.neutral.copy(alpha = 0.54f),
-                    1.00f to CodexMeterColors.neutralAlt.copy(alpha = 0.90f),
+                    0.58f to CodexMeterTheme.colors.neutral.copy(alpha = 0.54f),
+                    1.00f to CodexMeterTheme.colors.neutralAlt.copy(alpha = 0.90f),
                 ),
             )
             .padding(
@@ -761,7 +761,7 @@ private fun RowScope.CodexMeterBottomBarItem(
     }
     val contentColor by animateColorAsState(
         targetValue = if (selected) {
-            CodexMeterColors.accent
+            CodexMeterTheme.colors.accent
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },

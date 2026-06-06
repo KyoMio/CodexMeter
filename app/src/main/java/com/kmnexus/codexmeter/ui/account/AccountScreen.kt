@@ -48,7 +48,7 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
@@ -280,8 +280,8 @@ private fun AccountHeader(onAddAccountClick: () -> Unit) {
             onClick = onAddAccountClick,
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = CodexMeterColors.accent,
-                contentColor = CodexMeterColors.surface,
+                containerColor = CodexMeterTheme.colors.accent,
+                contentColor = CodexMeterTheme.colors.surface,
             ),
         ) {
             Icon(
@@ -342,7 +342,7 @@ private fun DeleteAccountDialog(
             TextButton(onClick = onConfirm) {
                 Text(
                     text = stringResource(R.string.account_delete_dialog_confirm),
-                    color = CodexMeterColors.danger,
+                    color = CodexMeterTheme.colors.danger,
                 )
             }
         },

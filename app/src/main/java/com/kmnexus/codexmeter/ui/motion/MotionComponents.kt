@@ -30,7 +30,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 
 @Composable
@@ -116,7 +116,7 @@ internal fun MotionQuotaRail(
     percent: Int?,
     color: Color,
     modifier: Modifier = Modifier,
-    trackColor: Color = CodexMeterColors.neutralAlt,
+    trackColor: Color = CodexMeterTheme.colors.neutralAlt,
 ) {
     val animatorsEnabled = rememberCodexMeterAnimatorsEnabled()
     var previousPercent by remember { mutableStateOf<Int?>(null) }

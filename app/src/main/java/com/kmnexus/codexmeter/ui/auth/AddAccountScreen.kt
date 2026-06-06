@@ -40,7 +40,7 @@ import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginController
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginNotifier
 import com.kmnexus.codexmeter.domain.auth.NoopDeviceCodeLoginController
 import com.kmnexus.codexmeter.domain.auth.NoopDeviceCodeLoginNotifier
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
@@ -225,7 +225,7 @@ private fun AddAccountStatusText(uiState: DeviceCodeLoginUiState) {
         color = if (errorMessageResId != null) {
             MaterialTheme.colorScheme.error
         } else if (connectedAccount != null || uiState.status == DeviceCodeLoginUiStatus.Saved) {
-            CodexMeterColors.success
+            CodexMeterTheme.colors.success
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
@@ -317,8 +317,8 @@ private fun AccountMismatchDialog(
 private fun AddAccountSurfaceCard(content: @Composable () -> Unit) {
     Card(
         shape = CodexMeterShapes.xl,
-        colors = CardDefaults.cardColors(containerColor = CodexMeterColors.surface),
-        border = BorderStroke(1.dp, CodexMeterColors.border),
+        colors = CardDefaults.cardColors(containerColor = CodexMeterTheme.colors.surface),
+        border = BorderStroke(1.dp, CodexMeterTheme.colors.border),
     ) {
         Box(
             modifier = Modifier

@@ -1,13 +1,16 @@
 package com.kmnexus.codexmeter.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -15,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
+import com.kmnexus.codexmeter.domain.theme.resolveDarkAppearance
 
 enum class CodexMeterFontScheme {
     SystemDefault,
@@ -166,71 +171,108 @@ object CodexMeterShapes {
     )
 }
 
-internal val CodexMeterColorScheme = lightColorScheme(
-    primary = CodexMeterColors.accent,
-    onPrimary = CodexMeterColors.surface,
-    primaryContainer = CodexMeterColors.accentSoft,
-    onPrimaryContainer = CodexMeterColors.accent,
-    inversePrimary = CodexMeterColors.accent,
-    secondary = CodexMeterColors.secondary,
-    onSecondary = CodexMeterColors.surface,
-    secondaryContainer = CodexMeterColors.neutralAlt,
-    onSecondaryContainer = CodexMeterColors.secondary,
-    tertiary = CodexMeterColors.tertiary,
-    onTertiary = CodexMeterColors.surface,
-    tertiaryContainer = CodexMeterColors.neutralAlt,
-    onTertiaryContainer = CodexMeterColors.tertiary,
-    background = CodexMeterColors.neutral,
-    onBackground = CodexMeterColors.primary,
-    surface = CodexMeterColors.surface,
-    onSurface = CodexMeterColors.primary,
-    surfaceVariant = CodexMeterColors.surfaceSoft,
-    onSurfaceVariant = CodexMeterColors.secondary,
-    surfaceTint = CodexMeterColors.accent,
-    inverseSurface = CodexMeterColors.primary,
-    inverseOnSurface = CodexMeterColors.surface,
-    outline = CodexMeterColors.border,
-    outlineVariant = CodexMeterColors.border,
-    scrim = CodexMeterColors.primary,
-    surfaceBright = CodexMeterColors.surface,
-    surfaceDim = CodexMeterColors.neutralAlt,
-    surfaceContainer = CodexMeterColors.neutral,
-    surfaceContainerHigh = CodexMeterColors.neutralAlt,
-    surfaceContainerHighest = CodexMeterColors.neutralAlt,
-    surfaceContainerLow = CodexMeterColors.surfaceSoft,
-    surfaceContainerLowest = CodexMeterColors.surface,
-    error = CodexMeterColors.danger,
-    onError = CodexMeterColors.surface,
-    errorContainer = CodexMeterColors.dangerSoft,
-    onErrorContainer = CodexMeterColors.danger,
-    primaryFixed = CodexMeterColors.accentSoft,
-    primaryFixedDim = CodexMeterColors.accentSoft,
-    onPrimaryFixed = CodexMeterColors.accent,
-    onPrimaryFixedVariant = CodexMeterColors.accent,
-    secondaryFixed = CodexMeterColors.neutralAlt,
-    secondaryFixedDim = CodexMeterColors.neutralAlt,
-    onSecondaryFixed = CodexMeterColors.primary,
-    onSecondaryFixedVariant = CodexMeterColors.secondary,
-    tertiaryFixed = CodexMeterColors.neutralAlt,
-    tertiaryFixedDim = CodexMeterColors.neutralAlt,
-    onTertiaryFixed = CodexMeterColors.primary,
-    onTertiaryFixedVariant = CodexMeterColors.tertiary,
+private fun lightScheme(p: CodexMeterColorPalette) = lightColorScheme(
+    primary = p.accent,
+    onPrimary = p.surface,
+    primaryContainer = p.accentSoft,
+    onPrimaryContainer = p.accent,
+    inversePrimary = p.accent,
+    secondary = p.secondary,
+    onSecondary = p.surface,
+    secondaryContainer = p.neutralAlt,
+    onSecondaryContainer = p.secondary,
+    tertiary = p.tertiary,
+    onTertiary = p.surface,
+    tertiaryContainer = p.neutralAlt,
+    onTertiaryContainer = p.tertiary,
+    background = p.neutral,
+    onBackground = p.primary,
+    surface = p.surface,
+    onSurface = p.primary,
+    surfaceVariant = p.surfaceSoft,
+    onSurfaceVariant = p.secondary,
+    surfaceTint = p.accent,
+    inverseSurface = p.primary,
+    inverseOnSurface = p.surface,
+    outline = p.border,
+    outlineVariant = p.border,
+    scrim = p.primary,
+    surfaceBright = p.surface,
+    surfaceDim = p.neutralAlt,
+    surfaceContainer = p.neutral,
+    surfaceContainerHigh = p.neutralAlt,
+    surfaceContainerHighest = p.neutralAlt,
+    surfaceContainerLow = p.surfaceSoft,
+    surfaceContainerLowest = p.surface,
+    error = p.danger,
+    onError = p.surface,
+    errorContainer = p.dangerSoft,
+    onErrorContainer = p.danger,
+    primaryFixed = p.accentSoft,
+    primaryFixedDim = p.accentSoft,
+    onPrimaryFixed = p.accent,
+    onPrimaryFixedVariant = p.accent,
+    secondaryFixed = p.neutralAlt,
+    secondaryFixedDim = p.neutralAlt,
+    onSecondaryFixed = p.primary,
+    onSecondaryFixedVariant = p.secondary,
+    tertiaryFixed = p.neutralAlt,
+    tertiaryFixedDim = p.neutralAlt,
+    onTertiaryFixed = p.primary,
+    onTertiaryFixedVariant = p.tertiary,
 )
+
+private fun darkScheme(p: CodexMeterColorPalette) = darkColorScheme(
+    primary = p.accent,
+    onPrimary = Color(0xFF08121F), // dark ink reads on the bright accent
+    primaryContainer = p.accentSoft,
+    onPrimaryContainer = p.accent,
+    secondary = p.secondary,
+    onSecondary = p.primary,
+    secondaryContainer = p.neutralAlt,
+    onSecondaryContainer = p.primary,
+    tertiary = p.tertiary,
+    onTertiary = p.primary,
+    background = p.neutral,
+    onBackground = p.primary,
+    surface = p.surface,
+    onSurface = p.primary,
+    surfaceVariant = p.surfaceSoft,
+    onSurfaceVariant = p.secondary,
+    surfaceTint = p.accent,
+    inverseSurface = p.primary,
+    inverseOnSurface = p.neutral,
+    outline = p.border,
+    outlineVariant = p.border,
+    scrim = Color(0xFF000000),
+    error = p.danger,
+    onError = Color(0xFF2B0F0F),
+    errorContainer = p.dangerSoft,
+    onErrorContainer = p.danger,
+)
+
+internal fun materialScheme(palette: CodexMeterColorPalette, dark: Boolean) =
+    if (dark) darkScheme(palette) else lightScheme(palette)
 
 @Composable
 fun CodexMeterTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     fontScheme: CodexMeterFontScheme = CodexMeterFontScheme.SystemDefault,
     content: @Composable () -> Unit,
 ) {
+    val dark = resolveDarkAppearance(themeMode, isSystemInDarkTheme())
+    val palette = if (dark) DarkCodexMeterColors else LightCodexMeterColors
     val typography = CodexMeterTypography.forScheme(fontScheme)
-    MaterialTheme(
-        colorScheme = CodexMeterColorScheme,
-        typography = typography.material,
-        shapes = CodexMeterShapes.material,
-    ) {
-        CompositionLocalProvider(
-            LocalCodexMeterTextStyles provides typography,
-            content = content,
-        )
+    CompositionLocalProvider(LocalCodexMeterColors provides palette) {
+        MaterialTheme(
+            colorScheme = materialScheme(palette, dark),
+            typography = typography.material,
+            shapes = CodexMeterShapes.material,
+        ) {
+            CompositionLocalProvider(
+                LocalCodexMeterTextStyles provides typography,
+                content = content,
+            )
+        }
     }
 }

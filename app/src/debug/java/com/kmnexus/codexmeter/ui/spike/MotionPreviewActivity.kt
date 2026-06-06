@@ -24,9 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.ui.components.CodexMeterBackdrop
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
-import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
+import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import kotlinx.coroutines.delay
 
 class MotionPreviewActivity : ComponentActivity() {
@@ -74,7 +73,7 @@ private fun MotionPreviewScreen() {
             Text(
                 text = "Debug-only 样板：假数据、无真实账号、无网络、无凭据。用于确认字体、数字滚动、状态点、Tab 胶囊滑动和刷新回光。",
                 style = MaterialTheme.typography.bodyMedium,
-                color = CodexMeterColors.secondary,
+                color = CodexMeterTheme.colors.secondary,
             )
             PreviewControlRow(
                 onRefreshClick = { pulseKey += 1 },
