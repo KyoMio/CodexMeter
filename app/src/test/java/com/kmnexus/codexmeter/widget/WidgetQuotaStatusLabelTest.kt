@@ -48,9 +48,10 @@ class WidgetQuotaStatusLabelTest {
 
     @Test
     fun `semantic accents stay luminous on dark glass`() {
-        assertEquals(Color(0xFF5CF2A6), WidgetQuotaTone.Success.statusAccentColor())
-        assertEquals(Color(0xFFFFC85A), WidgetQuotaTone.Warning.statusAccentColor())
-        assertEquals(Color(0xFFFF6B7A), WidgetQuotaTone.Danger.statusAccentColor())
+        val dark = com.kmnexus.codexmeter.domain.theme.WidgetAppearance.DARK
+        assertEquals(Color(0xFF5CF2A6), WidgetQuotaTone.Success.statusAccentColor(dark))
+        assertEquals(Color(0xFFFFC85A), WidgetQuotaTone.Warning.statusAccentColor(dark))
+        assertEquals(Color(0xFFFF6B7A), WidgetQuotaTone.Danger.statusAccentColor(dark))
         assertEquals(Color(0x335CF2A6), WidgetQuotaTone.Success.statusGlowColor())
         assertEquals(Color(0x33FFC85A), WidgetQuotaTone.Warning.statusGlowColor())
         assertEquals(Color(0x33FF6B7A), WidgetQuotaTone.Danger.statusGlowColor())

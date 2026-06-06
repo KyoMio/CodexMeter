@@ -284,7 +284,7 @@ private fun WidgetHeaderRow(
         )
         Text(
             text = state.statusLabel(context),
-            style = TextStyle(color = ColorProvider(state.tone.statusAccentColor()), fontSize = 10.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = ColorProvider(state.tone.statusAccentColor(appearance)), fontSize = 10.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
     }
@@ -310,7 +310,7 @@ private fun QuadrantHeader(context: Context, state: WidgetQuotaState, appearance
             Text(
                 text = state.statusLabel(context),
                 modifier = GlanceModifier.padding(top = 4.dp),
-                style = TextStyle(color = ColorProvider(state.tone.statusAccentColor()), fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = ColorProvider(state.tone.statusAccentColor(appearance)), fontSize = 10.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
         }
@@ -566,12 +566,21 @@ internal fun WidgetQuotaState.statusLabelResId(): Int =
         WidgetQuotaStatus.NoData -> R.string.widget_status_no_data
     }
 
-internal fun WidgetQuotaTone.statusAccentColor(): Color =
-    when (this) {
-        WidgetQuotaTone.Neutral -> WIDGET_ACCENT
-        WidgetQuotaTone.Success -> WIDGET_SUCCESS
-        WidgetQuotaTone.Warning -> WIDGET_WARNING
-        WidgetQuotaTone.Danger -> WIDGET_DANGER
+internal fun WidgetQuotaTone.statusAccentColor(appearance: WidgetAppearance): Color =
+    when (appearance) {
+        WidgetAppearance.DARK -> when (this) {
+            WidgetQuotaTone.Neutral -> WIDGET_ACCENT
+            WidgetQuotaTone.Success -> WIDGET_SUCCESS
+            WidgetQuotaTone.Warning -> WIDGET_WARNING
+            WidgetQuotaTone.Danger -> WIDGET_DANGER
+        }
+        WidgetAppearance.LIGHT -> when (this) {
+            // Readable on cool-white liquid glass; each state stays distinguishable.
+            WidgetQuotaTone.Neutral -> Color(0xFF0071E3)
+            WidgetQuotaTone.Success -> Color(0xFF18A058)
+            WidgetQuotaTone.Warning -> Color(0xFFD97706)
+            WidgetQuotaTone.Danger -> Color(0xFFDC2626)
+        }
     }
 
 internal fun WidgetQuotaTone.statusGlowColor(): Color =
@@ -582,8 +591,9 @@ internal fun WidgetQuotaTone.statusGlowColor(): Color =
         WidgetQuotaTone.Danger -> WIDGET_DANGER_GLOW
     }
 
+// Used by the left status bar glow renderer — always DARK-glass pastels regardless of widget appearance.
 internal fun WidgetQuotaTone.statusAccentArgb(): Int =
-    statusAccentColor().toArgb()
+    statusAccentColor(WidgetAppearance.DARK).toArgb()
 
 internal fun WidgetQuotaTone.statusGlowArgb(): Int =
     statusGlowColor().toArgb()
