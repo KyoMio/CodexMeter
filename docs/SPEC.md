@@ -951,7 +951,7 @@ Rules:
 
 Required groups:
 
-- Appearance: a standalone card with a 3-option segmented pill control (Light / Dark / Follow System); default is Follow System; the selection applies immediately to both the app and widget; preference is persisted independently of accounts.
+- Appearance: a standalone card with a 3-option segmented pill control (Light / Dark / Follow System); default is Follow System; the selection applies immediately to the app only — the home-screen widget always follows the system theme regardless of this preference; the preference is persisted independently of accounts.
 - Persistent notification: status notification switch, notification account selection, notification display quota.
 - Alerts: account/error notification switch and thresholds.
 - Refresh: background refresh switch and latest-result summary.

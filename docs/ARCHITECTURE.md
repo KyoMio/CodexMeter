@@ -406,8 +406,9 @@ CodexMeter 将本地数据分为三类。
 - 历史保留天数
 - 通知开关
 - 状态通知开关
+- 外观主题偏好：浅色 / 深色 / 跟随系统，持久化在独立 DataStore 文件 `appearance.preferences_pb`，与账号数据解耦；启动时同步预热首值（`runBlocking { first() }`）以避免首帧主题闪烁
 
-历史版本残留的语言 / 字体偏好不再驱动当前 UI：App 启动时清理平台 App 专属语言覆盖，Compose 主题固定为 Mono Focus。
+历史版本残留的语言 / 字体偏好不再驱动当前 UI：App 启动时清理平台 App 专属语言覆盖，字体方案固定为 Mono Focus；明暗主题由外观偏好驱动，仅作用于 App（桌面微件始终跟随系统深浅色）。
 
 ### 8.4 应用更新检查
 
@@ -728,11 +729,11 @@ Provider 自己负责：
 刷新入口包括：
 
 - WorkManager 周期刷新。
-- 打开 App 后刷新。
-- 手动刷新。
+- 手动刷新（首页下拉刷新 / 右上角刷新按钮）。
 - 登录 / 重新登录成功后刷新。
 - 切换当前账号后刷新。
-- 点击微件打开 App 后刷新。
+
+打开 App、从通知或微件进入首页只读取已持久化的 last known good 快照，不再触发网络刷新；新鲜度由手动刷新与周期后台刷新保证，以避免频繁切页造成的高频 API 调用。`RefreshTrigger.AppOpen` 仅保留作为历史快照来源标记与旧记录反序列化兼容，不再有任何入口产生它。
 
 `RefreshCoordinator` 负责：
 
@@ -881,7 +882,7 @@ Widget 不做：
 点击行为：
 
 - 已登录：打开 App 首页。
-- 未登录：打开添加账号流程。
+- 未配置 / 未登录：同样打开 App 首页，由首页无账号态承载添加账号引导。微件不再深链单一 Provider 的添加账号页（已支持多 Provider，退役了单 Provider 直达入口）。
 
 刷新触发：
 
@@ -1065,6 +1066,10 @@ MVP 采用最小权限策略。
 - `INTERNET`
 - `ACCESS_NETWORK_STATE`
 - `POST_NOTIFICATIONS`，Android 13+ 运行时询问
+
+可选权限：
+
+- `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`：仅用于在设置页「提升后台刷新可靠性」入口引导用户把 App 加入电池优化白名单，使 Doze 不那么激进地推迟周期刷新。从不强制，仅在后台刷新开启且尚未豁免时显示；不通过它绕过 Doze，也不拉起前台服务。
 
 不申请：
 
