@@ -2,6 +2,7 @@ package com.kmnexus.codexmeter.widget
 
 import android.content.Context
 import android.content.Intent
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -48,7 +49,6 @@ import com.kmnexus.codexmeter.ui.navigation.CodexMeterRoute
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 class CodexMeterWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(WidgetLayoutVariant.referenceSizes)
@@ -511,11 +511,11 @@ private fun WidgetField.valueText(context: Context): String =
     }
 
 private fun WidgetField.resetLine(context: Context): String? =
-    resetAt?.let { context.getString(R.string.widget_reset_at_compact_format, it.formatCompactTime(context)) }
+    resetAt?.let { context.getString(R.string.widget_reset_at_compact_format, it.formatShortDateTime(context)) }
 
-/** Bare reset time without the "Reset" prefix — for narrow grid cells where space is tight. */
+/** Bare reset stamp (short date + time) without the "Reset" prefix — for the narrow header/grid cells. */
 private fun WidgetField.compactResetTime(context: Context): String? =
-    resetAt?.formatCompactTime(context)
+    resetAt?.formatShortDateTime(context)
 
 private fun WidgetQuotaState.headerStatusResetLine(context: Context, field: WidgetField?): String {
     val status = context.getString(statusLabelResId())
@@ -587,11 +587,12 @@ internal fun WidgetQuotaTone.statusAccentArgb(): Int = when (this) {
 internal fun WidgetQuotaTone.statusGlowArgb(): Int =
     statusGlowColor().toArgb()
 
-private fun Instant.formatCompactTime(context: Context): String {
+private fun Instant.formatShortDateTime(context: Context): String {
     val locale = context.resources.configuration.locales[0]
-    return DateTimeFormatter
-        .ofLocalizedTime(FormatStyle.SHORT)
-        .withLocale(locale)
+    // Short month/day + time, without the year — a quota reset is always near-term, so the year is
+    // noise. getBestDateTimePattern keeps the date-field order and 12/24h hour cycle locale-correct.
+    val pattern = DateFormat.getBestDateTimePattern(locale, "Mdjm")
+    return DateTimeFormatter.ofPattern(pattern, locale)
         .withZone(ZoneId.systemDefault())
         .format(this)
 }
