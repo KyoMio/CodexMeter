@@ -3,6 +3,7 @@ package com.kmnexus.codexmeter.ui.settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -381,18 +383,7 @@ internal fun ChoiceSummaryRow(
     valueResId: Int,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
-        // Center the title against the value button so a description-less row doesn't leave an empty
-        // line below the (top-aligned) title. Matches SwitchRow / DestructiveActionRow.
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
-        TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
-            Text(text = stringResource(valueResId))
-        }
-    }
+    ChoiceSummaryRowLayout(titleResId, descriptionResId, stringResource(valueResId), onClick)
 }
 
 @Composable
@@ -402,17 +393,36 @@ internal fun ChoiceSummaryTextRow(
     valueText: String,
     onClick: () -> Unit,
 ) {
+    ChoiceSummaryRowLayout(titleResId, descriptionResId, valueText, onClick)
+}
+
+/**
+ * The whole row is the tap target and its height tracks the text, so a description-less row collapses
+ * to the title height instead of leaving an empty line below it — a min-height TextButton used to
+ * force the row taller than its single-line title (e.g. "Refresh interval").
+ */
+@Composable
+private fun ChoiceSummaryRowLayout(
+    titleResId: Int,
+    descriptionResId: Int?,
+    valueText: String,
+    onClick: () -> Unit,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CodexMeterShapes.md)
+            .clickable(onClick = onClick)
+            .padding(vertical = CodexMeterSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
-        // Center the title against the value button so a description-less row doesn't leave an empty
-        // line below the (top-aligned) title. Matches SwitchRow / DestructiveActionRow.
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
-        TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
-            Text(text = valueText)
-        }
+        Text(
+            text = valueText,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
