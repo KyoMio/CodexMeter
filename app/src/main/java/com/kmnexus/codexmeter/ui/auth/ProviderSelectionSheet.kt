@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.providers.ProviderRegistry
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
 
@@ -71,7 +71,7 @@ fun ProviderSelectionSheet(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(CodexMeterColors.glassInk.copy(alpha = 0.30f))
+                    .background(CodexMeterTheme.colors.glassInk.copy(alpha = 0.30f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -117,7 +117,7 @@ private fun ProviderSheetPanel(
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .background(
                 Brush.verticalGradient(
-                    listOf(CodexMeterColors.surface, CodexMeterColors.surfaceSoft),
+                    listOf(CodexMeterTheme.colors.surface, CodexMeterTheme.colors.surfaceSoft),
                 ),
             )
             .navigationBarsPadding()
@@ -132,7 +132,7 @@ private fun ProviderSheetPanel(
                 .width(40.dp)
                 .height(4.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(CodexMeterColors.border),
+                .background(CodexMeterTheme.colors.border),
         )
         Spacer(modifier = Modifier.height(CodexMeterSpacing.md))
         Text(

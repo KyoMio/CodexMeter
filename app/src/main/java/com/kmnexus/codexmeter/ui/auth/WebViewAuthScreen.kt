@@ -51,7 +51,7 @@ import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 import com.kmnexus.codexmeter.providers.common.auth.LoopbackCallbackServer
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -257,7 +257,7 @@ private fun AuthTipText(raw: String, iconResId: Int?) {
             Icon(
                 painter = painterResource(iconResId),
                 contentDescription = null,
-                tint = CodexMeterColors.accent,
+                tint = CodexMeterTheme.colors.accent,
                 modifier = Modifier.size(18.dp),
             )
         },
@@ -277,7 +277,7 @@ private fun AuthActionIcon(iconResId: Int, contentDescriptionResId: Int, onClick
         Icon(
             painter = painterResource(iconResId),
             contentDescription = stringResource(contentDescriptionResId),
-            tint = CodexMeterColors.accent,
+            tint = CodexMeterTheme.colors.accent,
             modifier = Modifier.size(22.dp),
         )
     }

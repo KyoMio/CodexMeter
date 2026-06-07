@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 
 /**
  * Air-Glass styled pull-to-refresh indicator.
@@ -53,17 +53,17 @@ fun GlassPullToRefreshIndicator(
                 .shadow(
                     elevation = 8.dp,
                     shape = CircleShape,
-                    ambientColor = CodexMeterColors.glassShadow,
-                    spotColor = CodexMeterColors.glassShadow,
+                    ambientColor = CodexMeterTheme.colors.glassShadow,
+                    spotColor = CodexMeterTheme.colors.glassShadow,
                 )
-                .background(CodexMeterColors.glassBase, CircleShape)
-                .border(1.dp, CodexMeterColors.glassStrokeCool, CircleShape),
+                .background(CodexMeterTheme.colors.glassBase, CircleShape)
+                .border(1.dp, CodexMeterTheme.colors.glassStrokeCool, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (isRefreshing) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
-                    color = CodexMeterColors.glassTintBlue,
+                    color = CodexMeterTheme.colors.glassTintBlue,
                     strokeWidth = 2.dp,
                 )
             }

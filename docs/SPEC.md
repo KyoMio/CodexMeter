@@ -54,6 +54,7 @@ The MVP must support:
 - Home dashboard with 5h quota, weekly quota, 24h trend, freshness and refresh state.
 - Account tab with current account, account switching, add account, rename and delete.
 - Settings tab with persistent notification configuration, thresholds, refresh, account-error notifications, retention, data management, diagnostics, and manual GitHub Releases APK update checks.
+- Settings tab includes an appearance preference (Light / Dark / Follow System, default Follow System) that persists independently of accounts and applies immediately to the app. The home-screen widget ALWAYS follows the system theme (independent of the app preference): its glass background is a `drawable`/`drawable-night` resource and its text uses Glance `ColorProvider(day, night)`, so the launcher re-resolves them instantly on a system night-mode change with no app process involvement.
 - Resizable home-screen widget driven by persisted widget state, with optional per-widget account and compact primary-window configuration.
 - Optional persistent status notification.
 - Threshold behavior uses remaining quota percent: 30/10/0 defaults; 30% only changes state color/copy; 10% and 0% may notify.
@@ -156,6 +157,7 @@ Permissions:
 - Required: `android.permission.INTERNET`.
 - Required: `android.permission.ACCESS_NETWORK_STATE`.
 - Optional/runtime: `android.permission.POST_NOTIFICATIONS` for Android 13+.
+- Optional: `android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, only to offer (never force) the user a system dialog so Doze defers periodic refresh less aggressively. Surfaced from the background-refresh settings card when the app is not yet exempt.
 - Not allowed: storage permissions, exact alarm, foreground service, location, contacts, phone, SMS.
 
 Security manifest rules:
@@ -949,6 +951,7 @@ Rules:
 
 Required groups:
 
+- Appearance: a standalone card with a 3-option segmented pill control (Light / Dark / Follow System); default is Follow System; the selection applies immediately to the app only — the home-screen widget always follows the system theme regardless of this preference; the preference is persisted independently of accounts.
 - Persistent notification: status notification switch, notification account selection, notification display quota.
 - Alerts: account/error notification switch and thresholds.
 - Refresh: background refresh switch and latest-result summary.

@@ -3,6 +3,13 @@ package com.kmnexus.codexmeter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kmnexus.codexmeter.domain.theme.resolveDarkAppearance
 import com.kmnexus.codexmeter.ui.navigation.CodexMeterNavHost
 import com.kmnexus.codexmeter.ui.navigation.CodexMeterRoute
 import com.kmnexus.codexmeter.ui.theme.CodexMeterFontScheme
@@ -16,7 +23,20 @@ class MainActivity : ComponentActivity() {
             intent?.getStringExtra(CodexMeterRoute.EXTRA_LAUNCH_DESTINATION),
         )
         setContent {
-            CodexMeterTheme(fontScheme = CodexMeterFontScheme.MonoFocusGeistMono) {
+            val themeMode by codexMeterApp.appearancePreferenceStore.themeMode
+                .collectAsStateWithLifecycle(initialValue = codexMeterApp.initialThemeMode)
+            val darkAppearance = resolveDarkAppearance(themeMode, isSystemInDarkTheme())
+
+            val view = LocalView.current
+            if (!view.isInEditMode) {
+                SideEffect {
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    controller.isAppearanceLightStatusBars = !darkAppearance
+                    controller.isAppearanceLightNavigationBars = !darkAppearance
+                }
+            }
+
+            CodexMeterTheme(themeMode = themeMode, fontScheme = CodexMeterFontScheme.MonoFocusGeistMono) {
                 CodexMeterNavHost(
                     startDestination = startDestination,
                     deviceCodeLoginController = codexMeterApp.deviceCodeLoginController,
@@ -28,7 +48,6 @@ class MainActivity : ComponentActivity() {
                     accountQuotaAlertEvaluationRequester = codexMeterApp.accountQuotaAlertEvaluationRequester,
                     accountRefreshAllUseCase = codexMeterApp.accountRefreshAllUseCase,
                     homeCurrentQuotaStateLoader = codexMeterApp.homeCurrentQuotaStateLoader,
-                    homeAppOpenRefreshUseCase = codexMeterApp.homeAppOpenRefreshUseCase,
                     homeRefreshUseCase = codexMeterApp.homeRefreshUseCase,
                     homeTrendHistoryLoader = codexMeterApp.homeTrendHistoryLoader,
                     retentionPreferenceStore = codexMeterApp.retentionPreferenceStore,
@@ -43,6 +62,7 @@ class MainActivity : ComponentActivity() {
                     exchangeRateReader = codexMeterApp.exchangeRateReader,
                     notificationWindowChoicesLoader = codexMeterApp.notificationWindowChoicesLoader,
                     currencyPreferenceStore = codexMeterApp.currencyPreferenceStore,
+                    appearancePreferenceStore = codexMeterApp.appearancePreferenceStore,
                 )
             }
         }

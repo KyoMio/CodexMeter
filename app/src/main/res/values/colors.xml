@@ -3,5 +3,6 @@
     <color name="codexmeter_surface">#FFFFFF</color>
     <color name="codexmeter_background">#F5F7FB</color>
     <color name="codexmeter_accent">#0071E3</color>
+    <color name="codexmeter_background_dark">#0E1218</color>
     <color name="ic_launcher_background">#F5F7FB</color>
 </resources>

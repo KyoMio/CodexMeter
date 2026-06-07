@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -53,6 +54,8 @@ import com.kmnexus.codexmeter.domain.account.NoopAccountListUseCase
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.domain.settings.NoopQuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.RetentionPreferenceStore
@@ -60,7 +63,7 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
@@ -81,6 +84,7 @@ fun SettingsRoute(
     notificationWindowChoicesLoader: NotificationWindowChoicesLoader =
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
+    appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
     viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModel.factory(
             accountListUseCase = accountListUseCase,
@@ -94,6 +98,7 @@ fun SettingsRoute(
             backgroundRefreshScheduler = backgroundRefreshScheduler,
             notificationWindowChoicesLoader = notificationWindowChoicesLoader,
             currencyPreferenceStore = currencyPreferenceStore,
+            appearancePreferenceStore = appearancePreferenceStore,
         ),
     ),
 ) {
@@ -103,6 +108,14 @@ fun SettingsRoute(
     val coroutineScope = rememberCoroutineScope()
     val diagnosticsClipboardLabel = stringResource(R.string.settings_diagnostics_clipboard_label)
     var pendingPermissionTarget by remember { mutableStateOf<SettingsNotificationPermissionTarget?>(null) }
+    var batteryOptimizationIgnored by remember { mutableStateOf(context.isIgnoringBatteryOptimizations()) }
+    // The system dialog always returns RESULT_CANCELED, so re-read PowerManager on return instead of
+    // trusting the result code to decide whether the hint should disappear.
+    val batteryOptimizationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        batteryOptimizationIgnored = context.isIgnoringBatteryOptimizations()
+    }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -170,6 +183,7 @@ fun SettingsRoute(
         onBackgroundRefreshChanged = viewModel::setBackgroundRefreshEnabled,
         onRefreshIntervalSelected = viewModel::updateRefreshInterval,
         onCurrencyTargetSelected = viewModel::updateCurrencyTarget,
+        onThemeModeSelected = viewModel::updateThemeMode,
         onRetentionSelected = viewModel::updateRetention,
         onClearCurrentHistoryClick = viewModel::requestClearCurrentHistory,
         onClearAllHistoryClick = viewModel::requestClearAllHistory,
@@ -191,6 +205,17 @@ fun SettingsRoute(
         onAppUpdateCheckClick = viewModel::checkForUpdates,
         onAppUpdateDismiss = viewModel::dismissPendingUpdate,
         onAppUpdateDownloadClick = viewModel::downloadPendingUpdate,
+        showBatteryOptimizationHint = SettingsBatteryOptimizationGate.shouldOfferExemption(
+            batteryOptimizationIgnored = batteryOptimizationIgnored,
+            backgroundRefreshEnabled = uiState.refresh.backgroundRefreshEnabled,
+        ),
+        onBatteryOptimizationClick = {
+            runCatching {
+                batteryOptimizationLauncher.launch(
+                    SettingsBatteryOptimizationTarget.requestExemptionIntent(context.packageName),
+                )
+            }
+        },
     )
     pendingPermissionTarget?.let {
         NotificationPermissionRationaleDialog(
@@ -221,6 +246,7 @@ fun SettingsScreen(
     onBackgroundRefreshChanged: (Boolean) -> Unit = {},
     onRefreshIntervalSelected: (SettingsRefreshInterval) -> Unit = {},
     onCurrencyTargetSelected: (String) -> Unit = {},
+    onThemeModeSelected: (ThemeMode) -> Unit = {},
     onRetentionSelected: (SettingsRetentionOption) -> Unit = {},
     onClearCurrentHistoryClick: () -> Unit = {},
     onClearAllHistoryClick: () -> Unit = {},
@@ -233,6 +259,8 @@ fun SettingsScreen(
     onAppUpdateCheckClick: () -> Unit = {},
     onAppUpdateDismiss: () -> Unit = {},
     onAppUpdateDownloadClick: () -> Unit = {},
+    showBatteryOptimizationHint: Boolean = false,
+    onBatteryOptimizationClick: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -242,6 +270,11 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.lg),
     ) {
         SettingsHeader()
+        SettingsSectionLabel(R.string.settings_group_appearance)
+        AppearanceCard(
+            appearance = uiState.appearance,
+            onThemeModeSelected = onThemeModeSelected,
+        )
         SettingsSectionLabel(R.string.settings_group_persistent_notification)
         PersistentNotificationCard(
             persistentNotification = uiState.persistentNotification,
@@ -265,6 +298,8 @@ fun SettingsScreen(
             refresh = uiState.refresh,
             onBackgroundRefreshChanged = onBackgroundRefreshChanged,
             onIntervalClick = { onChoiceDialogRequested(SettingsChoiceDialog.RefreshInterval) },
+            showBatteryOptimizationHint = showBatteryOptimizationHint,
+            onBatteryOptimizationClick = onBatteryOptimizationClick,
         )
         SettingsSectionLabel(R.string.settings_group_data)
         DataCard(
@@ -324,7 +359,7 @@ private fun SettingsHeader() {
 @Composable
 internal fun SwitchRow(
     @StringRes titleResId: Int,
-    @StringRes descriptionResId: Int,
+    @StringRes descriptionResId: Int?,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
@@ -339,16 +374,18 @@ internal fun DestructiveActionRow(@StringRes titleResId: Int, @StringRes descrip
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
         TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
-            Text(text = stringResource(R.string.settings_data_clear_action), color = CodexMeterColors.danger)
+            Text(text = stringResource(R.string.settings_data_clear_action), color = CodexMeterTheme.colors.danger)
         }
     }
 }
 
 @Composable
-internal fun SettingsItemText(@StringRes titleResId: Int, @StringRes descriptionResId: Int, modifier: Modifier = Modifier) {
+internal fun SettingsItemText(@StringRes titleResId: Int, @StringRes descriptionResId: Int?, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs)) {
         Text(text = stringResource(titleResId), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = stringResource(descriptionResId), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (descriptionResId != null) {
+            Text(text = stringResource(descriptionResId), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -395,7 +432,7 @@ private fun ConfirmDataActionDialog(
         text = { Text(text = stringResource(action.messageResId)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(text = stringResource(R.string.settings_data_confirm_clear), color = CodexMeterColors.danger)
+                Text(text = stringResource(R.string.settings_data_confirm_clear), color = CodexMeterTheme.colors.danger)
             }
         },
         dismissButton = {
@@ -537,8 +574,8 @@ private fun NotificationPermissionRationaleDialog(
 internal fun SettingsSurfaceCard(content: @Composable () -> Unit) {
     Card(
         shape = CodexMeterShapes.xl,
-        colors = CardDefaults.cardColors(containerColor = CodexMeterColors.surface),
-        border = BorderStroke(1.dp, CodexMeterColors.border),
+        colors = CardDefaults.cardColors(containerColor = CodexMeterTheme.colors.surface),
+        border = BorderStroke(1.dp, CodexMeterTheme.colors.border),
     ) {
         Box(modifier = Modifier.fillMaxWidth().padding(CodexMeterSpacing.lg)) {
             content()
@@ -557,3 +594,8 @@ private fun Context.hasNotificationPermission(): Boolean =
             this,
             Manifest.permission.POST_NOTIFICATIONS,
         ) == PackageManager.PERMISSION_GRANTED
+
+// Null when PowerManager is unavailable so the hint stays hidden rather than guessing.
+private fun Context.isIgnoringBatteryOptimizations(): Boolean? =
+    (getSystemService(Context.POWER_SERVICE) as? PowerManager)
+        ?.isIgnoringBatteryOptimizations(packageName)

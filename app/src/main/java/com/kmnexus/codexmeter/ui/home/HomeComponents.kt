@@ -22,9 +22,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.avatarColor
+import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 
 @Composable
 internal fun AccountLabel(account: HomeAccountUi) {
@@ -32,7 +34,7 @@ internal fun AccountLabel(account: HomeAccountUi) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(CodexMeterShapes.lg)
-            .background(CodexMeterColors.surface)
+            .background(CodexMeterTheme.colors.surface)
             .padding(CodexMeterSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
@@ -43,13 +45,13 @@ internal fun AccountLabel(account: HomeAccountUi) {
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
-                    .background(CodexMeterColors.accentSoft),
+                    .background(CodexMeterTheme.colors.accentSoft),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = null,
-                    tint = CodexMeterColors.primary,
+                    tint = CodexMeterTheme.colors.primary,
                     modifier = Modifier.size(21.dp),
                 )
             }
@@ -64,7 +66,7 @@ internal fun AccountLabel(account: HomeAccountUi) {
                 Text(
                     text = account.avatarInitial,
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
+                    color = avatarInitialColor(),
                     maxLines = 1,
                 )
             }
@@ -84,9 +86,4 @@ internal fun AccountLabel(account: HomeAccountUi) {
             )
         }
     }
-}
-
-internal fun avatarColor(key: String): Color {
-    val colors = listOf(CodexMeterColors.accent, CodexMeterColors.secondary, CodexMeterColors.warning)
-    return colors[Math.floorMod(key.hashCode(), colors.size)]
 }

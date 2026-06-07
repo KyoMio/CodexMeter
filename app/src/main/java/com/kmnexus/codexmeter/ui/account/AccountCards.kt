@@ -31,6 +31,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,9 +53,11 @@ import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.ui.motion.CodexMeterMotion
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.avatarColor
+import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -211,7 +214,7 @@ private fun AccountExpandIconButton(
             modifier = Modifier
                 .size(20.dp)
                 .graphicsLayer { rotationZ = rotation },
-            tint = CodexMeterColors.accent,
+            tint = CodexMeterTheme.colors.accent,
         )
     }
 }
@@ -296,8 +299,8 @@ internal fun SectionLabel(resId: Int) {
 internal fun AccountSurfaceCard(content: @Composable () -> Unit) {
     Card(
         shape = CodexMeterShapes.xl,
-        colors = CardDefaults.cardColors(containerColor = CodexMeterColors.surface),
-        border = BorderStroke(1.dp, CodexMeterColors.border),
+        colors = CardDefaults.cardColors(containerColor = CodexMeterTheme.colors.surface),
+        border = BorderStroke(1.dp, CodexMeterTheme.colors.border),
     ) {
         Box(
             modifier = Modifier
@@ -347,7 +350,7 @@ private fun AccountMetadataTile(
     Column(
         modifier = modifier
             .clip(CodexMeterShapes.md)
-            .background(CodexMeterColors.surfaceSoft)
+            .background(CodexMeterTheme.colors.surfaceSoft)
             .padding(CodexMeterSpacing.md),
         verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs),
     ) {
@@ -377,7 +380,7 @@ private fun QuotaSummaryRow(summaries: List<AccountQuotaSummaryUi>) {
                 modifier = Modifier
                     .weight(1f)
                     .clip(CodexMeterShapes.md)
-                    .background(CodexMeterColors.surfaceSoft)
+                    .background(CodexMeterTheme.colors.surfaceSoft)
                     .padding(CodexMeterSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs),
             ) {
@@ -427,7 +430,7 @@ private fun ModelDetailsSection(families: List<AccountModelFamilyUi>) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(CodexMeterShapes.md)
-            .background(CodexMeterColors.surfaceSoft)
+            .background(CodexMeterTheme.colors.surfaceSoft)
             .padding(CodexMeterSpacing.md),
         verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm),
     ) {
@@ -487,7 +490,7 @@ private fun QuotaAlertSwitches(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CodexMeterShapes.md)
-            .background(CodexMeterColors.surfaceSoft)
+            .background(CodexMeterTheme.colors.surfaceSoft)
             .padding(CodexMeterSpacing.md),
         verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm),
     ) {
@@ -540,6 +543,7 @@ private fun AccountActions(
     onReloginClick: (LocalAccountId) -> Unit,
     onDeleteClick: (LocalAccountId) -> Unit,
 ) {
+    val actionButtonBorder = BorderStroke(1.dp, CodexMeterTheme.colors.border)
     Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm)) {
         Row(horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm)) {
             OutlinedButton(
@@ -547,7 +551,7 @@ private fun AccountActions(
                 modifier = Modifier.weight(1f),
                 enabled = !account.isCurrent,
                 shape = CodexMeterShapes.md,
-                border = AccountActionButtonBorder,
+                border = actionButtonBorder,
             ) {
                 Text(text = stringResource(R.string.account_set_current))
             }
@@ -571,18 +575,17 @@ private fun AccountActions(
                 onClick = { onDeleteClick(account.id) },
                 modifier = Modifier.weight(1f),
                 shape = CodexMeterShapes.md,
-                border = AccountActionButtonBorder,
+                border = actionButtonBorder,
             ) {
                 Text(
                     text = stringResource(R.string.account_delete),
-                    color = CodexMeterColors.danger,
+                    color = CodexMeterTheme.colors.danger,
                 )
             }
         }
     }
 }
 
-private val AccountActionButtonBorder = BorderStroke(1.dp, CodexMeterColors.border)
 
 @Composable
 private fun StatusBadge(account: AccountItemUi) {
@@ -610,13 +613,13 @@ private fun AccountAvatar(account: AccountItemUi, size: Dp) {
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(CodexMeterColors.accentSoft),
+                .background(CodexMeterTheme.colors.accentSoft),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
-                tint = CodexMeterColors.primary,
+                tint = CodexMeterTheme.colors.primary,
                 modifier = Modifier.size(size * 0.56f),
             )
         }
@@ -631,7 +634,7 @@ private fun AccountAvatar(account: AccountItemUi, size: Dp) {
             Text(
                 text = account.avatarInitial,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
+                color = avatarInitialColor(),
                 maxLines = 1,
             )
         }
@@ -648,11 +651,6 @@ private fun formattedInstant(instant: Instant): String {
             .withZone(ZoneId.systemDefault())
             .format(instant)
     }
-}
-
-private fun avatarColor(key: String): Color {
-    val colors = listOf(CodexMeterColors.accent, CodexMeterColors.secondary, CodexMeterColors.warning)
-    return colors[Math.floorMod(key.hashCode(), colors.size)]
 }
 
 @Composable
@@ -672,18 +670,22 @@ private fun formatCreditBalance(amount: Double, locale: Locale): String =
         maximumFractionDigits = 2
     }.format(amount)
 
+@Composable
+@ReadOnlyComposable
 private fun AccountStatusTone.color(): Color =
     when (this) {
-        AccountStatusTone.Neutral -> CodexMeterColors.secondary
-        AccountStatusTone.Success -> CodexMeterColors.success
-        AccountStatusTone.Warning -> CodexMeterColors.warning
-        AccountStatusTone.Danger -> CodexMeterColors.danger
+        AccountStatusTone.Neutral -> CodexMeterTheme.colors.secondary
+        AccountStatusTone.Success -> CodexMeterTheme.colors.success
+        AccountStatusTone.Warning -> CodexMeterTheme.colors.warning
+        AccountStatusTone.Danger -> CodexMeterTheme.colors.danger
     }
 
+@Composable
+@ReadOnlyComposable
 private fun AccountStatusTone.softColor(): Color =
     when (this) {
-        AccountStatusTone.Neutral -> CodexMeterColors.neutralAlt
-        AccountStatusTone.Success -> CodexMeterColors.successSoft
-        AccountStatusTone.Warning -> CodexMeterColors.warningSoft
-        AccountStatusTone.Danger -> CodexMeterColors.dangerSoft
+        AccountStatusTone.Neutral -> CodexMeterTheme.colors.neutralAlt
+        AccountStatusTone.Success -> CodexMeterTheme.colors.successSoft
+        AccountStatusTone.Warning -> CodexMeterTheme.colors.warningSoft
+        AccountStatusTone.Danger -> CodexMeterTheme.colors.dangerSoft
     }

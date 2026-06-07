@@ -22,7 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
 /**
@@ -65,7 +65,7 @@ private fun AuthTopBar(
                 // Reuse the chevron asset, rotated to point left as a back affordance.
                 painter = painterResource(R.drawable.ic_chevron_down),
                 contentDescription = stringResource(R.string.auth_back),
-                tint = CodexMeterColors.primary,
+                tint = CodexMeterTheme.colors.primary,
                 modifier = Modifier
                     .size(22.dp)
                     .rotate(90f),
@@ -74,7 +74,7 @@ private fun AuthTopBar(
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = CodexMeterColors.primary,
+            color = CodexMeterTheme.colors.primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier

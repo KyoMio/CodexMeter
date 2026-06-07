@@ -43,13 +43,13 @@ import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
 
 @Composable
 fun HomeRoute(
     modifier: Modifier = Modifier,
     currentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-    appOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
     refreshUseCase: HomeRefreshUseCase,
     trendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -> emptyList() },
     notificationPreferenceReader: NotificationPreferenceReader,
@@ -58,7 +58,6 @@ fun HomeRoute(
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.factory(
             currentQuotaStateLoader = currentQuotaStateLoader,
-            appOpenRefreshUseCase = appOpenRefreshUseCase,
             refreshUseCase = refreshUseCase,
             trendHistoryLoader = trendHistoryLoader,
             notificationPreferenceReader = notificationPreferenceReader,
@@ -225,6 +224,9 @@ private fun HomeRefreshIconButton(
         Icon(
             painter = painterResource(R.drawable.ic_action_refresh),
             contentDescription = stringResource(R.string.home_refresh),
+            // Manual refresh is the primary header action; accent stays visible on both light and
+            // dark backgrounds (the default content color could fall back to near-invisible in dark).
+            tint = CodexMeterTheme.colors.accent,
             modifier = Modifier.graphicsLayer {
                 rotationZ = if (isRefreshing) rotation else 0f
             },

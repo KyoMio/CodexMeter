@@ -9,7 +9,7 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 
 class WidgetQuotaStateFactory(
-    private val providerDisplayName: String = CODEX_PROVIDER_NAME,
+    private val providerDisplayName: String = UNCONFIGURED_HEADER,
 ) {
     /** 微件未选账号时的引导态。 */
     fun unconfigured(hasAccounts: Boolean): WidgetQuotaState =
@@ -20,7 +20,10 @@ class WidgetQuotaStateFactory(
             localAccountId = null,
             accountName = null,
             tone = WidgetQuotaTone.Neutral,
-            clickTarget = if (hasAccounts) WidgetClickTarget.Home else WidgetClickTarget.AddAccount,
+            // Tapping an unconfigured widget opens the app's Home tab (where the no-account state already
+            // surfaces an add-account entry). It must not deep-link to the retired provider-selection
+            // screen; the no-accounts hint still tells the user to add an account in-app first.
+            clickTarget = WidgetClickTarget.Home,
             fields = emptyList(),
             isUnconfigured = true,
             hasAccounts = hasAccounts,
@@ -124,6 +127,8 @@ class WidgetQuotaStateFactory(
         }
 
     private companion object {
-        const val CODEX_PROVIDER_NAME = "Codex"
+        // Header shown on the unconfigured/no-account widget: app branding, not a single provider,
+        // since CodexMeter now supports multiple AI providers.
+        const val UNCONFIGURED_HEADER = "CodexMeter"
     }
 }

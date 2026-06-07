@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <activity
+            android:name=".ui.home.HomePreviewActivity"
+            android:exported="true"
+            android:label="Home Preview"
+            android:theme="@style/Theme.CodexMeter" />
+        <activity
             android:name=".ui.spike.MotionPreviewActivity"
             android:exported="true"
             android:label="Motion Preview"

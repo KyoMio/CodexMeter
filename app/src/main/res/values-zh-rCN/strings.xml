@@ -186,6 +186,11 @@
     <string name="account_delete_dialog_cancel">取消</string>
     <string name="settings_title">设置</string>
     <string name="settings_description">通知、刷新、告警、数据和诊断设置。</string>
+    <string name="settings_group_appearance">外观</string>
+    <string name="settings_appearance_light">浅色</string>
+    <string name="settings_appearance_dark">深色</string>
+    <string name="settings_appearance_system">跟随系统</string>
+    <string name="settings_appearance_widget_hint">此设置作用于 App；桌面微件始终跟随系统深浅色。</string>
     <string name="settings_group_persistent_notification">常驻通知</string>
     <string name="settings_group_alerts">通知与告警</string>
     <string name="settings_group_refresh">刷新</string>
@@ -195,7 +200,7 @@
     <string name="settings_primary_window_five_hour">5小时额度</string>
     <string name="settings_primary_window_weekly">7天额度</string>
     <string name="settings_status_notification_title">常驻状态通知</string>
-    <string name="settings_status_notification_description">通知权限可用时显示低打扰的额度状态通知。</string>
+    <string name="settings_status_notification_description">在通知栏显示低打扰的额度状态。</string>
     <string name="settings_notification_account_title">通知账号</string>
     <string name="settings_notification_account_description">选择常驻通知显示的账号。</string>
     <string name="settings_notification_account_follow_current">跟随当前账号</string>
@@ -207,7 +212,7 @@
     <string name="settings_account_errors_title">账号与错误提醒</string>
     <string name="settings_account_errors_description">当前账号需要重新登录或连续刷新失败时提醒。</string>
     <string name="settings_notification_permission_title">允许 CodexMeter 发送通知？</string>
-    <string name="settings_notification_permission_description">CodexMeter 只会将通知用于可选状态提示、额度告警和账号错误提醒。不授权时，App 和微件仍可正常使用。</string>
+    <string name="settings_notification_permission_description">仅用于可选的状态提示、额度告警和账号错误提醒；不授予也不影响 App 与微件。</string>
     <string name="settings_notification_permission_allow">允许通知</string>
     <string name="notification_channel_status_name">额度状态</string>
     <string name="notification_channel_status_description">低打扰的常驻额度状态。</string>
@@ -260,7 +265,7 @@
     <string name="widget_refreshed_at_compact_format">%1$s 刷新</string>
     <string name="widget_window_title_reset_format">%1$s · %2$s</string>
     <string name="widget_provider_status_line_format">%1$s · %2$s</string>
-    <string name="widget_connect_codex">点按连接 Codex</string>
+    <string name="widget_connect_codex">点按连接 AI 供应商</string>
     <string name="widget_status_possibly_stale">可能已过期</string>
     <string name="widget_status_expired">已过期</string>
     <string name="widget_status_auth_required">需要重新登录</string>
@@ -278,8 +283,9 @@
     <string name="widget_no_more_fields">无更多字段</string>
     <string name="widget_no_more_fields_hint">可缩小组件，或多选字段</string>
     <string name="widget_unconfigured_title">尚未配置</string>
-    <string name="widget_unconfigured_hint">长按 → 选择账号与字段</string>
+    <string name="widget_unconfigured_hint">选择账号与字段</string>
     <string name="widget_no_accounts_hint">请先在应用内添加账号</string>
+    <string name="widget_long_press_to_configure">长按进行配置</string>
     <string name="widget_config_save">保存</string>
     <string name="widget_config_saving">保存中…</string>
     <string name="widget_config_cancel">取消</string>
@@ -293,6 +299,9 @@
     <string name="settings_balance_amount_format">%1$s%2$d</string>
     <string name="settings_background_refresh_title">后台刷新</string>
     <string name="settings_background_refresh_description">Android 允许时在后台刷新所有账号。</string>
+    <string name="settings_battery_optimization_title">提升后台刷新可靠性</string>
+    <string name="settings_battery_optimization_description">息屏时省电策略会延迟后台刷新；忽略它可让刷新更贴近你设定的间隔。</string>
+    <string name="settings_battery_optimization_action">去允许</string>
     <string name="settings_refresh_interval_title">刷新间隔</string>
     <string name="settings_refresh_interval_description">后台刷新额度的频率。</string>
     <string name="settings_refresh_interval_15min">每 15 分钟</string>
@@ -317,9 +326,9 @@
     <string name="settings_retention_90_days">90 天</string>
     <string name="settings_retention_forever">永久</string>
     <string name="settings_data_clear_current_title">清空当前账号历史</string>
-    <string name="settings_data_clear_current_description">保留账号和加密会话，仅移除当前账号的额度历史。</string>
+    <string name="settings_data_clear_current_description">清除当前账号的额度历史，保留账号与会话。</string>
     <string name="settings_data_clear_all_title">清空全部账号历史</string>
-    <string name="settings_data_clear_all_description">保留账号和加密会话，移除所有账号的额度历史。</string>
+    <string name="settings_data_clear_all_description">清除所有账号的额度历史，保留账号与会话。</string>
     <string name="settings_data_clear_action">清空</string>
     <string name="settings_data_confirm_clear">清空</string>
     <string name="settings_data_clear_current_confirm_title">清空当前历史？</string>
@@ -340,7 +349,7 @@
     <string name="settings_about_repository_label">GitHub 仓库</string>
     <string name="settings_about_repository_content_description">打开 GitHub 仓库</string>
     <string name="settings_update_title">应用更新</string>
-    <string name="settings_update_description">检查 GitHub 上的 CodexMeter 最新发布，并用系统下载器下载新版 APK。</string>
+    <string name="settings_update_description">在 GitHub 检查最新版本并安装 APK。</string>
     <string name="settings_update_check">检查更新</string>
     <string name="settings_update_checking">检查中</string>
     <string name="settings_update_status_checking">正在检查 GitHub Releases…</string>

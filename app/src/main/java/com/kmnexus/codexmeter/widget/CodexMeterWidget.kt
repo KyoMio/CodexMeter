@@ -2,6 +2,7 @@ package com.kmnexus.codexmeter.widget
 
 import android.content.Context
 import android.content.Intent
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -38,8 +39,9 @@ import androidx.glance.layout.width
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.color.ColorProvider
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
+import androidx.glance.unit.ColorProvider as UnitColorProvider
 import com.kmnexus.codexmeter.MainActivity
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.ui.navigation.CodexMeterLaunchDestination
@@ -47,7 +49,6 @@ import com.kmnexus.codexmeter.ui.navigation.CodexMeterRoute
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 class CodexMeterWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(WidgetLayoutVariant.referenceSizes)
@@ -75,13 +76,12 @@ internal fun CodexMeterWidgetContent(
     layoutVariant: WidgetLayoutVariant,
 ) {
     val launchIntent = state.launchIntent(context)
-    val glassBackdrop = LiquidGlassWidgetBackdropRenderer.render(context, widgetSize, state.tone)
     Box(
         modifier = GlanceModifier.fillMaxSize().clickable(actionStartActivity(launchIntent)),
         contentAlignment = Alignment.CenterStart,
     ) {
         Image(
-            provider = ImageProvider(glassBackdrop),
+            provider = ImageProvider(R.drawable.widget_glass_xml),
             contentDescription = null,
             modifier = GlanceModifier.fillMaxSize(),
             contentScale = ContentScale.FillBounds,
@@ -132,13 +132,13 @@ private fun ThreeByOneContent(context: Context, state: WidgetQuotaState) {
         Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
                 text = state.accountName ?: state.providerName,
-                style = TextStyle(color = ColorProvider(WIDGET_TEXT), fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = WidgetTextProvider, fontSize = 13.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
             Text(
                 text = state.headerStatusResetLine(context, field),
                 modifier = GlanceModifier.padding(top = 2.dp),
-                style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = WidgetMutedTextProvider, fontSize = 10.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
         }
@@ -231,7 +231,7 @@ private fun FourByTwoContent(context: Context, state: WidgetQuotaState) {
 @Composable
 private fun SoftColumnDivider() {
     Box(
-        modifier = GlanceModifier.width(1.dp).height(46.dp).background(ColorProvider(WIDGET_DIVIDER_SOFT)),
+        modifier = GlanceModifier.width(1.dp).height(46.dp).background(WidgetDividerSoftProvider),
     ) {}
 }
 
@@ -240,7 +240,7 @@ private fun SoftColumnDivider() {
 private fun SoftRowDivider() {
     Box(modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 28.dp)) {
         Box(
-            modifier = GlanceModifier.fillMaxWidth().height(1.dp).background(ColorProvider(WIDGET_DIVIDER_SOFT)),
+            modifier = GlanceModifier.fillMaxWidth().height(1.dp).background(WidgetDividerSoftProvider),
         ) {}
     }
 }
@@ -260,12 +260,12 @@ private fun WidgetHeaderRow(
         Text(
             text = state.accountName ?: state.providerName,
             modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(color = ColorProvider(WIDGET_TEXT), fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = WidgetTextProvider, fontSize = 12.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
         Text(
             text = state.statusLabel(context),
-            style = TextStyle(color = ColorProvider(state.tone.statusAccentColor()), fontSize = 10.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = state.tone.statusAccentProvider(), fontSize = 10.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
     }
@@ -284,14 +284,14 @@ private fun QuadrantHeader(context: Context, state: WidgetQuotaState, modifier: 
                 WidgetBrandIcon(state, sizeDp = 16)
                 Text(
                     text = state.accountName ?: state.providerName,
-                    style = TextStyle(color = ColorProvider(WIDGET_TEXT), fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(color = WidgetTextProvider, fontSize = 12.sp, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                 )
             }
             Text(
                 text = state.statusLabel(context),
                 modifier = GlanceModifier.padding(top = 4.dp),
-                style = TextStyle(color = ColorProvider(state.tone.statusAccentColor()), fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = state.tone.statusAccentProvider(), fontSize = 10.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
         }
@@ -329,19 +329,19 @@ private fun GridFieldCell(
             Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
                 Text(
                     text = context.getString(field.titleResId()),
-                    style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                 )
                 Text(
                     text = field.valueText(context),
                     modifier = GlanceModifier.padding(top = 2.dp),
-                    style = TextStyle(color = ColorProvider(field.tone.percentColor()), fontSize = 30.sp, fontWeight = FontWeight.Bold),
+                    style = TextStyle(color = field.tone.percentProvider(), fontSize = 30.sp, fontWeight = FontWeight.Bold),
                     maxLines = 1,
                 )
                 Text(
                     text = field.compactResetTime(context).orEmpty(),
                     modifier = GlanceModifier.padding(top = 1.dp),
-                    style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                 )
             }
@@ -355,21 +355,21 @@ private fun GridFieldCell(
         Column(modifier = GlanceModifier.defaultWeight(), verticalAlignment = Alignment.Vertical.CenterVertically) {
             Text(
                 text = context.getString(field.titleResId()),
-                style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
             // Blank reset slot kept for height parity so big numbers line up across cells.
             Text(
                 text = field.resetLine(context).orEmpty(),
                 modifier = GlanceModifier.padding(top = 1.dp),
-                style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
         }
         Spacer(GlanceModifier.width(6.dp))
         Text(
             text = field.valueText(context),
-            style = TextStyle(color = ColorProvider(field.tone.percentColor()), fontSize = 28.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = field.tone.percentProvider(), fontSize = 28.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
     }
@@ -391,21 +391,21 @@ private fun RowScope.FieldCellOrHint(context: Context, field: WidgetField?) {
         Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
                 text = context.getString(field.titleResId()),
-                style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
             // Blank reset slot kept for height parity so big numbers line up across cells.
             Text(
                 text = field.resetLine(context).orEmpty(),
                 modifier = GlanceModifier.padding(top = 1.dp),
-                style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
             )
         }
         Spacer(GlanceModifier.width(4.dp))
         Text(
             text = field.valueText(context),
-            style = TextStyle(color = ColorProvider(field.tone.percentColor()), fontSize = 28.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = field.tone.percentProvider(), fontSize = 28.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
     }
@@ -422,12 +422,12 @@ private fun FieldValueColumn(
     Column(modifier = modifier, horizontalAlignment = alignment, verticalAlignment = Alignment.Vertical.CenterVertically) {
         Text(
             text = context.getString(field.titleResId()),
-            style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 8.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = WidgetMutedTextProvider, fontSize = 8.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
         Text(
             text = field.valueText(context),
-            style = TextStyle(color = ColorProvider(field.tone.percentColor()), fontSize = valueSizeSp.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = field.tone.percentProvider(), fontSize = valueSizeSp.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
     }
@@ -435,7 +435,7 @@ private fun FieldValueColumn(
 
 @Composable
 private fun VerticalDivider() {
-    Box(modifier = GlanceModifier.width(1.dp).height(34.dp).background(ColorProvider(WIDGET_DIVIDER))) {}
+    Box(modifier = GlanceModifier.width(1.dp).height(34.dp).background(WidgetDividerProvider)) {}
 }
 
 @Composable
@@ -443,12 +443,12 @@ private fun EmptyFieldsHint(context: Context, modifier: GlanceModifier = GlanceM
     Column(modifier = modifier, horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
         Text(
             text = context.getString(R.string.widget_no_more_fields),
-            style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 8.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = WidgetMutedTextProvider, fontSize = 8.sp, fontWeight = FontWeight.Medium),
             maxLines = 2,
         )
         Text(
             text = context.getString(R.string.widget_no_more_fields_hint),
-            style = TextStyle(color = ColorProvider(WIDGET_PERCENT_MUTED_TEXT), fontSize = 8.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = WidgetPercentMutedProvider, fontSize = 8.sp, fontWeight = FontWeight.Medium),
             maxLines = 2,
         )
     }
@@ -465,7 +465,7 @@ private fun UnconfiguredWidgetContent(context: Context, state: WidgetQuotaState)
         Spacer(GlanceModifier.height(6.dp))
         Text(
             text = context.getString(R.string.widget_unconfigured_title),
-            style = TextStyle(color = ColorProvider(WIDGET_TEXT), fontSize = 12.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = WidgetTextProvider, fontSize = 12.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
         Spacer(GlanceModifier.height(2.dp))
@@ -473,8 +473,15 @@ private fun UnconfiguredWidgetContent(context: Context, state: WidgetQuotaState)
             text = context.getString(
                 if (state.hasAccounts) R.string.widget_unconfigured_hint else R.string.widget_no_accounts_hint,
             ),
-            style = TextStyle(color = ColorProvider(WIDGET_MUTED_TEXT), fontSize = 9.sp, fontWeight = FontWeight.Medium),
-            maxLines = 2,
+            style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
+            maxLines = 1,
+        )
+        // Always tell users the configure gesture. Keeps the same two-sub-line height budget as the old
+        // maxLines=2 hint (context line + this line), so it doesn't overflow short widgets.
+        Text(
+            text = context.getString(R.string.widget_long_press_to_configure),
+            style = TextStyle(color = WidgetPercentMutedProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
+            maxLines = 1,
         )
     }
 }
@@ -486,7 +493,7 @@ private fun WidgetBrandIcon(state: WidgetQuotaState, sizeDp: Int) {
         provider = ImageProvider(iconRes),
         contentDescription = null,
         modifier = GlanceModifier.width(sizeDp.dp).height(sizeDp.dp),
-        colorFilter = ColorFilter.tint(ColorProvider(WIDGET_TEXT)),
+        colorFilter = ColorFilter.tint(WidgetTextProvider),
     )
     Spacer(modifier = GlanceModifier.width(6.dp))
 }
@@ -504,11 +511,11 @@ private fun WidgetField.valueText(context: Context): String =
     }
 
 private fun WidgetField.resetLine(context: Context): String? =
-    resetAt?.let { context.getString(R.string.widget_reset_at_compact_format, it.formatCompactTime(context)) }
+    resetAt?.let { context.getString(R.string.widget_reset_at_compact_format, it.formatShortDateTime(context)) }
 
-/** Bare reset time without the "Reset" prefix — for narrow grid cells where space is tight. */
+/** Bare reset stamp (short date + time) without the "Reset" prefix — for the narrow header/grid cells. */
 private fun WidgetField.compactResetTime(context: Context): String? =
-    resetAt?.formatCompactTime(context)
+    resetAt?.formatShortDateTime(context)
 
 private fun WidgetQuotaState.headerStatusResetLine(context: Context, field: WidgetField?): String {
     val status = context.getString(statusLabelResId())
@@ -545,13 +552,21 @@ internal fun WidgetQuotaState.statusLabelResId(): Int =
         WidgetQuotaStatus.NoData -> R.string.widget_status_no_data
     }
 
-internal fun WidgetQuotaTone.statusAccentColor(): Color =
-    when (this) {
-        WidgetQuotaTone.Neutral -> WIDGET_ACCENT
-        WidgetQuotaTone.Success -> WIDGET_SUCCESS
-        WidgetQuotaTone.Warning -> WIDGET_WARNING
-        WidgetQuotaTone.Danger -> WIDGET_DANGER
-    }
+// Status label accent per tone (day = readable-on-light, night = pastel-on-dark).
+internal fun WidgetQuotaTone.statusAccentProvider(): UnitColorProvider = when (this) {
+    WidgetQuotaTone.Neutral -> ColorProvider(day = Color(0xFF0071E3), night = Color(0xFF86C5FF))
+    WidgetQuotaTone.Success -> ColorProvider(day = Color(0xFF18A058), night = Color(0xFF5CF2A6))
+    WidgetQuotaTone.Warning -> ColorProvider(day = Color(0xFFD97706), night = Color(0xFFFFC85A))
+    WidgetQuotaTone.Danger  -> ColorProvider(day = Color(0xFFDC2626), night = Color(0xFFFF6B7A))
+}
+
+// Big value color per tone: Neutral follows muted ink, Success follows ink, Warning/Danger keep hue.
+internal fun WidgetQuotaTone.percentProvider(): UnitColorProvider = when (this) {
+    WidgetQuotaTone.Neutral -> WidgetPercentMutedProvider
+    WidgetQuotaTone.Success -> WidgetTextProvider
+    WidgetQuotaTone.Warning -> ColorProvider(day = Color(0xFFD97706), night = Color(0xFFFFC85A))
+    WidgetQuotaTone.Danger  -> ColorProvider(day = Color(0xFFDC2626), night = Color(0xFFFF6B7A))
+}
 
 internal fun WidgetQuotaTone.statusGlowColor(): Color =
     when (this) {
@@ -561,25 +576,23 @@ internal fun WidgetQuotaTone.statusGlowColor(): Color =
         WidgetQuotaTone.Danger -> WIDGET_DANGER_GLOW
     }
 
-internal fun WidgetQuotaTone.statusAccentArgb(): Int =
-    statusAccentColor().toArgb()
+// Used by the left status bar glow renderer — always DARK-glass pastels regardless of widget appearance.
+internal fun WidgetQuotaTone.statusAccentArgb(): Int = when (this) {
+    WidgetQuotaTone.Neutral -> 0xFF86C5FF.toInt()
+    WidgetQuotaTone.Success -> 0xFF5CF2A6.toInt()
+    WidgetQuotaTone.Warning -> 0xFFFFC85A.toInt()
+    WidgetQuotaTone.Danger  -> 0xFFFF6B7A.toInt()
+}
 
 internal fun WidgetQuotaTone.statusGlowArgb(): Int =
     statusGlowColor().toArgb()
 
-internal fun WidgetQuotaTone.percentColor(): Color =
-    when (this) {
-        WidgetQuotaTone.Neutral -> WIDGET_PERCENT_MUTED_TEXT
-        WidgetQuotaTone.Success -> WIDGET_TEXT
-        WidgetQuotaTone.Warning -> WIDGET_WARNING
-        WidgetQuotaTone.Danger -> WIDGET_DANGER
-    }
-
-private fun Instant.formatCompactTime(context: Context): String {
+private fun Instant.formatShortDateTime(context: Context): String {
     val locale = context.resources.configuration.locales[0]
-    return DateTimeFormatter
-        .ofLocalizedTime(FormatStyle.SHORT)
-        .withLocale(locale)
+    // Short month/day + time, without the year — a quota reset is always near-term, so the year is
+    // noise. getBestDateTimePattern keeps the date-field order and 12/24h hour cycle locale-correct.
+    val pattern = DateFormat.getBestDateTimePattern(locale, "Mdjm")
+    return DateTimeFormatter.ofPattern(pattern, locale)
         .withZone(ZoneId.systemDefault())
         .format(this)
 }
@@ -600,17 +613,16 @@ private fun WidgetLayoutVariant.verticalContentPadding() = when (this) {
     WidgetLayoutVariant.FourByTwo -> 8.dp
 }
 
-private val WIDGET_TEXT = Color(0xFFFFFFFF)
-private val WIDGET_MUTED_TEXT = Color(0xE6FFFFFF)
-private val WIDGET_PERCENT_MUTED_TEXT = Color(0xCCFFFFFF)
-private val WIDGET_ACCENT = Color(0xFF86C5FF)
-private val WIDGET_SUCCESS = Color(0xFF5CF2A6)
-private val WIDGET_WARNING = Color(0xFFFFC85A)
-private val WIDGET_DANGER = Color(0xFFFF6B7A)
+// Glow pastels for the left status bar bitmap renderer — theme-independent (tone only).
 private val WIDGET_ACCENT_GLOW = Color(0x3386C5FF)
 private val WIDGET_SUCCESS_GLOW = Color(0x335CF2A6)
 private val WIDGET_WARNING_GLOW = Color(0x33FFC85A)
 private val WIDGET_DANGER_GLOW = Color(0x33FF6B7A)
-private val WIDGET_DIVIDER = Color(0x99B9D8FF)
-// Lighter, "suggestive" separator for the 2-row grids — softer than the 4x1 divider.
-private val WIDGET_DIVIDER_SOFT = Color(0x33B9D8FF)
+
+// Day/night text + divider providers. Glance auto-swaps the matching value host-side on API 31+
+// (day = old LIGHT value, night = old DARK value), so the widget follows system night mode.
+private val WidgetTextProvider = ColorProvider(day = Color(0xFF151821), night = Color(0xFFFFFFFF))
+private val WidgetMutedTextProvider = ColorProvider(day = Color(0x8C151821), night = Color(0xE6FFFFFF))
+private val WidgetPercentMutedProvider = ColorProvider(day = Color(0x99151821), night = Color(0xCCFFFFFF))
+private val WidgetDividerProvider = ColorProvider(day = Color(0x556A86B0), night = Color(0x99B9D8FF))
+private val WidgetDividerSoftProvider = ColorProvider(day = Color(0x336A86B0), night = Color(0x33B9D8FF))

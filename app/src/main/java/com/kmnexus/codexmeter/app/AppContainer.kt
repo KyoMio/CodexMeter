@@ -112,7 +112,6 @@ import com.kmnexus.codexmeter.refresh.RefreshProvider
 import com.kmnexus.codexmeter.ui.account.AccountQuotaAlertEvaluationRequester
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeRefreshUseCase
-import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.settings.SettingsBackgroundRefreshStatusReader
 import com.kmnexus.codexmeter.ui.settings.SettingsDiagnosticsReader
 import com.kmnexus.codexmeter.widget.WidgetDeletedAccountStateCleaner
@@ -122,7 +121,12 @@ import com.kmnexus.codexmeter.ui.home.HomeTrendHistoryLoader
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import com.kmnexus.codexmeter.data.preferences.AppearancePreferences
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 class AppContainer private constructor(
     val refreshCoordinator: RefreshCoordinator,
@@ -132,7 +136,6 @@ class AppContainer private constructor(
     val accountRenameUseCase: AccountRenameUseCase,
     val accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester,
     val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-    val homeAppOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
     val homeRefreshUseCase: HomeRefreshUseCase,
     val deviceCodeLoginController: DeviceCodeLoginController,
     val deviceCodeLoginNotifier: DeviceCodeLoginNotifier,
@@ -148,6 +151,8 @@ class AppContainer private constructor(
     val widgetQuotaStateLoader: WidgetQuotaStateLoader,
     val startupMaintenance: StartupMaintenance,
     val apiKeyLoginUseCase: SessionLoginUseCase,
+    val appearancePreferences: AppearancePreferenceStore,
+    val initialThemeMode: ThemeMode,
     val currencyPreferences: CurrencyPreferencesDataStore,
     val exchangeRateRepository: ExchangeRateRepository,
     private val currentAccountStore: CurrentQuotaRefreshAccountStore,
@@ -180,6 +185,13 @@ class AppContainer private constructor(
             val currentAccountPreferences = CurrentAccountPreferences.create(
                 file = appContext.preferencesDataStoreFile(PREFERENCES_FILE_NAME),
             )
+            val appearancePreferences = AppearancePreferences.create(
+                file = appContext.preferencesDataStoreFile(APPEARANCE_PREFERENCES_FILE_NAME),
+            )
+            // Preheat the first value synchronously so the first frame uses the correct theme.
+            val initialThemeMode = runBlocking {
+                appearancePreferences.themeMode.first()
+            }
             val retentionPreferences = RetentionPreferences(currentAccountPreferences.dataStore)
             val notificationPreferences = NotificationPreferencesDataStore(currentAccountPreferences.dataStore)
             val primaryQuotaWindowPreferences = PrimaryQuotaWindowPreferences(currentAccountPreferences.dataStore)
@@ -439,6 +451,8 @@ class AppContainer private constructor(
                 defaultAccountDisplayName = defaultAccountDisplayName,
                 httpClient = httpClient,
                 clock = clock,
+                appearancePreferences = appearancePreferences,
+                initialThemeMode = initialThemeMode,
                 currencyPreferences = currencyPreferences,
                 exchangeRateRepository = exchangeRateRepository,
                 exchangeRateRefresher = ExchangeRateRefresher { exchangeRateRepository.refreshIfStale(clock.instant()) },
@@ -476,6 +490,8 @@ class AppContainer private constructor(
             defaultAccountDisplayName: String,
             httpClient: ProviderHttpClient,
             clock: Clock,
+            appearancePreferences: AppearancePreferenceStore,
+            initialThemeMode: ThemeMode,
             currencyPreferences: CurrencyPreferencesDataStore,
             exchangeRateRepository: ExchangeRateRepository,
             exchangeRateRefresher: ExchangeRateRefresher,
@@ -651,7 +667,6 @@ class AppContainer private constructor(
                     )
                 },
                 homeCurrentQuotaStateLoader = currentQuotaStateRepository,
-                homeAppOpenRefreshUseCase = homeRefreshUseCase,
                 homeRefreshUseCase = homeRefreshUseCase,
                 deviceCodeLoginController = deviceCodeLoginController,
                 deviceCodeLoginNotifier = deviceCodeLoginNotifier,
@@ -680,6 +695,8 @@ class AppContainer private constructor(
                     clock = clock,
                 ),
                 apiKeyLoginUseCase = sessionLoginUseCase,
+                appearancePreferences = appearancePreferences,
+                initialThemeMode = initialThemeMode,
                 currencyPreferences = currencyPreferences,
                 exchangeRateRepository = exchangeRateRepository,
                 currentAccountStore = currentQuotaRefreshAccountStore,
@@ -692,6 +709,7 @@ class AppContainer private constructor(
         }
 
         private const val PREFERENCES_FILE_NAME = "codexmeter.preferences_pb"
+        private const val APPEARANCE_PREFERENCES_FILE_NAME = "appearance.preferences_pb"
         private const val SESSION_DIRECTORY_NAME = "sessions"
     }
 }

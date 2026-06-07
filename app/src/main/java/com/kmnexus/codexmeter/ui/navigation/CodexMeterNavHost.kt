@@ -95,8 +95,9 @@ import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferences
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.ui.settings.NoopAppearancePreferenceStore
 import com.kmnexus.codexmeter.ui.settings.NoopCurrencyPreferenceStore
-import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeTrendHistoryLoader
@@ -104,7 +105,7 @@ import com.kmnexus.codexmeter.ui.home.HomeRoute
 import com.kmnexus.codexmeter.ui.motion.CodexMeterMotion
 import com.kmnexus.codexmeter.ui.motion.CodexMeterPageCascade
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
@@ -133,7 +134,6 @@ fun CodexMeterNavHost(
         NoopAccountQuotaAlertEvaluationRequester,
     accountRefreshAllUseCase: AccountRefreshAllUseCase = NoopAccountRefreshAllUseCase,
     homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-    homeAppOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
     homeRefreshUseCase: HomeRefreshUseCase,
     homeTrendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -> emptyList() },
     currencyPreferenceReader: CurrencyPreferenceReader = object : CurrencyPreferenceReader {
@@ -155,6 +155,7 @@ fun CodexMeterNavHost(
     notificationWindowChoicesLoader: NotificationWindowChoicesLoader =
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
+    appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
 ) {
     val tabs = CodexMeterRoute.bottomTabs
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -506,7 +507,6 @@ fun CodexMeterNavHost(
                 ) {
                     HomeRoute(
                         currentQuotaStateLoader = homeCurrentQuotaStateLoader,
-                        appOpenRefreshUseCase = homeAppOpenRefreshUseCase,
                         refreshUseCase = homeRefreshUseCase,
                         trendHistoryLoader = homeTrendHistoryLoader,
                         notificationPreferenceReader = notificationPreferenceStore,
@@ -559,6 +559,7 @@ fun CodexMeterNavHost(
                         },
                         notificationWindowChoicesLoader = notificationWindowChoicesLoader,
                         currencyPreferenceStore = currencyPreferenceStore,
+                        appearancePreferenceStore = appearancePreferenceStore,
                     )
                 }
             }
@@ -649,8 +650,8 @@ private fun CodexMeterBottomBar(
                 Brush.verticalGradient(
                     0.00f to Color.Transparent,
                     0.24f to Color.Transparent,
-                    0.58f to CodexMeterColors.neutral.copy(alpha = 0.54f),
-                    1.00f to CodexMeterColors.neutralAlt.copy(alpha = 0.90f),
+                    0.58f to CodexMeterTheme.colors.neutral.copy(alpha = 0.54f),
+                    1.00f to CodexMeterTheme.colors.neutralAlt.copy(alpha = 0.90f),
                 ),
             )
             .padding(
@@ -713,7 +714,15 @@ private fun CodexMeterBottomBar(
                         .height(56.dp)
                         .align(Alignment.CenterStart)
                         .clip(CodexMeterShapes.lg)
-                        .background(indicatorStyle.color.copy(alpha = indicatorStyle.alpha)),
+                        .background(
+                            // Light: a near-opaque raised pill. Dark: a faint white sheen so the
+                            // selected tab reads as gently raised, not a bright light blob.
+                            if (CodexMeterTheme.colors.isDark) {
+                                Color.White.copy(alpha = 0.12f)
+                            } else {
+                                indicatorStyle.color.copy(alpha = indicatorStyle.alpha)
+                            },
+                        ),
                 )
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -761,7 +770,7 @@ private fun RowScope.CodexMeterBottomBarItem(
     }
     val contentColor by animateColorAsState(
         targetValue = if (selected) {
-            CodexMeterColors.accent
+            CodexMeterTheme.colors.accent
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },

@@ -11,8 +11,8 @@ class MainActivityFontPolicyTest {
         val source = sourceFile("src/main/java/com/kmnexus/codexmeter/MainActivity.kt").readText()
 
         assertTrue(
-            "CodexMeter should be fixed to Mono Focus in the app theme.",
-            source.contains("CodexMeterTheme(fontScheme = CodexMeterFontScheme.MonoFocusGeistMono)"),
+            "CodexMeter should be fixed to Mono Focus in the CodexMeterTheme call.",
+            source.contains("CodexMeterTheme(themeMode = themeMode, fontScheme = CodexMeterFontScheme.MonoFocusGeistMono)"),
         )
         assertFalse(
             "Runtime font preference collection must not override the fixed Mono Focus scheme.",

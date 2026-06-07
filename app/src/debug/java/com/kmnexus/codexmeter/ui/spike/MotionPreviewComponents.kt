@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.sp
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.ui.components.LiquidGlassSurfaceRole
 import com.kmnexus.codexmeter.ui.components.QmLiquidGlassSurface
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
@@ -105,7 +105,7 @@ internal fun MotionPreviewHero(
                             lineHeight = 34.sp,
                             letterSpacing = (-0.7).sp,
                         ),
-                        color = CodexMeterColors.glassInk,
+                        color = CodexMeterTheme.colors.glassInk,
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -123,7 +123,7 @@ internal fun MotionPreviewHero(
                     Text(
                         text = "刷新成功时玻璃只回光一次，不持续 shimmer",
                         style = MaterialTheme.typography.labelSmall,
-                        color = CodexMeterColors.tertiary,
+                        color = CodexMeterTheme.colors.tertiary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -239,7 +239,7 @@ private fun FontSpecimenCard(
                         fontSize = 12.sp,
                         lineHeight = 16.sp,
                     ),
-                    color = CodexMeterColors.tertiary,
+                    color = CodexMeterTheme.colors.tertiary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -254,7 +254,7 @@ private fun FontSpecimenCard(
                     letterSpacing = (-1.2).sp,
                     fontFeatureSettings = "tnum",
                 ),
-                color = CodexMeterColors.glassInk,
+                color = CodexMeterTheme.colors.glassInk,
             )
         }
     }
@@ -342,7 +342,7 @@ private fun QuotaPreviewCard(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(CodexMeterShapes.pill)
-                    .background(CodexMeterColors.neutralAlt),
+                    .background(CodexMeterTheme.colors.neutralAlt),
             ) {
                 Box(
                     modifier = Modifier
@@ -396,7 +396,7 @@ internal fun BottomBarMotionPreview(
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val tabWidth = maxWidth / tabs.size
                 val targetColor by animateColorAsState(
-                    targetValue = CodexMeterColors.accentSoft.copy(alpha = 0.92f),
+                    targetValue = CodexMeterTheme.colors.accentSoft.copy(alpha = 0.92f),
                     animationSpec = tween(durationMillis = 220),
                     label = "bottom_tab_indicator_color",
                 )
@@ -421,7 +421,7 @@ internal fun BottomBarMotionPreview(
                             label = "bottom_tab_icon_scale",
                         )
                         val contentColor by animateColorAsState(
-                            targetValue = if (selected) CodexMeterColors.accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                            targetValue = if (selected) CodexMeterTheme.colors.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                             animationSpec = tween(durationMillis = 180),
                             label = "bottom_tab_content_color",
                         )
@@ -500,9 +500,10 @@ internal fun TrendMotionPreview(
                     Text(
                         text = "5h / Weekly",
                         style = MaterialTheme.typography.labelSmall,
-                        color = CodexMeterColors.tertiary,
+                        color = CodexMeterTheme.colors.tertiary,
                     )
                 }
+                val trendAccent = CodexMeterTheme.colors.accent
                 Canvas(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -526,14 +527,14 @@ internal fun TrendMotionPreview(
                             path = fillPath,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    CodexMeterColors.accent.copy(alpha = 0.16f),
-                                    CodexMeterColors.accent.copy(alpha = 0.02f),
+                                    trendAccent.copy(alpha = 0.16f),
+                                    trendAccent.copy(alpha = 0.02f),
                                 ),
                             ),
                         )
                         drawPath(
                             path = path,
-                            color = CodexMeterColors.accent,
+                            color = trendAccent,
                             style = Stroke(
                                 width = 3.dp.toPx(),
                                 cap = StrokeCap.Round,
@@ -622,6 +623,7 @@ private fun GlassSweepOverlay(
         sweep.snapTo(-0.9f)
         sweep.animateTo(1.8f, tween(durationMillis = 720, easing = FastOutSlowInEasing))
     }
+    val sweepTintCyan = CodexMeterTheme.colors.glassTintCyan
     Canvas(modifier = modifier) {
         val center = size.width * sweep.value
         drawRect(
@@ -630,7 +632,7 @@ private fun GlassSweepOverlay(
                     Color.Transparent,
                     Color.White.copy(alpha = 0.00f),
                     Color.White.copy(alpha = 0.42f),
-                    CodexMeterColors.glassTintCyan.copy(alpha = 0.14f),
+                    sweepTintCyan.copy(alpha = 0.14f),
                     Color.White.copy(alpha = 0.00f),
                     Color.Transparent,
                 ),
@@ -647,7 +649,7 @@ internal fun SectionLabel(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
-        color = CodexMeterColors.secondary,
+        color = CodexMeterTheme.colors.secondary,
     )
 }
 

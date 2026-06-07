@@ -44,7 +44,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.providers.ProviderRegistry
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import kotlinx.coroutines.launch
@@ -117,14 +117,14 @@ fun ApiKeyAuthScreen(
                 modifier = Modifier
                     .size(84.dp)
                     .clip(CircleShape)
-                    .background(CodexMeterColors.accentSoft),
+                    .background(CodexMeterTheme.colors.accentSoft),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(id = config.iconResId),
                     contentDescription = config.displayName,
                     modifier = Modifier.size(44.dp),
-                    tint = CodexMeterColors.primary,
+                    tint = CodexMeterTheme.colors.primary,
                 )
             }
 
@@ -264,10 +264,10 @@ private fun RegionChip(
     Box(
         modifier = Modifier
             .clip(CodexMeterShapes.pill)
-            .background(if (selected) CodexMeterColors.accentSoft else CodexMeterColors.surface)
+            .background(if (selected) CodexMeterTheme.colors.accentSoft else CodexMeterTheme.colors.surface)
             .border(
                 width = 1.dp,
-                color = if (selected) CodexMeterColors.accent else CodexMeterColors.border,
+                color = if (selected) CodexMeterTheme.colors.accent else CodexMeterTheme.colors.border,
                 shape = CodexMeterShapes.pill,
             )
             .selectable(selected = selected, enabled = enabled, onClick = onClick)
@@ -276,7 +276,7 @@ private fun RegionChip(
         Text(
             text = region.label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) CodexMeterColors.accent else MaterialTheme.colorScheme.onSurface,
+            color = if (selected) CodexMeterTheme.colors.accent else MaterialTheme.colorScheme.onSurface,
         )
     }
 }

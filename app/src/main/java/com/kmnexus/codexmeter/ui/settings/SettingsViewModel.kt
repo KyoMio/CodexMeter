@@ -18,6 +18,8 @@ import com.kmnexus.codexmeter.app.NotificationWindowChoice
 import com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferences
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.domain.settings.DEFAULT_BALANCE_CAUTION_THRESHOLD
 import com.kmnexus.codexmeter.domain.settings.DEFAULT_BALANCE_WARNING_THRESHOLD
 import com.kmnexus.codexmeter.domain.settings.DEFAULT_CAUTION_THRESHOLD
@@ -39,9 +41,12 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateInfo
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -145,6 +150,10 @@ data class SettingsCurrencyUi(
     val supportedCurrencies: List<String> = CurrencyPreferences.SUPPORTED_TARGET_CURRENCIES,
 )
 
+data class SettingsAppearanceUi(
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+)
+
 /** Reschedules the background refresh worker when the interval changes (0 minutes = cancel/manual). */
 fun interface BackgroundRefreshScheduler {
     fun applyIntervalMinutes(minutes: Int)
@@ -157,6 +166,12 @@ object NoopBackgroundRefreshScheduler : BackgroundRefreshScheduler {
 internal object NoopCurrencyPreferenceStore : CurrencyPreferenceStore {
     override suspend fun currencyPreferences(): CurrencyPreferences = CurrencyPreferences()
     override suspend fun updateCurrencyPreferences(preferences: CurrencyPreferences) = Unit
+}
+
+internal object NoopAppearancePreferenceStore : AppearancePreferenceStore {
+    override val themeMode: Flow<ThemeMode> = flowOf(ThemeMode.SYSTEM)
+
+    override suspend fun setThemeMode(mode: ThemeMode) = Unit
 }
 
 data class SettingsDataUi(
@@ -187,6 +202,7 @@ data class SettingsUiState(
     val alerts: SettingsAlertsUi = SettingsAlertsUi(),
     val refresh: SettingsRefreshUi = SettingsRefreshUi(),
     val currency: SettingsCurrencyUi = SettingsCurrencyUi(),
+    val appearance: SettingsAppearanceUi = SettingsAppearanceUi(),
     val data: SettingsDataUi = SettingsDataUi(),
     val diagnostics: SettingsDiagnosticsUi = SettingsDiagnosticsUi(),
     val about: SettingsAboutUi = SettingsAboutUi(),
@@ -326,6 +342,7 @@ class SettingsViewModel(
     private val notificationWindowChoicesLoader: NotificationWindowChoicesLoader =
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     private val currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
+    private val appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         SettingsUiState(
@@ -485,6 +502,13 @@ class SettingsViewModel(
         }
     }
 
+    fun updateThemeMode(mode: ThemeMode) {
+        update { it.copy(appearance = it.appearance.copy(themeMode = mode)) }
+        viewModelScope.launch {
+            appearancePreferenceStore.setThemeMode(mode)
+        }
+    }
+
     fun loadSettings() {
         viewModelScope.launch {
             runCatching {
@@ -541,6 +565,13 @@ class SettingsViewModel(
                     state.copy(
                         currency = SettingsCurrencyUi(targetCurrency = currencyPreferences.targetCurrency),
                     )
+                }
+            }
+            runCatching {
+                appearancePreferenceStore.themeMode.first()
+            }.onSuccess { themeMode ->
+                update { state ->
+                    state.copy(appearance = state.appearance.copy(themeMode = themeMode))
                 }
             }
             runCatching {
@@ -830,6 +861,7 @@ class SettingsViewModel(
             notificationWindowChoicesLoader: NotificationWindowChoicesLoader =
                 NotificationWindowChoicesLoader { _, _ -> emptyList() },
             currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
+            appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -847,6 +879,7 @@ class SettingsViewModel(
                         currentVersionName = currentVersionName,
                         notificationWindowChoicesLoader = notificationWindowChoicesLoader,
                         currencyPreferenceStore = currencyPreferenceStore,
+                        appearancePreferenceStore = appearancePreferenceStore,
                     ) as T
             }
     }

@@ -40,7 +40,7 @@ import com.kmnexus.codexmeter.ui.components.QmLiquidGlassSurface
 import com.kmnexus.codexmeter.ui.motion.CodexMeterMotion
 import com.kmnexus.codexmeter.ui.motion.TrendUsagePoint
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
@@ -61,7 +61,7 @@ internal fun HomeTrendCard(trend: HomeTrendUi) {
                 Text(
                     text = stringResource(trend.metricLabelResId),
                     style = MaterialTheme.typography.labelMedium,
-                    color = CodexMeterColors.accent,
+                    color = CodexMeterTheme.colors.accent,
                     maxLines = 1,
                 )
             }
@@ -70,7 +70,7 @@ internal fun HomeTrendCard(trend: HomeTrendUi) {
                     .fillMaxWidth()
                     .height(86.dp)
                     .clip(CodexMeterShapes.lg)
-                    .background(CodexMeterColors.accentSoft),
+                    .background(CodexMeterTheme.colors.accentSoft),
                 contentAlignment = Alignment.Center,
             ) {
                 if (trend.points.any { it.usageValue > 0.0 }) {
@@ -94,7 +94,7 @@ internal fun HomeTrendCard(trend: HomeTrendUi) {
 
 @Composable
 private fun TrendBarChart(points: List<HomeTrendPointUi>) {
-    val barColor = CodexMeterColors.accent.copy(alpha = 0.76f)
+    val barColor = CodexMeterTheme.colors.accent.copy(alpha = 0.76f)
     val animatorsEnabled = rememberCodexMeterAnimatorsEnabled()
     val revealFraction = remember { Animatable(CodexMeterMotion.initialTrendRevealTarget(animatorsEnabled)) }
     var hasRevealed by remember { mutableStateOf(false) }
@@ -221,7 +221,7 @@ internal fun HomeLoadingCard(loading: HomeLoadingUi) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp,
-                color = CodexMeterColors.accent,
+                color = CodexMeterTheme.colors.accent,
             )
             Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs)) {
                 Text(

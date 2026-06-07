@@ -88,11 +88,11 @@ class WidgetQuotaStateFactoryTest {
     }
 
     @Test
-    fun `unconfigured without accounts points to add account`() {
+    fun `unconfigured without accounts opens home rather than provider selection`() {
         val result = factory.unconfigured(hasAccounts = false)
         assertTrue(result.isUnconfigured)
         assertFalse(result.hasAccounts)
-        assertEquals(WidgetClickTarget.AddAccount, result.clickTarget)
+        assertEquals(WidgetClickTarget.Home, result.clickTarget)
     }
 
     // ---- helpers ----

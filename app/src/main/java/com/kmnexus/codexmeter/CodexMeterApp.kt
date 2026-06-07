@@ -21,6 +21,8 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.RetentionPreferenceStore
+import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.refresh.ExchangeRateRefresher
@@ -28,7 +30,6 @@ import com.kmnexus.codexmeter.refresh.QuotaRefreshDependenciesProvider
 import com.kmnexus.codexmeter.refresh.RefreshCoordinator
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeRefreshUseCase
-import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeTrendHistoryLoader
 import com.kmnexus.codexmeter.refresh.RefreshWorkScheduler
 import com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader
@@ -77,9 +78,6 @@ class CodexMeterApp : Application(), Configuration.Provider, QuotaRefreshDepende
 
     val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader
         get() = appContainer.homeCurrentQuotaStateLoader
-
-    val homeAppOpenRefreshUseCase: HomeAppOpenRefreshUseCase
-        get() = appContainer.homeAppOpenRefreshUseCase
 
     val homeRefreshUseCase: HomeRefreshUseCase
         get() = appContainer.homeRefreshUseCase
@@ -134,6 +132,12 @@ class CodexMeterApp : Application(), Configuration.Provider, QuotaRefreshDepende
 
     val notificationWindowChoicesLoader: NotificationWindowChoicesLoader
         get() = appContainer.notificationWindowChoicesLoader
+
+    val appearancePreferenceStore: AppearancePreferenceStore
+        get() = appContainer.appearancePreferences
+
+    val initialThemeMode: ThemeMode
+        get() = appContainer.initialThemeMode
 
     override fun onCreate() {
         super.onCreate()

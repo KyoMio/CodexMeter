@@ -3,14 +3,26 @@ package com.kmnexus.codexmeter.ui.settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -36,14 +49,112 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+
+@Composable
+internal fun AppearanceCard(
+    appearance: SettingsAppearanceUi,
+    onThemeModeSelected: (ThemeMode) -> Unit,
+) {
+    SettingsSurfaceCard {
+        Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
+            ThemeModeSegmentedControl(
+                selected = appearance.themeMode,
+                onSelected = onThemeModeSelected,
+            )
+            Text(
+                text = stringResource(R.string.settings_appearance_widget_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeModeSegmentedControl(
+    selected: ThemeMode,
+    onSelected: (ThemeMode) -> Unit,
+) {
+    val options = listOf(
+        ThemeMode.LIGHT to R.string.settings_appearance_light,
+        ThemeMode.DARK to R.string.settings_appearance_dark,
+        ThemeMode.SYSTEM to R.string.settings_appearance_system,
+    )
+    val pillShape = RoundedCornerShape(999.dp)
+    val trackColor = CodexMeterTheme.colors.neutralAlt
+    val selectedColor = CodexMeterTheme.colors.accent
+    // Dark ink reads better on the brighter dark-mode accent; white on the darker light-mode accent.
+    val onSelectedColor = if (CodexMeterTheme.colors.isDark) Color(0xFF08121F) else Color.White
+    val onUnselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val animatorsEnabled = rememberCodexMeterAnimatorsEnabled()
+    val selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(trackColor, pillShape)
+            .border(1.dp, CodexMeterTheme.colors.border, pillShape)
+            .padding(4.dp),
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val segmentWidth = maxWidth / options.size
+            val indicatorOffset by animateDpAsState(
+                targetValue = segmentWidth * selectedIndex,
+                animationSpec = if (animatorsEnabled) {
+                    tween(durationMillis = 260, easing = FastOutSlowInEasing)
+                } else {
+                    snap()
+                },
+                label = "appearance_indicator_offset",
+            )
+            // Single sliding selected pill that animates between segments (like the bottom tab bar).
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset)
+                    .width(segmentWidth)
+                    .height(48.dp)
+                    .background(selectedColor, pillShape),
+            )
+            Row(modifier = Modifier.fillMaxWidth().selectableGroup()) {
+                options.forEach { (mode, labelResId) ->
+                    val isSelected = selected == mode
+                    val textColor by animateColorAsState(
+                        targetValue = if (isSelected) onSelectedColor else onUnselectedColor,
+                        animationSpec = if (animatorsEnabled) tween(durationMillis = 260) else snap(),
+                        label = "appearance_text_color",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onSelected(mode) },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(labelResId),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = textColor,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 internal fun PersistentNotificationCard(
@@ -62,13 +173,13 @@ internal fun PersistentNotificationCard(
             )
             ChoiceSummaryTextRow(
                 titleResId = R.string.settings_notification_account_title,
-                descriptionResId = R.string.settings_notification_account_description,
+                descriptionResId = null,
                 valueText = persistentNotification.accountSelection.displayLabel(),
                 onClick = onAccountClick,
             )
             ChoiceSummaryTextRow(
                 titleResId = R.string.settings_notification_display_quota_title,
-                descriptionResId = R.string.settings_notification_display_quota_description,
+                descriptionResId = null,
                 valueText = persistentNotification.windowChoices
                     .firstOrNull { it.windowId == persistentNotification.selectedWindowId }
                     ?.let { stringResource(it.labelResId) }
@@ -102,14 +213,14 @@ internal fun AlertsCard(
                 titleResId = R.string.settings_threshold_caution,
                 value = alerts.thresholds.caution,
                 valueRange = 2f..99f,
-                color = CodexMeterColors.warning,
+                color = CodexMeterTheme.colors.warning,
                 onValueChange = onCautionThresholdChanged,
             )
             ThresholdSlider(
                 titleResId = R.string.settings_threshold_warning,
                 value = alerts.thresholds.warning,
                 valueRange = 1f..98f,
-                color = CodexMeterColors.danger,
+                color = CodexMeterTheme.colors.danger,
                 onValueChange = onWarningThresholdChanged,
             )
             Text(
@@ -133,7 +244,7 @@ internal fun AlertsCard(
             val symbol = com.kmnexus.codexmeter.ui.quota.currencySymbol(targetCurrency)
             BalanceStepperRow(
                 titleResId = R.string.settings_threshold_caution,
-                color = CodexMeterColors.warning,
+                color = CodexMeterTheme.colors.warning,
                 currencySymbol = symbol,
                 value = alerts.balanceCaution,
                 onDecrement = { onBalanceCautionChanged(alerts.balanceCaution - 1) },
@@ -141,7 +252,7 @@ internal fun AlertsCard(
             )
             BalanceStepperRow(
                 titleResId = R.string.settings_threshold_warning,
-                color = CodexMeterColors.danger,
+                color = CodexMeterTheme.colors.danger,
                 currencySymbol = symbol,
                 value = alerts.balanceWarning,
                 onDecrement = { onBalanceWarningChanged(alerts.balanceWarning - 1) },
@@ -192,6 +303,8 @@ internal fun RefreshCard(
     refresh: SettingsRefreshUi,
     onBackgroundRefreshChanged: (Boolean) -> Unit,
     onIntervalClick: () -> Unit,
+    showBatteryOptimizationHint: Boolean = false,
+    onBatteryOptimizationClick: () -> Unit = {},
 ) {
     SettingsSurfaceCard {
         Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
@@ -201,20 +314,39 @@ internal fun RefreshCard(
                 checked = refresh.backgroundRefreshEnabled,
                 onCheckedChange = onBackgroundRefreshChanged,
             )
-            ChoiceSummaryRow(
-                titleResId = R.string.settings_refresh_interval_title,
-                descriptionResId = R.string.settings_refresh_interval_description,
-                valueResId = refresh.interval.labelResId,
-                onClick = onIntervalClick,
-            )
-            Text(
-                text = stringResource(
-                    R.string.settings_refresh_last_result_format,
-                    stringResource(refresh.lastResultLabelResId),
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // Group the interval control with its "last result" status so the caption hugs the row
+            // (tight xs gap) instead of floating a full md gap below it, which read as an empty line.
+            Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs)) {
+                ChoiceSummaryRow(
+                    titleResId = R.string.settings_refresh_interval_title,
+                    descriptionResId = null,
+                    valueResId = refresh.interval.labelResId,
+                    onClick = onIntervalClick,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.settings_refresh_last_result_format,
+                        stringResource(refresh.lastResultLabelResId),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (showBatteryOptimizationHint) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
+                ) {
+                    SettingsItemText(
+                        titleResId = R.string.settings_battery_optimization_title,
+                        descriptionResId = R.string.settings_battery_optimization_description,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onBatteryOptimizationClick, shape = CodexMeterShapes.md) {
+                        Text(text = stringResource(R.string.settings_battery_optimization_action))
+                    }
+                }
+            }
         }
     }
 }
@@ -251,30 +383,53 @@ internal fun DataCard(
 @Composable
 internal fun ChoiceSummaryRow(
     titleResId: Int,
-    descriptionResId: Int,
+    descriptionResId: Int?,
     valueResId: Int,
     onClick: () -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
-        SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
-        TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
-            Text(text = stringResource(valueResId))
-        }
-    }
+    ChoiceSummaryRowLayout(titleResId, descriptionResId, stringResource(valueResId), onClick)
 }
 
 @Composable
 internal fun ChoiceSummaryTextRow(
     titleResId: Int,
-    descriptionResId: Int,
+    descriptionResId: Int?,
     valueText: String,
     onClick: () -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
+    ChoiceSummaryRowLayout(titleResId, descriptionResId, valueText, onClick)
+}
+
+/**
+ * The whole row is the tap target and its height tracks the text, so a description-less row collapses
+ * to the title height instead of leaving an empty line below it — a min-height TextButton used to
+ * force the row taller than its single-line title (e.g. "Refresh interval").
+ */
+@Composable
+private fun ChoiceSummaryRowLayout(
+    titleResId: Int,
+    descriptionResId: Int?,
+    valueText: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CodexMeterShapes.md)
+            .clickable(onClick = onClick)
+            .padding(vertical = CodexMeterSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
-        TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
-            Text(text = valueText)
-        }
+        Text(
+            text = valueText,
+            // Match TextButton's 12dp end content padding so these tappable values line up with the
+            // TextButton-based action rows (e.g. the "Clear" buttons) instead of hugging the card edge.
+            modifier = Modifier.padding(end = 12.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
@@ -300,7 +455,7 @@ internal fun ThresholdSlider(
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
                 activeTrackColor = color,
-                inactiveTrackColor = CodexMeterColors.neutralAlt,
+                inactiveTrackColor = CodexMeterTheme.colors.neutralAlt,
             ),
             thumb = {
                 AppleThresholdThumb(color)
@@ -346,6 +501,7 @@ private fun AppleThresholdTrack(
     valueRange: ClosedFloatingPointRange<Float>,
     color: Color,
 ) {
+    val trackColor = CodexMeterTheme.colors.neutralAlt
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -358,7 +514,7 @@ private fun AppleThresholdTrack(
             .coerceIn(0f, 1f)
 
         drawRoundRect(
-            color = CodexMeterColors.neutralAlt,
+            color = trackColor,
             topLeft = Offset(0f, trackTop),
             size = Size(size.width, trackHeight),
             cornerRadius = corner,

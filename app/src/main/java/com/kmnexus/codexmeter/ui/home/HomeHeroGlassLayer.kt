@@ -3,7 +3,6 @@ package com.kmnexus.codexmeter.ui.home
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,9 +39,11 @@ import com.kmnexus.codexmeter.ui.components.LiquidGlassSurfaceRole
 import com.kmnexus.codexmeter.ui.components.QmLiquidGlassSurface
 import com.kmnexus.codexmeter.ui.motion.CodexMeterMotion
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
-import com.kmnexus.codexmeter.ui.theme.CodexMeterColors
+import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.avatarColor
+import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -72,14 +74,14 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                         Text(
                             text = account.displayName,
                             style = MaterialTheme.typography.titleMedium,
-                            color = CodexMeterColors.glassInk,
+                            color = CodexMeterTheme.colors.primary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = stringResource(R.string.home_current_account),
                             style = MaterialTheme.typography.labelSmall,
-                            color = CodexMeterColors.secondary,
+                            color = CodexMeterTheme.colors.secondary,
                             maxLines = 1,
                         )
                         Text(
@@ -101,13 +103,13 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                             Text(
                                 text = stringResource(R.string.home_account_plan_label),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = CodexMeterColors.secondary,
+                                color = CodexMeterTheme.colors.secondary,
                                 maxLines = 1,
                             )
                             Text(
                                 text = planText,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = CodexMeterColors.glassInk,
+                                color = CodexMeterTheme.colors.primary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -116,13 +118,13 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                             Text(
                                 text = stringResource(R.string.home_account_credits_label),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = CodexMeterColors.secondary,
+                                color = CodexMeterTheme.colors.secondary,
                                 maxLines = 1,
                             )
                             Text(
                                 text = account.credits.displayText(locale),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = CodexMeterColors.glassInk,
+                                color = CodexMeterTheme.colors.primary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -146,17 +148,20 @@ private fun HeroAccountAvatar(account: HomeAccountUi) {
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(CodexMeterColors.surface)
+                .background(CodexMeterTheme.colors.surface)
                 .border(
                     width = 1.dp,
-                    color = CodexMeterColors.secondary.copy(alpha = 0.16f),
+                    color = CodexMeterTheme.colors.secondary.copy(alpha = 0.16f),
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Image(
+            // Brand vectors are black-filled monochrome strokes (DESIGN §361): tint them with the
+            // theme ink so they stay visible on dark glass instead of disappearing into it.
+            Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
+                tint = CodexMeterTheme.colors.primary,
                 modifier = Modifier.size(26.dp),
             )
         }
@@ -171,7 +176,9 @@ private fun HeroAccountAvatar(account: HomeAccountUi) {
             Text(
                 text = account.avatarInitial,
                 style = MaterialTheme.typography.labelLarge,
-                color = CodexMeterColors.surface,
+                // avatarColor() badges are light-toned in dark mode, so a dark ink reads; in light
+                // mode the badge is saturated/dark and white reads. surface alone would vanish in dark.
+                color = avatarInitialColor(),
                 maxLines = 1,
             )
         }
@@ -204,6 +211,8 @@ private fun RefreshSuccessSweep(successCount: Int, modifier: Modifier = Modifier
         previousSuccessCount = successCount
     }
 
+    val sweepTintCyan = CodexMeterTheme.colors.glassTintCyan
+    val sweepTintViolet = CodexMeterTheme.colors.glassTintViolet
     if (CodexMeterMotion.refreshSweepShouldDraw(progress.value)) {
         Canvas(
             modifier = modifier
@@ -216,8 +225,8 @@ private fun RefreshSuccessSweep(successCount: Int, modifier: Modifier = Modifier
                     0.00f to Color.Transparent,
                     0.30f to Color.White.copy(alpha = 0.00f),
                     0.45f to Color.White.copy(alpha = 0.48f),
-                    0.56f to CodexMeterColors.glassTintCyan.copy(alpha = 0.32f),
-                    0.68f to CodexMeterColors.glassTintViolet.copy(alpha = 0.16f),
+                    0.56f to sweepTintCyan.copy(alpha = 0.32f),
+                    0.68f to sweepTintViolet.copy(alpha = 0.16f),
                     1.00f to Color.Transparent,
                     start = Offset(centerX - bandWidth, 0f),
                     end = Offset(centerX + bandWidth, size.height),

@@ -26,7 +26,6 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import java.time.Duration
 import java.time.Instant
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -284,7 +283,6 @@ class HomeViewModelTest {
         )
         val viewModel = HomeViewModel(
             currentQuotaStateLoader = FakeHomeCurrentQuotaStateLoader(currentState),
-            appOpenRefreshUseCase = FakeHomeAppOpenRefreshUseCase(currentState),
             notificationPreferenceReader = StaticNotificationPreferenceReader(
                 NotificationPreferences(cautionThreshold = 50, warningThreshold = 20),
             ),
@@ -373,13 +371,6 @@ class HomeViewModelTest {
                     snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(5))),
                 ),
             ),
-            appOpenRefreshUseCase = FakeHomeAppOpenRefreshUseCase(
-                currentState(
-                    status = CurrentQuotaStatus.Fresh,
-                    freshness = CurrentQuotaFreshness.Fresh,
-                    snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(5))),
-                ),
-            ),
         )
 
         viewModel.loadCurrentState()
@@ -390,50 +381,34 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `app open load keeps persisted quota visible while refresh is in flight`() = runTest {
+    fun `loading current state shows persisted snapshot without triggering a network refresh`() = runTest {
         val persistedState = currentState(
             status = CurrentQuotaStatus.Fresh,
             freshness = CurrentQuotaFreshness.Fresh,
             snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(20))),
         )
-        val refreshedState = currentState(
-            status = CurrentQuotaStatus.Fresh,
-            freshness = CurrentQuotaFreshness.Fresh,
-            snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(1))),
-        )
-        val appOpenRefreshUseCase = DeferredHomeAppOpenRefreshUseCase()
+        val refreshUseCase = RecordingHomeRefreshUseCase(persistedState)
         val viewModel = HomeViewModel(
             currentQuotaStateLoader = FakeHomeCurrentQuotaStateLoader(persistedState),
-            appOpenRefreshUseCase = appOpenRefreshUseCase,
+            refreshUseCase = refreshUseCase,
         )
 
         viewModel.loadCurrentState()
         advanceUntilIdle()
 
+        // Opening Home must surface the persisted snapshot and settle (no spinner) WITHOUT ever calling
+        // the refresh use case — that is the whole point of dropping app-open refresh.
         assertEquals(HomeContentStatus.Fresh, viewModel.uiState.value.contentStatus)
-        assertTrue(viewModel.uiState.value.isRefreshing)
-        assertEquals(now.minus(Duration.ofMinutes(20)), viewModel.uiState.value.refresh.lastSuccessfulRefreshAt)
         assertEquals(38, viewModel.uiState.value.fiveHourCard?.percent)
-
-        appOpenRefreshUseCase.complete(refreshedState)
-        advanceUntilIdle()
-
+        assertEquals(now.minus(Duration.ofMinutes(20)), viewModel.uiState.value.refresh.lastSuccessfulRefreshAt)
         assertFalse(viewModel.uiState.value.isRefreshing)
-        assertEquals(now.minus(Duration.ofMinutes(1)), viewModel.uiState.value.refresh.lastSuccessfulRefreshAt)
-        assertEquals(0, viewModel.uiState.value.manualRefreshSuccessCount)
+        assertEquals(0, refreshUseCase.refreshCount)
     }
 
     @Test
     fun `manual refresh exposes loading state then maps refreshed quota state`() = runTest {
         val viewModel = HomeViewModel(
             currentQuotaStateLoader = FakeHomeCurrentQuotaStateLoader(
-                currentState(
-                    status = CurrentQuotaStatus.Fresh,
-                    freshness = CurrentQuotaFreshness.Fresh,
-                    snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(20))),
-                ),
-            ),
-            appOpenRefreshUseCase = FakeHomeAppOpenRefreshUseCase(
                 currentState(
                     status = CurrentQuotaStatus.Fresh,
                     freshness = CurrentQuotaFreshness.Fresh,
@@ -466,13 +441,6 @@ class HomeViewModelTest {
             runTest {
                 val viewModel = HomeViewModel(
                     currentQuotaStateLoader = FakeHomeCurrentQuotaStateLoader(
-                        currentState(
-                            status = CurrentQuotaStatus.Fresh,
-                            freshness = CurrentQuotaFreshness.Fresh,
-                            snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(20))),
-                        ),
-                    ),
-                    appOpenRefreshUseCase = FakeHomeAppOpenRefreshUseCase(
                         currentState(
                             status = CurrentQuotaStatus.Fresh,
                             freshness = CurrentQuotaFreshness.Fresh,
@@ -717,22 +685,6 @@ class HomeViewModelTest {
         override suspend fun loadCurrentState(): CurrentQuotaState = state
     }
 
-    private class FakeHomeAppOpenRefreshUseCase(
-        private val state: CurrentQuotaState,
-    ) : HomeAppOpenRefreshUseCase {
-        override suspend fun refreshForAppOpen(): CurrentQuotaState = state
-    }
-
-    private class DeferredHomeAppOpenRefreshUseCase : HomeAppOpenRefreshUseCase {
-        private val deferred = CompletableDeferred<CurrentQuotaState>()
-
-        override suspend fun refreshForAppOpen(): CurrentQuotaState = deferred.await()
-
-        fun complete(state: CurrentQuotaState) {
-            deferred.complete(state)
-        }
-    }
-
     private class RecordingHomeTrendHistoryLoader(
         private val points: List<HomeTrendPointUi> = emptyList(),
         var pointsByAccountId: Map<String, List<HomeTrendPointUi>> = emptyMap(),
@@ -749,6 +701,18 @@ class HomeViewModelTest {
         private val state: CurrentQuotaState,
     ) : HomeRefreshUseCase {
         override suspend fun refreshCurrentState(): CurrentQuotaState = state
+    }
+
+    private class RecordingHomeRefreshUseCase(
+        private val state: CurrentQuotaState,
+    ) : HomeRefreshUseCase {
+        var refreshCount = 0
+            private set
+
+        override suspend fun refreshCurrentState(): CurrentQuotaState {
+            refreshCount += 1
+            return state
+        }
     }
 
     private class ThrowingHomeRefreshUseCase(
