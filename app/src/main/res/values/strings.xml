@@ -200,7 +200,7 @@
     <string name="settings_primary_window_five_hour">5h quota</string>
     <string name="settings_primary_window_weekly">7-day quota</string>
     <string name="settings_status_notification_title">Persistent status notification</string>
-    <string name="settings_status_notification_description">Show a low-noise quota status notification when permission is available.</string>
+    <string name="settings_status_notification_description">A low-noise quota status in the notification shade.</string>
     <string name="settings_notification_account_title">Notification account</string>
     <string name="settings_notification_account_description">Choose which account the persistent notification displays.</string>
     <string name="settings_notification_account_follow_current">Follow current account</string>
@@ -212,7 +212,7 @@
     <string name="settings_account_errors_title">Account and error alerts</string>
     <string name="settings_account_errors_description">Notify when the current account needs re-login or repeated refreshes fail.</string>
     <string name="settings_notification_permission_title">Allow CodexMeter notifications?</string>
-    <string name="settings_notification_permission_description">CodexMeter uses notifications only for the optional status indicator, quota alerts, and account errors. The app and widget still work if you skip this.</string>
+    <string name="settings_notification_permission_description">Used only for the optional status, quota alerts, and account-error alerts. The app and widget work without it.</string>
     <string name="settings_notification_permission_allow">Allow notifications</string>
     <string name="notification_channel_status_name">Quota status</string>
     <string name="notification_channel_status_description">Low-noise persistent quota status.</string>
@@ -299,7 +299,7 @@
     <string name="settings_background_refresh_title">Background refresh</string>
     <string name="settings_background_refresh_description">Refresh all accounts in the background when Android allows it.</string>
     <string name="settings_battery_optimization_title">Improve background reliability</string>
-    <string name="settings_battery_optimization_description">When the screen is off, Android battery saving delays background refresh. Allowing this app to ignore battery optimization keeps refresh closer to your interval (still subject to system scheduling).</string>
+    <string name="settings_battery_optimization_description">Battery saving delays refresh while the screen is off. Ignoring it keeps refresh closer to your interval.</string>
     <string name="settings_battery_optimization_action">Allow</string>
     <string name="settings_refresh_interval_title">Refresh interval</string>
     <string name="settings_refresh_interval_description">How often to refresh quota in the background.</string>
@@ -325,9 +325,9 @@
     <string name="settings_retention_90_days">90 days</string>
     <string name="settings_retention_forever">Forever</string>
     <string name="settings_data_clear_current_title">Clear current account history</string>
-    <string name="settings_data_clear_current_description">Keeps the account and encrypted session, and removes quota history for the current account.</string>
+    <string name="settings_data_clear_current_description">Removes this account\'s quota history; keeps the account and session.</string>
     <string name="settings_data_clear_all_title">Clear all account history</string>
-    <string name="settings_data_clear_all_description">Keeps accounts and encrypted sessions, and removes quota history for every account.</string>
+    <string name="settings_data_clear_all_description">Removes all quota history; keeps accounts and sessions.</string>
     <string name="settings_data_clear_action">Clear</string>
     <string name="settings_data_confirm_clear">Clear</string>
     <string name="settings_data_clear_current_confirm_title">Clear current history?</string>
@@ -348,7 +348,7 @@
     <string name="settings_about_repository_label">GitHub repository</string>
     <string name="settings_about_repository_content_description">Open GitHub repository</string>
     <string name="settings_update_title">App update</string>
-    <string name="settings_update_description">Check the latest CodexMeter release on GitHub and download a newer APK with the system downloader.</string>
+    <string name="settings_update_description">Check GitHub for the latest release and install the APK.</string>
     <string name="settings_update_check">Check for updates</string>
     <string name="settings_update_checking">Checking</string>
     <string name="settings_update_status_checking">Checking GitHub Releases…</string>

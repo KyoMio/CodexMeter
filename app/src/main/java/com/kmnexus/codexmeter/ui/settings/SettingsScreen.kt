@@ -359,7 +359,7 @@ private fun SettingsHeader() {
 @Composable
 internal fun SwitchRow(
     @StringRes titleResId: Int,
-    @StringRes descriptionResId: Int,
+    @StringRes descriptionResId: Int?,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
@@ -380,10 +380,12 @@ internal fun DestructiveActionRow(@StringRes titleResId: Int, @StringRes descrip
 }
 
 @Composable
-internal fun SettingsItemText(@StringRes titleResId: Int, @StringRes descriptionResId: Int, modifier: Modifier = Modifier) {
+internal fun SettingsItemText(@StringRes titleResId: Int, @StringRes descriptionResId: Int?, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs)) {
         Text(text = stringResource(titleResId), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = stringResource(descriptionResId), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (descriptionResId != null) {
+            Text(text = stringResource(descriptionResId), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

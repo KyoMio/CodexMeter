@@ -171,13 +171,13 @@ internal fun PersistentNotificationCard(
             )
             ChoiceSummaryTextRow(
                 titleResId = R.string.settings_notification_account_title,
-                descriptionResId = R.string.settings_notification_account_description,
+                descriptionResId = null,
                 valueText = persistentNotification.accountSelection.displayLabel(),
                 onClick = onAccountClick,
             )
             ChoiceSummaryTextRow(
                 titleResId = R.string.settings_notification_display_quota_title,
-                descriptionResId = R.string.settings_notification_display_quota_description,
+                descriptionResId = null,
                 valueText = persistentNotification.windowChoices
                     .firstOrNull { it.windowId == persistentNotification.selectedWindowId }
                     ?.let { stringResource(it.labelResId) }
@@ -314,7 +314,7 @@ internal fun RefreshCard(
             )
             ChoiceSummaryRow(
                 titleResId = R.string.settings_refresh_interval_title,
-                descriptionResId = R.string.settings_refresh_interval_description,
+                descriptionResId = null,
                 valueResId = refresh.interval.labelResId,
                 onClick = onIntervalClick,
             )
@@ -377,7 +377,7 @@ internal fun DataCard(
 @Composable
 internal fun ChoiceSummaryRow(
     titleResId: Int,
-    descriptionResId: Int,
+    descriptionResId: Int?,
     valueResId: Int,
     onClick: () -> Unit,
 ) {
@@ -392,7 +392,7 @@ internal fun ChoiceSummaryRow(
 @Composable
 internal fun ChoiceSummaryTextRow(
     titleResId: Int,
-    descriptionResId: Int,
+    descriptionResId: Int?,
     valueText: String,
     onClick: () -> Unit,
 ) {
