@@ -717,7 +717,15 @@ private fun CodexMeterBottomBar(
                         .height(56.dp)
                         .align(Alignment.CenterStart)
                         .clip(CodexMeterShapes.lg)
-                        .background(indicatorStyle.color.copy(alpha = indicatorStyle.alpha)),
+                        .background(
+                            // Light: a near-opaque raised pill. Dark: a faint white sheen so the
+                            // selected tab reads as gently raised, not a bright light blob.
+                            if (CodexMeterTheme.colors.isDark) {
+                                Color.White.copy(alpha = 0.12f)
+                            } else {
+                                indicatorStyle.color.copy(alpha = indicatorStyle.alpha)
+                            },
+                        ),
                 )
                 Row(
                     modifier = Modifier.fillMaxSize(),

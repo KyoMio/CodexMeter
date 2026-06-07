@@ -11,12 +11,13 @@
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Contact shadow: deeper dark drop shadow, offset down. glassShadow #060810 @ ~0.4 -> #66060810 -->
+    <!-- Contact shadow: deeper dark drop shadow, slight downward offset for a subtle float. Kept close
+         to the body inset so it doesn't protrude as an uneven bottom edge. glassShadow #060810 @ ~0.4 -> #66060810 -->
     <item
         android:left="3dp"
         android:right="3dp"
-        android:top="6dp"
-        android:bottom="0dp">
+        android:top="4dp"
+        android:bottom="2dp">
         <shape android:shape="rectangle">
             <solid android:color="#66060810" />
             <corners android:radius="24dp" />
@@ -72,22 +73,9 @@
         </shape>
     </item>
 
-    <!-- Double rim, inner white hairline at very low alpha. rgba(255,255,255,0.14) -> #24FFFFFF -->
-    <item
-        android:left="4dp"
-        android:right="4dp"
-        android:top="4dp"
-        android:bottom="4dp">
-        <shape android:shape="rectangle">
-            <solid android:color="#00000000" />
-            <stroke
-                android:width="1dp"
-                android:color="#24FFFFFF" />
-            <corners android:radius="23dp" />
-        </shape>
-    </item>
-
-    <!-- Double rim, outer cool stroke hairline. glassStrokeCool-aligned #3E5A7A @ ~0.24 -> #3D3E5A7A -->
+    <!-- Single hairline rim, cool stroke. (A second inset rim diverged from this one when the launcher
+         stretches the drawable to non-square widget sizes, so the double rim is collapsed to one.)
+         glassStrokeCool-aligned #3E5A7A @ ~0.30 -> #4D3E5A7A -->
     <item
         android:left="3dp"
         android:right="3dp"
@@ -97,7 +85,7 @@
             <solid android:color="#00000000" />
             <stroke
                 android:width="1dp"
-                android:color="#3D3E5A7A" />
+                android:color="#4D3E5A7A" />
             <corners android:radius="24dp" />
         </shape>
     </item>

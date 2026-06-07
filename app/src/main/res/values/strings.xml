@@ -190,7 +190,7 @@
     <string name="settings_appearance_light">Light</string>
     <string name="settings_appearance_dark">Dark</string>
     <string name="settings_appearance_system">Follow system</string>
-    <string name="settings_appearance_widget_hint">Widgets always follow the system theme.</string>
+    <string name="settings_appearance_widget_hint">This applies to the app. Home-screen widgets always follow the system light/dark theme.</string>
     <string name="settings_group_persistent_notification">Persistent notification</string>
     <string name="settings_group_alerts">Alerts</string>
     <string name="settings_group_refresh">Refresh</string>

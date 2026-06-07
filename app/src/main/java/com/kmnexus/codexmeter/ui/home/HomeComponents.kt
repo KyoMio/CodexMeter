@@ -65,7 +65,7 @@ internal fun AccountLabel(account: HomeAccountUi) {
                 Text(
                     text = account.avatarInitial,
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
+                    color = avatarInitialColor(),
                     maxLines = 1,
                 )
             }
@@ -93,3 +93,13 @@ internal fun avatarColor(key: String): Color {
     val colors = listOf(CodexMeterTheme.colors.accent, CodexMeterTheme.colors.secondary, CodexMeterTheme.colors.warning)
     return colors[Math.floorMod(key.hashCode(), colors.size)]
 }
+
+/**
+ * Ink for the solid-color avatar initial. The [avatarColor] badges turn light-toned in dark mode
+ * (accent/secondary/warning all brighten), so a dark ink keeps the initial readable there; in light
+ * mode those badges are saturated/dark and white reads. Plain white would disappear in dark.
+ */
+@Composable
+@ReadOnlyComposable
+internal fun avatarInitialColor(): Color =
+    if (CodexMeterTheme.colors.isDark) CodexMeterTheme.colors.neutral else Color.White

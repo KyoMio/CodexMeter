@@ -83,13 +83,13 @@ fun QmLiquidGlassSurface(
                 .matchParentSize()
                 .border(
                     width = 1.dp,
-                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = if (isDark) 0.24f else 0.48f),
+                    color = CodexMeterTheme.colors.glassStrokeLight.copy(alpha = if (isDark) 0.10f else 0.48f),
                     shape = shape,
                 )
                 .padding(0.5.dp)
                 .border(
                     width = 0.5.dp,
-                    color = CodexMeterTheme.colors.glassStrokeCool.copy(alpha = if (isDark) 0.30f else 0.36f),
+                    color = CodexMeterTheme.colors.glassStrokeCool.copy(alpha = if (isDark) 0.20f else 0.36f),
                     shape = shape,
                 ),
         )
@@ -202,10 +202,17 @@ private fun LiquidGlassFallback(
             role == LiquidGlassSurfaceRole.Hero -> 0.16f
             else -> 0.18f
         }
+        // Feather the sheen with a vertical white->transparent gradient so its lower edge fades
+        // softly instead of cutting a hard line (most visible on dark glass).
+        val sheenHeight = size.height * 0.44f
         drawRoundRect(
-            color = Color.White.copy(alpha = topSheenAlpha),
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.White.copy(alpha = topSheenAlpha), Color.Transparent),
+                startY = 1.2f,
+                endY = 1.2f + sheenHeight,
+            ),
             topLeft = Offset(1.2f, 1.2f),
-            size = androidx.compose.ui.geometry.Size(size.width - 2.4f, size.height * 0.44f),
+            size = androidx.compose.ui.geometry.Size(size.width - 2.4f, sheenHeight),
             cornerRadius = CornerRadius(radiusPx, radiusPx),
         )
         if (role == LiquidGlassSurfaceRole.Navigation) {
@@ -220,13 +227,13 @@ private fun LiquidGlassFallback(
             )
         }
         drawRoundRect(
-            color = strokeLight.copy(alpha = 0.62f),
+            color = strokeLight.copy(alpha = if (isDark) 0.16f else 0.62f),
             style = Stroke(width = 1.dp.toPx()),
             cornerRadius = CornerRadius(radiusPx, radiusPx),
         )
         if (role == LiquidGlassSurfaceRole.Hero) {
             drawRoundRect(
-                color = strokeCool.copy(alpha = 0.48f),
+                color = strokeCool.copy(alpha = if (isDark) 0.26f else 0.48f),
                 topLeft = Offset(1.6.dp.toPx(), 1.6.dp.toPx()),
                 size = androidx.compose.ui.geometry.Size(
                     width = size.width - 3.2.dp.toPx(),

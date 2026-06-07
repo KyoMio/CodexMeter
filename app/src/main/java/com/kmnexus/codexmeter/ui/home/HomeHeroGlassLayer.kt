@@ -3,7 +3,6 @@ package com.kmnexus.codexmeter.ui.home
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -154,9 +154,12 @@ private fun HeroAccountAvatar(account: HomeAccountUi) {
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Image(
+            // Brand vectors are black-filled monochrome strokes (DESIGN §361): tint them with the
+            // theme ink so they stay visible on dark glass instead of disappearing into it.
+            Icon(
                 painter = painterResource(iconRes),
                 contentDescription = null,
+                tint = CodexMeterTheme.colors.primary,
                 modifier = Modifier.size(26.dp),
             )
         }
@@ -171,7 +174,9 @@ private fun HeroAccountAvatar(account: HomeAccountUi) {
             Text(
                 text = account.avatarInitial,
                 style = MaterialTheme.typography.labelLarge,
-                color = CodexMeterTheme.colors.surface,
+                // avatarColor() badges are light-toned in dark mode, so a dark ink reads; in light
+                // mode the badge is saturated/dark and white reads. surface alone would vanish in dark.
+                color = avatarInitialColor(),
                 maxLines = 1,
             )
         }

@@ -7,12 +7,19 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -84,8 +91,11 @@ private fun ThemeModeSegmentedControl(
     val pillShape = RoundedCornerShape(999.dp)
     val trackColor = CodexMeterTheme.colors.neutralAlt
     val selectedColor = CodexMeterTheme.colors.accent
-    val onSelectedColor = Color.White
+    // Dark ink reads better on the brighter dark-mode accent; white on the darker light-mode accent.
+    val onSelectedColor = if (CodexMeterTheme.colors.isDark) Color(0xFF08121F) else Color.White
     val onUnselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val animatorsEnabled = rememberCodexMeterAnimatorsEnabled()
+    val selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0)
 
     Box(
         modifier = Modifier
@@ -94,29 +104,50 @@ private fun ThemeModeSegmentedControl(
             .border(1.dp, CodexMeterTheme.colors.border, pillShape)
             .padding(4.dp),
     ) {
-        Row(modifier = Modifier.fillMaxWidth().selectableGroup()) {
-            options.forEach { (mode, labelResId) ->
-                val isSelected = selected == mode
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .background(
-                            color = if (isSelected) selectedColor else Color.Transparent,
-                            shape = pillShape,
-                        )
-                        .selectable(
-                            selected = isSelected,
-                            role = Role.RadioButton,
-                            onClick = { onSelected(mode) },
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(labelResId),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isSelected) onSelectedColor else onUnselectedColor,
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val segmentWidth = maxWidth / options.size
+            val indicatorOffset by animateDpAsState(
+                targetValue = segmentWidth * selectedIndex,
+                animationSpec = if (animatorsEnabled) {
+                    tween(durationMillis = 260, easing = FastOutSlowInEasing)
+                } else {
+                    snap()
+                },
+                label = "appearance_indicator_offset",
+            )
+            // Single sliding selected pill that animates between segments (like the bottom tab bar).
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset)
+                    .width(segmentWidth)
+                    .height(48.dp)
+                    .background(selectedColor, pillShape),
+            )
+            Row(modifier = Modifier.fillMaxWidth().selectableGroup()) {
+                options.forEach { (mode, labelResId) ->
+                    val isSelected = selected == mode
+                    val textColor by animateColorAsState(
+                        targetValue = if (isSelected) onSelectedColor else onUnselectedColor,
+                        animationSpec = if (animatorsEnabled) tween(durationMillis = 260) else snap(),
+                        label = "appearance_text_color",
                     )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onSelected(mode) },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(labelResId),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = textColor,
+                        )
+                    }
                 }
             }
         }
