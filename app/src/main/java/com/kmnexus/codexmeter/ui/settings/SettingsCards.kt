@@ -314,20 +314,24 @@ internal fun RefreshCard(
                 checked = refresh.backgroundRefreshEnabled,
                 onCheckedChange = onBackgroundRefreshChanged,
             )
-            ChoiceSummaryRow(
-                titleResId = R.string.settings_refresh_interval_title,
-                descriptionResId = null,
-                valueResId = refresh.interval.labelResId,
-                onClick = onIntervalClick,
-            )
-            Text(
-                text = stringResource(
-                    R.string.settings_refresh_last_result_format,
-                    stringResource(refresh.lastResultLabelResId),
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // Group the interval control with its "last result" status so the caption hugs the row
+            // (tight xs gap) instead of floating a full md gap below it, which read as an empty line.
+            Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs)) {
+                ChoiceSummaryRow(
+                    titleResId = R.string.settings_refresh_interval_title,
+                    descriptionResId = null,
+                    valueResId = refresh.interval.labelResId,
+                    onClick = onIntervalClick,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.settings_refresh_last_result_format,
+                        stringResource(refresh.lastResultLabelResId),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (showBatteryOptimizationHint) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
