@@ -766,6 +766,8 @@ Rules:
 - Single-flight per `(providerId, localAccountId)`.
 - Periodic WorkManager refresh loads every Active account and refreshes them with bounded concurrency `2`.
 - Disabled, deleted and auth-required accounts are skipped by periodic quota refresh.
+- Manual refresh (Home pull-to-refresh and the Account screen pull-to-refresh-all) additionally covers needs-reauth accounts so a transient failure can be retried; a successful manual refresh clears the needs-reauth flag and restores the account to Active. Disabled/deleted accounts are never refreshed by any trigger.
+- Account-status eligibility is decided by the account-selection layer (`CurrentQuotaRefreshAccountStore`: `activeAccounts` for background, `manuallyRefreshableAccounts` for manual); `MultiAccountRefreshRunner` refreshes exactly the accounts it is handed.
 - Token refresh serialized per account.
 - WorkManager uses unique work.
 - Background refresh interval should respect Android WorkManager limits; target around 15 minutes, not real-time.

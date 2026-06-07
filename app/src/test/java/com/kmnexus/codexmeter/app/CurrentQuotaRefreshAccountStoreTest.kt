@@ -52,7 +52,51 @@ class CurrentQuotaRefreshAccountStoreTest {
         }
     }
 
+    @Test
+    fun `manually refreshable accounts include active and needs-reauth but skip disabled and deleted`() = runTest {
+        withStore { db, store ->
+            db.providerAccountDao().upsert(account("local-active", "codex", "active"))
+            db.providerAccountDao().upsert(account("local-reauth", "codex", "needs_reauth"))
+            db.providerAccountDao().upsert(account("local-disabled", "codex", "disabled"))
+            db.providerAccountDao().upsert(account("local-deleted", "codex", "deleted"))
+
+            val accounts = store.manuallyRefreshableAccounts()
+
+            // Manual refresh lets the user retry a needs-reauth account; a success then clears the flag.
+            assertEquals(
+                setOf("local-active", "local-reauth"),
+                accounts.map { it.localAccountId.value }.toSet(),
+            )
+        }
+    }
+
+    @Test
+    fun `current account is refreshable for manual retry even when it needs reauth`() = runTest {
+        withStore(
+            selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-reauth")),
+        ) { db, store ->
+            db.providerAccountDao().upsert(account("local-reauth", "codex", "needs_reauth"))
+
+            val account = store.currentAccount()
+
+            assertEquals("local-reauth", account?.localAccountId?.value)
+        }
+    }
+
+    @Test
+    fun `current account is not refreshable when disabled`() = runTest {
+        withStore(
+            selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-disabled")),
+        ) { db, store ->
+            db.providerAccountDao().upsert(account("local-disabled", "codex", "disabled"))
+
+            assertEquals(null, store.currentAccount())
+        }
+    }
+
     private suspend fun withStore(
+        selection: CurrentAccountSelection? =
+            CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-active")),
         block: suspend (CodexMeterDatabase, CurrentQuotaRefreshAccountStore) -> Unit,
     ) {
         val db = Room.inMemoryDatabaseBuilder(
@@ -61,8 +105,7 @@ class CurrentQuotaRefreshAccountStoreTest {
         ).build()
         val store = CurrentQuotaRefreshAccountStore(
             currentAccountReader = object : CurrentAccountReader {
-                override suspend fun currentAccountSelection(): CurrentAccountSelection? =
-                    CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-active"))
+                override suspend fun currentAccountSelection(): CurrentAccountSelection? = selection
             },
             providerAccountDao = db.providerAccountDao(),
         )

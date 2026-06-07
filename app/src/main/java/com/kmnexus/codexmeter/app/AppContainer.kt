@@ -162,14 +162,17 @@ class AppContainer private constructor(
     suspend fun activeQuotaRefreshAccounts(): List<ProviderAccount> =
         currentAccountStore.activeAccounts()
 
-    /** Pull-to-refresh on the Account screen: refresh every Active account in parallel. */
+    /**
+     * Pull-to-refresh on the Account screen: refresh every manually-refreshable account in parallel,
+     * including NeedsReauth ones, so a transient failure can be retried and self-heal on success.
+     */
     val accountRefreshAllUseCase: AccountRefreshAllUseCase
         get() = AccountRefreshAllUseCase {
             MultiAccountRefreshRunner(
                 refreshCoordinator = refreshCoordinator,
                 exchangeRateRefresher = exchangeRateRefresher,
             ).refresh(
-                accounts = currentAccountStore.activeAccounts(),
+                accounts = currentAccountStore.manuallyRefreshableAccounts(),
                 trigger = RefreshTrigger.Manual,
             )
         }

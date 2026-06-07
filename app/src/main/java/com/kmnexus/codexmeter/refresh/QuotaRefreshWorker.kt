@@ -3,7 +3,6 @@ package com.kmnexus.codexmeter.refresh
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.refresh.RefreshTrigger
 import kotlinx.coroutines.async
@@ -77,8 +76,10 @@ class MultiAccountRefreshRunner(
     ): List<RefreshResult> = coroutineScope {
         runCatching { exchangeRateRefresher.refreshExchangeRates() }
         val semaphore = Semaphore(parallelism)
+        // The caller decides which accounts are eligible: activeAccounts for background refresh, or
+        // manuallyRefreshableAccounts for a manual retry that may include NeedsReauth. The runner
+        // refreshes exactly what it is handed and does not re-filter by status.
         accounts
-            .filter { it.status == AccountStatus.Active }
             .map { account ->
                 async {
                     semaphore.withPermit {

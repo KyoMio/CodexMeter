@@ -1,6 +1,5 @@
 package com.kmnexus.codexmeter.refresh
 
-import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
@@ -43,24 +42,9 @@ class QuotaRefreshWorkerTest {
         assertTrue(refreshProvider.requests.all { it.trigger == RefreshTrigger.Periodic })
     }
 
-    @Test
-    fun `worker skips accounts that are not active`() = runTest {
-        val refreshProvider = RecordingRefreshProvider()
-        val dependencies = RecordingRefreshDependenciesProvider(
-            accounts = listOf(
-                account("local-active"),
-                account("local-reauth").copy(status = AccountStatus.NeedsReauth),
-                account("local-disabled").copy(status = AccountStatus.Disabled),
-                account("local-deleted").copy(status = AccountStatus.Deleted),
-            ),
-            refreshCoordinator = coordinator(refreshProvider),
-        )
-
-        val outcome = QuotaRefreshWorkerOutcome.fromDependencies(dependencies)
-
-        assertEquals(QuotaRefreshWorkerOutcome.Success, outcome)
-        assertEquals(listOf("local-active"), refreshProvider.requests.map { it.account.localAccountId.value })
-    }
+    // Account-status filtering is the caller's job (activeQuotaRefreshAccounts -> activeAccounts for
+    // background, manuallyRefreshableAccounts for manual), covered by CurrentQuotaRefreshAccountStoreTest.
+    // The worker/runner refreshes exactly the accounts it is handed; see MultiAccountRefreshRunnerTest.
 
     @Test
     fun `retryable failure in any account asks WorkManager to retry`() = runTest {

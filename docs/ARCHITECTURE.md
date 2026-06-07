@@ -789,6 +789,7 @@ MVP 使用 WorkManager，不做 Foreground Service。
 - 更新 Widget。
 - 更新状态通知。
 - 执行告警判断。
+- 若账号此前为需要重新登录态，成功刷新视为凭证已恢复，清除该标记并恢复 Active。
 
 失败刷新：
 
@@ -802,6 +803,15 @@ MVP 使用 WorkManager，不做 Foreground Service。
 - 标记 session 为 `reauthRequired`。
 - 不无限重试。
 - 引导用户通过 device-code 外部浏览器流程重新登录。
+
+### 13.5 刷新账号范围
+
+账号刷新范围按触发来源区分：
+
+- 周期后台刷新只刷新 Active 账号，跳过需要重新登录 / 已禁用 / 已删除账号，避免对已知失效账号反复请求、浪费电量与配额。
+- 用户手动刷新（首页下拉刷新、账号页下拉刷新全部）额外覆盖需要重新登录账号，使临时失败（如网络抖动）可由用户手动重试；一次成功的手动刷新会清除需要重新登录标记并恢复 Active。
+- 账号级状态过滤由账号选择层负责（`CurrentQuotaRefreshAccountStore`），`MultiAccountRefreshRunner` 只忠实刷新被传入的账号。
+- 已禁用 / 已删除账号在任何刷新入口都不参与。
 
 ## 14. 历史与清理
 
