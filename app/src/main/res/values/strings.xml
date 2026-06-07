@@ -265,7 +265,7 @@
     <string name="widget_refreshed_at_compact_format">Refreshed %1$s</string>
     <string name="widget_window_title_reset_format">%1$s · %2$s</string>
     <string name="widget_provider_status_line_format">%1$s · %2$s</string>
-    <string name="widget_connect_codex">Tap to connect Codex</string>
+    <string name="widget_connect_codex">Tap to connect an AI provider</string>
     <string name="widget_status_possibly_stale">Possibly stale</string>
     <string name="widget_status_expired">Expired</string>
     <string name="widget_status_auth_required">Log in again</string>

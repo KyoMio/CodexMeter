@@ -174,4 +174,4 @@ internal object WidgetQuotaPreferenceKeys {
     fun fieldTone(i: Int) = stringPreferencesKey("widget_field_${i}_tone")
 }
 
-private const val DEFAULT_PROVIDER_NAME = "Codex"
+private const val DEFAULT_PROVIDER_NAME = "CodexMeter"

@@ -72,7 +72,7 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                         Text(
                             text = account.displayName,
                             style = MaterialTheme.typography.titleMedium,
-                            color = CodexMeterTheme.colors.glassInk,
+                            color = CodexMeterTheme.colors.primary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -107,7 +107,7 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                             Text(
                                 text = planText,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = CodexMeterTheme.colors.glassInk,
+                                color = CodexMeterTheme.colors.primary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -122,7 +122,7 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                             Text(
                                 text = account.credits.displayText(locale),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = CodexMeterTheme.colors.glassInk,
+                                color = CodexMeterTheme.colors.primary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

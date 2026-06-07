@@ -57,19 +57,22 @@
         </shape>
     </item>
 
-    <!-- Top highlight: very low-alpha white glint along the top, subtle so it never washes content. rgba(255,255,255,0.08) -> #14FFFFFF -->
+    <!-- Top sheen: very low-alpha vertical white->transparent gradient over the FULL body shape so it
+         nests inside the rounded corners (no overflow / hard edges) and scales with any widget height.
+         Subtle so it never washes the dark glass content. -->
     <item
-        android:left="6dp"
-        android:right="6dp"
-        android:top="4dp"
-        android:bottom="60dp">
+        android:left="3dp"
+        android:right="3dp"
+        android:top="3dp"
+        android:bottom="3dp">
         <shape android:shape="rectangle">
             <gradient
+                android:type="linear"
                 android:angle="270"
-                android:startColor="#14FFFFFF"
-                android:endColor="#00FFFFFF"
-                android:type="linear" />
-            <corners android:radius="20dp" />
+                android:startColor="#1FFFFFFF"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <corners android:radius="24dp" />
         </shape>
     </item>
 

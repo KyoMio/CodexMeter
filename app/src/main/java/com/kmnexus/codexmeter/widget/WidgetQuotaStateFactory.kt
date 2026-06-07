@@ -9,7 +9,7 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 
 class WidgetQuotaStateFactory(
-    private val providerDisplayName: String = CODEX_PROVIDER_NAME,
+    private val providerDisplayName: String = UNCONFIGURED_HEADER,
 ) {
     /** 微件未选账号时的引导态。 */
     fun unconfigured(hasAccounts: Boolean): WidgetQuotaState =
@@ -124,6 +124,8 @@ class WidgetQuotaStateFactory(
         }
 
     private companion object {
-        const val CODEX_PROVIDER_NAME = "Codex"
+        // Header shown on the unconfigured/no-account widget: app branding, not a single provider,
+        // since CodexMeter now supports multiple AI providers.
+        const val UNCONFIGURED_HEADER = "CodexMeter"
     }
 }
