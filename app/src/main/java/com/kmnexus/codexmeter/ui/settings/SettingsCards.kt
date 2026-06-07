@@ -424,6 +424,9 @@ private fun ChoiceSummaryRowLayout(
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
         Text(
             text = valueText,
+            // Match TextButton's 12dp end content padding so these tappable values line up with the
+            // TextButton-based action rows (e.g. the "Clear" buttons) instead of hugging the card edge.
+            modifier = Modifier.padding(end = 12.dp),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
         )
