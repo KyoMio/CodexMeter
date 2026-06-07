@@ -13,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +25,8 @@ import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.avatarColor
+import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 
 @Composable
 internal fun AccountLabel(account: HomeAccountUi) {
@@ -86,20 +87,3 @@ internal fun AccountLabel(account: HomeAccountUi) {
         }
     }
 }
-
-@Composable
-@ReadOnlyComposable
-internal fun avatarColor(key: String): Color {
-    val colors = listOf(CodexMeterTheme.colors.accent, CodexMeterTheme.colors.secondary, CodexMeterTheme.colors.warning)
-    return colors[Math.floorMod(key.hashCode(), colors.size)]
-}
-
-/**
- * Ink for the solid-color avatar initial. The [avatarColor] badges turn light-toned in dark mode
- * (accent/secondary/warning all brighten), so a dark ink keeps the initial readable there; in light
- * mode those badges are saturated/dark and white reads. Plain white would disappear in dark.
- */
-@Composable
-@ReadOnlyComposable
-internal fun avatarInitialColor(): Color =
-    if (CodexMeterTheme.colors.isDark) CodexMeterTheme.colors.neutral else Color.White

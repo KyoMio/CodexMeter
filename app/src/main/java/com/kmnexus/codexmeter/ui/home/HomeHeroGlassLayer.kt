@@ -42,6 +42,8 @@ import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.avatarColor
+import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 import java.text.NumberFormat
 import java.util.Locale
 

@@ -56,6 +56,8 @@ import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import com.kmnexus.codexmeter.ui.theme.avatarColor
+import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -650,23 +652,6 @@ private fun formattedInstant(instant: Instant): String {
             .format(instant)
     }
 }
-
-@Composable
-@ReadOnlyComposable
-private fun avatarColor(key: String): Color {
-    val colors = listOf(CodexMeterTheme.colors.accent, CodexMeterTheme.colors.secondary, CodexMeterTheme.colors.warning)
-    return colors[Math.floorMod(key.hashCode(), colors.size)]
-}
-
-/**
- * Ink for the solid-color avatar initial. [avatarColor] badges brighten in dark mode, so a dark ink
- * keeps the initial readable there; in light mode those badges are saturated/dark and white reads.
- * Plain white would disappear on the light dark-mode badges.
- */
-@Composable
-@ReadOnlyComposable
-private fun avatarInitialColor(): Color =
-    if (CodexMeterTheme.colors.isDark) CodexMeterTheme.colors.neutral else Color.White
 
 @Composable
 private fun AccountCreditsUi.displayText(locale: Locale): String =
