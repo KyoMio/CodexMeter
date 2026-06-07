@@ -283,8 +283,9 @@
     <string name="widget_no_more_fields">No more fields</string>
     <string name="widget_no_more_fields_hint">Resize smaller, or select more fields</string>
     <string name="widget_unconfigured_title">Not configured</string>
-    <string name="widget_unconfigured_hint">Long-press → choose account &amp; fields</string>
-    <string name="widget_no_accounts_hint">Add an account in CodexMeter first</string>
+    <string name="widget_unconfigured_hint">Choose account &amp; fields</string>
+    <string name="widget_no_accounts_hint">Add an account first</string>
+    <string name="widget_long_press_to_configure">Long-press to configure</string>
     <string name="widget_config_save">Save</string>
     <string name="widget_config_saving">Saving…</string>
     <string name="widget_config_cancel">Cancel</string>

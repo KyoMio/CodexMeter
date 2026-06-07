@@ -474,7 +474,14 @@ private fun UnconfiguredWidgetContent(context: Context, state: WidgetQuotaState)
                 if (state.hasAccounts) R.string.widget_unconfigured_hint else R.string.widget_no_accounts_hint,
             ),
             style = TextStyle(color = WidgetMutedTextProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
-            maxLines = 2,
+            maxLines = 1,
+        )
+        // Always tell users the configure gesture. Keeps the same two-sub-line height budget as the old
+        // maxLines=2 hint (context line + this line), so it doesn't overflow short widgets.
+        Text(
+            text = context.getString(R.string.widget_long_press_to_configure),
+            style = TextStyle(color = WidgetPercentMutedProvider, fontSize = 9.sp, fontWeight = FontWeight.Medium),
+            maxLines = 1,
         )
     }
 }

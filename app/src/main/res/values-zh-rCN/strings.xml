@@ -283,8 +283,9 @@
     <string name="widget_no_more_fields">无更多字段</string>
     <string name="widget_no_more_fields_hint">可缩小组件，或多选字段</string>
     <string name="widget_unconfigured_title">尚未配置</string>
-    <string name="widget_unconfigured_hint">长按 → 选择账号与字段</string>
+    <string name="widget_unconfigured_hint">选择账号与字段</string>
     <string name="widget_no_accounts_hint">请先在应用内添加账号</string>
+    <string name="widget_long_press_to_configure">长按进行配置</string>
     <string name="widget_config_save">保存</string>
     <string name="widget_config_saving">保存中…</string>
     <string name="widget_config_cancel">取消</string>
