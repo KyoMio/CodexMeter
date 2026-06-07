@@ -40,19 +40,6 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class HomeRefreshCoordinatorUseCaseTest {
     @Test
-    fun `app open refresh routes through coordinator with app open trigger`() = runTest {
-        withUseCase { db, currentAccountReader, provider, useCase ->
-            db.providerAccountDao().upsert(account())
-            currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
-
-            val state = useCase.refreshForAppOpen()
-
-            assertEquals(listOf(RefreshTrigger.AppOpen), provider.triggers)
-            assertEquals(62, state.primaryWindow?.usedPercent)
-        }
-    }
-
-    @Test
     fun `manual refresh routes through coordinator with manual trigger`() = runTest {
         withUseCase { db, currentAccountReader, provider, useCase ->
             db.providerAccountDao().upsert(account())

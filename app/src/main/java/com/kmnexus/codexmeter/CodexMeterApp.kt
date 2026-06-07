@@ -30,7 +30,6 @@ import com.kmnexus.codexmeter.refresh.QuotaRefreshDependenciesProvider
 import com.kmnexus.codexmeter.refresh.RefreshCoordinator
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeRefreshUseCase
-import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeTrendHistoryLoader
 import com.kmnexus.codexmeter.refresh.RefreshWorkScheduler
 import com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader
@@ -79,9 +78,6 @@ class CodexMeterApp : Application(), Configuration.Provider, QuotaRefreshDepende
 
     val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader
         get() = appContainer.homeCurrentQuotaStateLoader
-
-    val homeAppOpenRefreshUseCase: HomeAppOpenRefreshUseCase
-        get() = appContainer.homeAppOpenRefreshUseCase
 
     val homeRefreshUseCase: HomeRefreshUseCase
         get() = appContainer.homeRefreshUseCase

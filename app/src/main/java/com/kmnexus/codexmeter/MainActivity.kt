@@ -48,7 +48,6 @@ class MainActivity : ComponentActivity() {
                     accountQuotaAlertEvaluationRequester = codexMeterApp.accountQuotaAlertEvaluationRequester,
                     accountRefreshAllUseCase = codexMeterApp.accountRefreshAllUseCase,
                     homeCurrentQuotaStateLoader = codexMeterApp.homeCurrentQuotaStateLoader,
-                    homeAppOpenRefreshUseCase = codexMeterApp.homeAppOpenRefreshUseCase,
                     homeRefreshUseCase = codexMeterApp.homeRefreshUseCase,
                     homeTrendHistoryLoader = codexMeterApp.homeTrendHistoryLoader,
                     retentionPreferenceStore = codexMeterApp.retentionPreferenceStore,

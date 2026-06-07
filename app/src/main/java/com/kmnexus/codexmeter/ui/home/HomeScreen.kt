@@ -50,7 +50,6 @@ import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
 fun HomeRoute(
     modifier: Modifier = Modifier,
     currentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-    appOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
     refreshUseCase: HomeRefreshUseCase,
     trendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -> emptyList() },
     notificationPreferenceReader: NotificationPreferenceReader,
@@ -59,7 +58,6 @@ fun HomeRoute(
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.factory(
             currentQuotaStateLoader = currentQuotaStateLoader,
-            appOpenRefreshUseCase = appOpenRefreshUseCase,
             refreshUseCase = refreshUseCase,
             trendHistoryLoader = trendHistoryLoader,
             notificationPreferenceReader = notificationPreferenceReader,

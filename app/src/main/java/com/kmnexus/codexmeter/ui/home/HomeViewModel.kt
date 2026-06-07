@@ -37,10 +37,6 @@ fun interface HomeRefreshUseCase {
     suspend fun refreshCurrentState(): CurrentQuotaState
 }
 
-fun interface HomeAppOpenRefreshUseCase {
-    suspend fun refreshForAppOpen(): CurrentQuotaState
-}
-
 data class HomeTrendQuery(
     val windowId: String,
     val displayKind: QuotaWindowDisplayKind,
@@ -66,11 +62,6 @@ private object NoopHomeRefreshUseCase : HomeRefreshUseCase {
         NoopHomeCurrentQuotaStateLoader.loadCurrentState()
 }
 
-private object NoopHomeAppOpenRefreshUseCase : HomeAppOpenRefreshUseCase {
-    override suspend fun refreshForAppOpen(): CurrentQuotaState =
-        NoopHomeCurrentQuotaStateLoader.loadCurrentState()
-}
-
 private object NoopHomeTrendHistoryLoader : HomeTrendHistoryLoader {
     override suspend fun loadTrend(accountId: LocalAccountId?, query: HomeTrendQuery): List<HomeTrendPointUi> = emptyList()
 }
@@ -89,7 +80,6 @@ private object DefaultHomeExchangeRateReader : ExchangeRateReader {
 
 class HomeViewModel(
     private val currentQuotaStateLoader: HomeCurrentQuotaStateLoader = NoopHomeCurrentQuotaStateLoader,
-    private val appOpenRefreshUseCase: HomeAppOpenRefreshUseCase = NoopHomeAppOpenRefreshUseCase,
     private val refreshUseCase: HomeRefreshUseCase = NoopHomeRefreshUseCase,
     private val trendHistoryLoader: HomeTrendHistoryLoader = NoopHomeTrendHistoryLoader,
     private val notificationPreferenceReader: NotificationPreferenceReader = DefaultHomeNotificationPreferenceReader,
@@ -103,7 +93,7 @@ class HomeViewModel(
     private var currencyPreferences: CurrencyPreferences = CurrencyPreferences()
     private var exchangeRates: ExchangeRates? = null
     private val trendPointsByAccount = mutableMapOf<LocalAccountId?, List<HomeTrendPointUi>>()
-    private var appOpenLoadJob: Job? = null
+    private var currentStateLoadJob: Job? = null
     private var trendLoadJob: Job? = null
     private var manualRefreshSuccessCount = 0
 
@@ -119,28 +109,23 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Loads the latest persisted snapshot for display. Deliberately does NOT hit the network: opening
+     * Home (and every ON_RESUME / tab re-entry) must not trigger an API refresh, which previously
+     * caused frequent calls when switching pages. Freshness comes from manual pull-to-refresh and the
+     * periodic background worker; this only reflects whatever those have already written.
+     */
     fun loadCurrentState() {
-        if (appOpenLoadJob?.isActive == true) {
+        if (currentStateLoadJob?.isActive == true) {
             return
         }
-        _uiState.value = _uiState.value.copy(isRefreshing = true)
-        appOpenLoadJob = viewModelScope.launch {
+        currentStateLoadJob = viewModelScope.launch {
             loadNotificationPreferences()
             val persistedState = loadPersistedCurrentStateOrNull()
             if (persistedState != null) {
-                updateCurrentQuotaState(state = persistedState, isRefreshing = true)
-            }
-            try {
-                updateCurrentQuotaState(appOpenRefreshUseCase.refreshForAppOpen())
-            } catch (exception: CancellationException) {
-                throw exception
-            } catch (_: Exception) {
-                val fallbackState = loadPersistedCurrentStateOrNull() ?: persistedState
-                if (fallbackState != null) {
-                    updateCurrentQuotaState(fallbackState)
-                } else {
-                    _uiState.value = _uiState.value.copy(isRefreshing = false)
-                }
+                updateCurrentQuotaState(state = persistedState, isRefreshing = false)
+            } else {
+                _uiState.value = _uiState.value.copy(isRefreshing = false)
             }
         }
     }
@@ -434,7 +419,6 @@ class HomeViewModel(
     companion object {
         fun factory(
             currentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-            appOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
             refreshUseCase: HomeRefreshUseCase,
             trendHistoryLoader: HomeTrendHistoryLoader = NoopHomeTrendHistoryLoader,
             notificationPreferenceReader: NotificationPreferenceReader = DefaultHomeNotificationPreferenceReader,
@@ -446,7 +430,6 @@ class HomeViewModel(
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     HomeViewModel(
                         currentQuotaStateLoader = currentQuotaStateLoader,
-                        appOpenRefreshUseCase = appOpenRefreshUseCase,
                         refreshUseCase = refreshUseCase,
                         trendHistoryLoader = trendHistoryLoader,
                         notificationPreferenceReader = notificationPreferenceReader,

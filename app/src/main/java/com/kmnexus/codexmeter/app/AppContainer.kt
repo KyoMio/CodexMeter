@@ -112,7 +112,6 @@ import com.kmnexus.codexmeter.refresh.RefreshProvider
 import com.kmnexus.codexmeter.ui.account.AccountQuotaAlertEvaluationRequester
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeRefreshUseCase
-import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.settings.SettingsBackgroundRefreshStatusReader
 import com.kmnexus.codexmeter.ui.settings.SettingsDiagnosticsReader
 import com.kmnexus.codexmeter.widget.WidgetDeletedAccountStateCleaner
@@ -137,7 +136,6 @@ class AppContainer private constructor(
     val accountRenameUseCase: AccountRenameUseCase,
     val accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester,
     val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-    val homeAppOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
     val homeRefreshUseCase: HomeRefreshUseCase,
     val deviceCodeLoginController: DeviceCodeLoginController,
     val deviceCodeLoginNotifier: DeviceCodeLoginNotifier,
@@ -669,7 +667,6 @@ class AppContainer private constructor(
                     )
                 },
                 homeCurrentQuotaStateLoader = currentQuotaStateRepository,
-                homeAppOpenRefreshUseCase = homeRefreshUseCase,
                 homeRefreshUseCase = homeRefreshUseCase,
                 deviceCodeLoginController = deviceCodeLoginController,
                 deviceCodeLoginNotifier = deviceCodeLoginNotifier,

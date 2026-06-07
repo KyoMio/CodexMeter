@@ -98,7 +98,6 @@ import com.kmnexus.codexmeter.domain.currency.CurrencyPreferences
 import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
 import com.kmnexus.codexmeter.ui.settings.NoopAppearancePreferenceStore
 import com.kmnexus.codexmeter.ui.settings.NoopCurrencyPreferenceStore
-import com.kmnexus.codexmeter.ui.home.HomeAppOpenRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeRefreshUseCase
 import com.kmnexus.codexmeter.ui.home.HomeTrendHistoryLoader
@@ -135,7 +134,6 @@ fun CodexMeterNavHost(
         NoopAccountQuotaAlertEvaluationRequester,
     accountRefreshAllUseCase: AccountRefreshAllUseCase = NoopAccountRefreshAllUseCase,
     homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader,
-    homeAppOpenRefreshUseCase: HomeAppOpenRefreshUseCase,
     homeRefreshUseCase: HomeRefreshUseCase,
     homeTrendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -> emptyList() },
     currencyPreferenceReader: CurrencyPreferenceReader = object : CurrencyPreferenceReader {
@@ -509,7 +507,6 @@ fun CodexMeterNavHost(
                 ) {
                     HomeRoute(
                         currentQuotaStateLoader = homeCurrentQuotaStateLoader,
-                        appOpenRefreshUseCase = homeAppOpenRefreshUseCase,
                         refreshUseCase = homeRefreshUseCase,
                         trendHistoryLoader = homeTrendHistoryLoader,
                         notificationPreferenceReader = notificationPreferenceStore,
