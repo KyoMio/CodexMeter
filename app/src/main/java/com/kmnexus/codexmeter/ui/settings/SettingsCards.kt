@@ -381,7 +381,13 @@ internal fun ChoiceSummaryRow(
     valueResId: Int,
     onClick: () -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
+        // Center the title against the value button so a description-less row doesn't leave an empty
+        // line below the (top-aligned) title. Matches SwitchRow / DestructiveActionRow.
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
         TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
             Text(text = stringResource(valueResId))
@@ -396,7 +402,13 @@ internal fun ChoiceSummaryTextRow(
     valueText: String,
     onClick: () -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
+        // Center the title against the value button so a description-less row doesn't leave an empty
+        // line below the (top-aligned) title. Matches SwitchRow / DestructiveActionRow.
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
         TextButton(onClick = onClick, shape = CodexMeterShapes.md) {
             Text(text = valueText)
