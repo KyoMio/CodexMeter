@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   LIGHT "liquid glass" widget backdrop, pure <layer-list>/<shape> reproduction.
-  A/B spike artifact compared against the runtime-bitmap renderer; DESIGN.md §912.
-  Layers bottom->top: contact shadow, frosted body, internal refraction lens,
-  top highlight, double hairline rim (outer cool-blue + inner near-white).
+  Auto-swapped against drawable-night by the launcher under -night; DESIGN.md §912.
+  Layers bottom->top: contact shadow, frosted body, top sheen, single hairline rim.
   Corner radius ~24dp; ~3dp inset so the contact shadow/rim read.
-  Pure XML can do no Gaussian blur and no off-bounds clipping, so the refraction
-  lens is kept fully internal (upper-left, not reaching the edges).
+  No internal refraction lens: pure XML can only fake it with a hard-edged radial
+  oval, which read as a stray blue spot on the small widget, so it was dropped in
+  favour of a single continuous top sheen with no center stop (no mid-height line).
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -39,26 +39,9 @@
         </shape>
     </item>
 
-    <!-- Internal refraction lens: faint cool-blue radial oval tucked upper-left, fading to transparent. Kept internal (large insets) so it never reaches the edges. glassTintBlue #5DB8FF @ ~0.24 -> #3D5DB8FF -->
-    <item
-        android:left="14dp"
-        android:right="46dp"
-        android:top="12dp"
-        android:bottom="44dp">
-        <shape android:shape="oval">
-            <gradient
-                android:type="radial"
-                android:gradientRadius="55%"
-                android:centerX="0.32"
-                android:centerY="0.30"
-                android:startColor="#3D5DB8FF"
-                android:endColor="#005DB8FF" />
-        </shape>
-    </item>
-
-    <!-- Top sheen: a vertical white->transparent gradient over the FULL body shape (same inset/radius
-         as the body) so it nests inside the rounded corners — no corner overflow, no hard side/bottom
-         edge, and it scales with any widget height. White peak at top, gone by mid-height. -->
+    <!-- Top sheen: a gentle 2-stop white->transparent vertical gradient over the FULL body shape.
+         Brightest at the very top, fading continuously to transparent at the bottom — no center stop,
+         so there's no mid-height boundary line. Nests in the rounded corners; scales with any size. -->
     <item
         android:left="3dp"
         android:right="3dp"
@@ -68,8 +51,7 @@
             <gradient
                 android:type="linear"
                 android:angle="270"
-                android:startColor="#A6FFFFFF"
-                android:centerColor="#0DFFFFFF"
+                android:startColor="#99FFFFFF"
                 android:endColor="#00FFFFFF" />
             <corners android:radius="24dp" />
         </shape>
