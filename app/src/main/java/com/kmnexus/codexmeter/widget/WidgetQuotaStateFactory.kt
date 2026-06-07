@@ -20,7 +20,10 @@ class WidgetQuotaStateFactory(
             localAccountId = null,
             accountName = null,
             tone = WidgetQuotaTone.Neutral,
-            clickTarget = if (hasAccounts) WidgetClickTarget.Home else WidgetClickTarget.AddAccount,
+            // Tapping an unconfigured widget opens the app's Home tab (where the no-account state already
+            // surfaces an add-account entry). It must not deep-link to the retired provider-selection
+            // screen; the no-accounts hint still tells the user to add an account in-app first.
+            clickTarget = WidgetClickTarget.Home,
             fields = emptyList(),
             isUnconfigured = true,
             hasAccounts = hasAccounts,

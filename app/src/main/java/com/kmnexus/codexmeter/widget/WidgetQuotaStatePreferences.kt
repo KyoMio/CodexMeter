@@ -18,7 +18,8 @@ internal fun Preferences.toWidgetQuotaState(): WidgetQuotaState {
         localAccountId = this[WidgetQuotaPreferenceKeys.localAccountId],
         accountName = this[WidgetQuotaPreferenceKeys.accountName],
         tone = enumValue(WidgetQuotaPreferenceKeys.tone, WidgetQuotaTone.Neutral),
-        clickTarget = enumValue(WidgetQuotaPreferenceKeys.clickTarget, WidgetClickTarget.AddAccount),
+        // Default a never-written widget to Home, not the retired provider-selection deep-link.
+        clickTarget = enumValue(WidgetQuotaPreferenceKeys.clickTarget, WidgetClickTarget.Home),
         fields = readFields(),
         // A freshly-placed widget has no persisted state yet. Default to the unconfigured guide card
         // (the clean centered "尚未配置" copy) rather than the data layout, and to no-accounts so the
