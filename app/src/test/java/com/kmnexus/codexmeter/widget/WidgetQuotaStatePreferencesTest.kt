@@ -60,6 +60,18 @@ class WidgetQuotaStatePreferencesTest {
     }
 
     @Test
+    fun `empty preferences default to the unconfigured guide state`() {
+        // A freshly-placed widget has no persisted state. It must render the same unconfigured guide
+        // card the app writes once it computes state, not a half-configured data layout.
+        val restored = mutablePreferencesOf().toWidgetQuotaState()
+
+        assertTrue(restored.isUnconfigured)
+        assertFalse(restored.hasAccounts)
+        assertEquals(WidgetQuotaStatus.NoAccount, restored.status)
+        assertTrue(restored.fields.isEmpty())
+    }
+
+    @Test
     fun `configuration round trips selected window ids in order`() {
         val config = WidgetQuotaConfiguration(
             providerId = "codex",

@@ -20,8 +20,12 @@ internal fun Preferences.toWidgetQuotaState(): WidgetQuotaState {
         tone = enumValue(WidgetQuotaPreferenceKeys.tone, WidgetQuotaTone.Neutral),
         clickTarget = enumValue(WidgetQuotaPreferenceKeys.clickTarget, WidgetClickTarget.AddAccount),
         fields = readFields(),
-        isUnconfigured = this[WidgetQuotaPreferenceKeys.isUnconfigured] ?: false,
-        hasAccounts = this[WidgetQuotaPreferenceKeys.hasAccounts] ?: true,
+        // A freshly-placed widget has no persisted state yet. Default to the unconfigured guide card
+        // (the clean centered "尚未配置" copy) rather than the data layout, and to no-accounts so the
+        // hint reads "add an account first" — matching what the app writes once it computes real state,
+        // so the first render isn't a different-looking placeholder than the post-open state.
+        isUnconfigured = this[WidgetQuotaPreferenceKeys.isUnconfigured] ?: true,
+        hasAccounts = this[WidgetQuotaPreferenceKeys.hasAccounts] ?: false,
         // Resolve the brand icon from the provider id at read time — resource ids aren't stable
         // enough to persist across app updates, so we never serialize them.
         providerIconRes = providerId?.takeIf { it.isNotBlank() }?.let { ProviderRegistry.iconFor(ProviderId(it)) },
