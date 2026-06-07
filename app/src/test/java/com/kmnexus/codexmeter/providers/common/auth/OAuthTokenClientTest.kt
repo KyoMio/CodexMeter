@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.providers.common.auth
 
 import com.kmnexus.codexmeter.core.network.ProviderHttpClient
+import com.kmnexus.codexmeter.domain.refresh.QuotaError
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -29,9 +30,25 @@ class OAuthTokenClientTest {
     }
 
     @Test
-    fun parse_missingAccessToken_returnsFailure() {
+    fun parse_missingAccessToken_mapsToTransientNetworkErrorNotReauth() {
         val result = client.parse("""{"refresh_token":"rt-1"}""", "exchange")
+
         assertTrue(result is OAuthTokenClient.Result.Failure)
+        // A 2xx response lacking a usable access token is a malformed/transient server response, not
+        // proof the credential is invalid (that is 401/403). It must not force a re-login.
+        val error = (result as OAuthTokenClient.Result.Failure).error
+        assertTrue(error is QuotaError.Network)
+        assertEquals(false, error.userActionRequired)
+        assertTrue(error.retryable)
+    }
+
+    @Test
+    fun parse_blankAccessToken_mapsToTransientNetworkError() {
+        val result = client.parse("""{"access_token":"  "}""", "refresh")
+
+        assertTrue(result is OAuthTokenClient.Result.Failure)
+        val error = (result as OAuthTokenClient.Result.Failure).error
+        assertTrue(error is QuotaError.Network)
     }
 
     @Test

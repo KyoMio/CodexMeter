@@ -94,8 +94,11 @@ class OAuthTokenClient(
             val dto = json.decodeFromString<TokenResponseDto>(body)
             val accessToken = dto.accessToken?.takeIf { it.isNotBlank() }
                 ?: return Result.Failure(
-                    QuotaError.AuthRequired(
-                        httpStatus = null,
+                    // A 2xx response with no usable access token is a malformed/transient server
+                    // response, not proof the credential is invalid (that is 401/403, handled above).
+                    // Treat it as retryable Network — matching CodexTokenRefresher and the decode-error
+                    // branch below — so a transient glitch never forces a needs-reauth.
+                    QuotaError.Network(
                         diagnosticsDigest = "${diagnosticsPrefix}_${stage}_no_access_token",
                     ),
                 )
