@@ -28,8 +28,8 @@ Do not rely on memory of previous sessions. Read the repo files.
 - Repo directory: `codexbar-apk`
 - Android package: `com.kmnexus.codexmeter`
 - Platform: Android 12+
-- MVP purpose: show official Codex quota usage through app dashboard, resizable Widget and persistent notification.
-- MVP provider: Codex only, with future provider structure preserved.
+- MVP purpose: show AI provider quota and balance usage through app dashboard, resizable Widget and persistent notification; started Codex-only, Codex remains the primary provider.
+- MVP provider: Started Codex-only; now ships 9 providers (Codex, DeepSeek, z.ai Coding Plan, z.ai API, MiniMax, Cursor, Kimi, Claude, Antigravity) registered in ProviderRegistry.
 
 ## Non-negotiable boundaries
 
@@ -39,7 +39,7 @@ Never add:
 - Local token or cost estimation.
 - Manual token fields.
 - Cookie Header input.
-- Embedded WebView or manual-credential flow **for Codex**; Codex verification uses the provider device-code external-browser handoff. (Non-Codex providers may use an embedded WebView for cookie capture / OAuth interception, and Antigravity may use a 127.0.0.1 loopback server — see `docs/ARCHITECTURE.md` §11.3 multi-provider exemption.)
+- Embedded WebView or manual-credential flow **for Codex**; Codex verification uses the provider device-code external-browser handoff. (Non-Codex providers may use an embedded WebView for cookie capture / OAuth interception, and Antigravity may use a 127.0.0.1 loopback server — see `docs/ARCHITECTURE.md` §11.2 multi-provider exemption blockquote.)
 - New `auth.json` file import, paste-JSON import or manual credential path.
 - Cloud sync or third-party proxy.
 - Remote analytics / crash upload.

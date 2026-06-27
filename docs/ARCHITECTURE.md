@@ -186,14 +186,14 @@ Codex 是第一个 Provider，但公共架构不得写死 Codex。
 
 ## 6. Provider 接入现状
 
-当前已通过内置 `ProviderRegistry` 实现 8 个 Provider。`ProviderConfig` 声明每个 Provider 的 displayName、iconResId、认证类型（`ProviderAuthKind`）和能力标志。
+当前已通过内置 `ProviderRegistry` 实现 9 个 Provider。`ProviderConfig` 声明每个 Provider 的 displayName、iconResId、认证类型（`ProviderAuthKind`）和能力标志。
 
 ### 6.1 认证类型（ProviderAuthKind）
 
 | 认证类型 | Provider |
 |---|---|
 | `OAuthWebView`（Codex 特有 device-code 外部浏览器流程） | Codex |
-| `ApiKeyImport`（应用内 API Key 输入框） | DeepSeek、z.ai、MiniMax |
+| `ApiKeyImport`（应用内 API Key 输入框） | DeepSeek、z.ai Coding Plan、MiniMax、z.ai API |
 | `CookieAuth`（内嵌 WebView 提取 Cookie） | Cursor、Kimi |
 | `OAuthPkceLogin`（Claude=WebView 拦截 code；Antigravity=loopback server） | Claude、Antigravity |
 
@@ -203,10 +203,11 @@ Codex 是第一个 Provider，但公共架构不得写死 Codex。
 |---|---|---|---|
 | `codex` | Codex | OAuthWebView（device-code） | 否 |
 | `deepseek` | DeepSeek | ApiKeyImport | 是 |
-| `zai` | z.ai | ApiKeyImport | 否 |
+| `zai` | z.ai Coding Plan | ApiKeyImport | 否 |
 | `minimax` | MiniMax | ApiKeyImport | 否 |
 | `cursor` | Cursor | CookieAuth | 否 |
 | `kimi` | Kimi | CookieAuth | 否 |
+| `zai_balance` | z.ai API | ApiKeyImport | 是 |
 | `claude` | Claude | OAuthPkceLogin（WebView 拦截） | 否 |
 | `antigravity` | Antigravity | OAuthPkceLogin（loopback server） | 否 |
 
@@ -317,7 +318,8 @@ Codex 私有 payload 由 Codex Provider 自己定义和迁移。
 |---|---|---|
 | Codex | `five_hour`、`weekly` | Percent |
 | DeepSeek | `balance` | Balance |
-| z.ai | `quota`（按 Provider 实际返回） | Percent / Balance |
+| z.ai Coding Plan | `quota`（按 Provider 实际返回） | Percent / Balance |
+| z.ai API | `balance` | Balance |
 | MiniMax | `tokens`（按 Provider 实际返回） | Balance |
 | Cursor | `usage`（按 Provider 实际返回） | UsageCount |
 | Kimi | `quota` | Percent |
@@ -567,7 +569,7 @@ MVP 不启用 per-use biometric / user-auth gating。
 - Provider client：`CodexDeviceCodeClient`、`CodexOAuthTokenExchanger`。
 - 会话校验与保存：`CodexSessionImporter`。
 
-**API Key（DeepSeek / z.ai / MiniMax）**
+**API Key（DeepSeek / z.ai Coding Plan / MiniMax）**
 
 - UI：`ApiKeyAuthScreen`（共用，AuthScaffold top bar）。
 - Domain use case：`ApiKeyLoginUseCase`。
@@ -631,8 +633,8 @@ Android 流程：
 - 新账号连接不提供 `auth.json` 文件选择、粘贴 JSON、token 手填或 Cookie 输入路径。
 
 > **多 Provider 扩展豁免（非 Codex）**：上述「不内嵌 WebView / 不启动本地 server」约束只适用于 Codex。扩展 Provider 的认证按类型实现：
-> - **API Key**（DeepSeek / z.ai / MiniMax）：应用内输入框，无浏览器。
-> - **Cookie**（Kimi / Cursor）：内嵌 `WebView` 承载 Provider 登录页，登录完成后用 `CookieManager` 自动提取目标 cookie；不展示、不持久化浏览器地址栏 URL。
+> - **API Key**（DeepSeek / z.ai Coding Plan / MiniMax / z.ai API）：应用内输入框，无浏览器。
+> - **Cookie**（Kimi / Cursor）：内嵌 `WebView` 承载 Provider 登录页，登录完成后用 `CookieManager` 自动提取目标 cookie；不展示、不持久化浏览器地址栏 URL。z.ai 存在两个独立接入面，均用 API Key（Bearer）：编程额度（`open.bigmodel.cn/api/monitor/…`，Provider id `zai`）与账户余额（`open.bigmodel.cn/api/biz/account/query-customer-account-report`，Provider id `zai_balance`）。
 > - **OAuth PKCE — WebView 拦截**（Claude）：内嵌 `WebView` 在 `shouldOverrideUrlLoading` 拦截 `console.anthropic.com` 回调提取 `code`；**禁止**让用户手动粘贴 callback URL。
 > - **OAuth PKCE — loopback**（Antigravity）：Google 禁止在 WebView 内完成 OAuth，故使用外部浏览器 + 短暂的 loopback HTTP server（仅绑定 `127.0.0.1`、随机端口、单次请求、校验 `state`、收到 code 或离开页面即关闭）。`network_security_config` 仅对 `127.0.0.1` 放行明文，全局明文仍关闭。
 >

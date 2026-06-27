@@ -326,14 +326,13 @@ Provider 是扩展点，但不是随便插代码的后门。
 
 ### 10.1 新增 Provider 必须包含
 
-- `ProviderCapabilities`
-- `ProviderAuthConnector`
-- `QuotaProvider`
-- session payload schema
+- `ProviderConfig`（注册于 `ProviderRegistry`）
+- `SessionImporter`（由 `SessionImportRouter` 路由）
+- `<Name>RefreshProvider`（注册于 `CompositeRefreshProvider`）
+- `<Name>Client`
 - DTO
-- mapper
-- 私有错误类型
-- 私有错误到 `QuotaError` 的映射
+- Mapper
+- 私有错误类型→`QuotaError` 映射
 - 核心单元测试
 - 脱敏诊断规则
 
