@@ -56,6 +56,7 @@ class GitHubReleaseAppUpdateChecker(
                 releasePageUrl = release.htmlUrl?.takeIf { it.isNotBlank() } ?: releasesPageUrl,
                 apkDownloadUrl = apkAsset.browserDownloadUrl,
                 apkFileName = apkAsset.name,
+                releaseNotes = release.body?.takeIf { it.isNotBlank() },
             ),
         )
     }
@@ -64,6 +65,7 @@ class GitHubReleaseAppUpdateChecker(
     private data class GitHubLatestReleaseDto(
         @SerialName("tag_name") val tagName: String? = null,
         val name: String? = null,
+        val body: String? = null,
         @SerialName("html_url") val htmlUrl: String? = null,
         val assets: List<GitHubReleaseAssetDto> = emptyList(),
     )

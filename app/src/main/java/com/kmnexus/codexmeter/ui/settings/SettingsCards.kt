@@ -23,6 +23,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -632,6 +633,9 @@ internal fun AboutCard(
 internal fun AppUpdateCard(
     update: SettingsUpdateUi,
     onCheckClick: () -> Unit,
+    onAvailableUpdateClick: () -> Unit,
+    onAutoCheckChanged: (Boolean) -> Unit,
+    onNotifyOnUpdateChanged: (Boolean) -> Unit,
 ) {
     val animatorsEnabled = rememberCodexMeterAnimatorsEnabled()
     val rotation = if (update.isChecking && animatorsEnabled) {
@@ -651,10 +655,50 @@ internal fun AppUpdateCard(
 
     SettingsSurfaceCard {
         Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
-            SettingsItemText(
-                titleResId = R.string.settings_update_title,
-                descriptionResId = R.string.settings_update_description,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SettingsItemText(
+                    titleResId = R.string.settings_update_title,
+                    descriptionResId = R.string.settings_update_description,
+                    modifier = Modifier.weight(1f),
+                )
+                if (update.availableUpdate != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(CodexMeterSpacing.sm)
+                            .background(CodexMeterTheme.colors.danger, CircleShape),
+                    )
+                }
+            }
+
+            SwitchRow(
+                titleResId = R.string.settings_update_auto_check_title,
+                descriptionResId = R.string.settings_update_auto_check_description,
+                checked = update.autoCheckEnabled,
+                onCheckedChange = onAutoCheckChanged,
             )
+            SwitchRow(
+                titleResId = R.string.settings_update_notify_title,
+                descriptionResId = R.string.settings_update_notify_description,
+                checked = update.notifyOnUpdateEnabled,
+                onCheckedChange = onNotifyOnUpdateChanged,
+                enabled = update.autoCheckEnabled,
+            )
+
+            update.availableUpdate?.let { available ->
+                Button(
+                    onClick = onAvailableUpdateClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = CodexMeterShapes.md,
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.settings_update_download_available,
+                            available.versionName,
+                        ),
+                    )
+                }
+            }
+
             OutlinedButton(
                 onClick = onCheckClick,
                 enabled = !update.isChecking,

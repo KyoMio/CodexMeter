@@ -364,6 +364,11 @@
     <string name="settings_update_dialog_message">CodexMeter %1$s 已发布，是否下载最新 APK？</string>
     <string name="settings_update_dialog_download">下载更新</string>
     <string name="settings_update_dialog_cancel">取消更新</string>
+    <string name="settings_update_auto_check_title">自动检查更新</string>
+    <string name="settings_update_auto_check_description">每天在后台检查一次新版本</string>
+    <string name="settings_update_notify_title">发现更新时通知提醒</string>
+    <string name="settings_update_notify_description">有新版本时通过系统通知提醒</string>
+    <string name="settings_update_download_available">下载 %1$s</string>
     <string name="settings_update_download_description">正在下载 CodexMeter %1$s APK</string>
     <string name="error_auth_required">请重新登录后刷新 Codex 额度。</string>
     <string name="error_network">暂时无法刷新，正在显示最近数据。</string>
@@ -371,4 +376,8 @@
     <string name="error_login_not_wired">Codex device-code 登录尚未接入。</string>
     <string name="error_session_persistence">无法保存 Codex 会话。</string>
     <string name="quota_balance_breakdown_format">赠送 %1$s · 充值 %2$s</string>
+    <string name="notification_channel_app_updates_name">应用更新</string>
+    <string name="notification_channel_app_updates_description">有新版本时提醒</string>
+    <string name="notification_app_update_title">发现新版本</string>
+    <string name="notification_app_update_body_format">新版本 %1$s 可用，点按查看。</string>
 </resources>

@@ -39,8 +39,11 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadResult
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateInfo
+import com.kmnexus.codexmeter.domain.update.AppVersionComparator
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
+import com.kmnexus.codexmeter.domain.update.NoopUpdatePreferenceStore
+import com.kmnexus.codexmeter.domain.update.UpdatePreferenceStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -163,6 +166,15 @@ object NoopBackgroundRefreshScheduler : BackgroundRefreshScheduler {
     override fun applyIntervalMinutes(minutes: Int) = Unit
 }
 
+/** Schedules or cancels the daily update-check worker when the auto-check toggle changes. */
+fun interface UpdateCheckScheduler {
+    fun setAutoCheckEnabled(enabled: Boolean)
+}
+
+object NoopUpdateCheckScheduler : UpdateCheckScheduler {
+    override fun setAutoCheckEnabled(enabled: Boolean) = Unit
+}
+
 internal object NoopCurrencyPreferenceStore : CurrencyPreferenceStore {
     override suspend fun currencyPreferences(): CurrencyPreferences = CurrencyPreferences()
     override suspend fun updateCurrencyPreferences(preferences: CurrencyPreferences) = Unit
@@ -190,6 +202,9 @@ data class SettingsUpdateUi(
     val isChecking: Boolean = false,
     @get:StringRes val statusLabelResId: Int? = null,
     val pendingUpdate: AppUpdateInfo? = null,
+    val autoCheckEnabled: Boolean = true,
+    val notifyOnUpdateEnabled: Boolean = true,
+    val availableUpdate: AppUpdateInfo? = null,
 )
 
 data class SettingsAboutUi(
@@ -343,6 +358,8 @@ class SettingsViewModel(
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     private val currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
     private val appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
+    private val updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore,
+    private val updateCheckScheduler: UpdateCheckScheduler = NoopUpdateCheckScheduler,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         SettingsUiState(
@@ -603,6 +620,25 @@ class SettingsViewModel(
                     loadAndApplyWindowChoices(resolvedAccountSelection)
                 }
             }
+            runCatching {
+                updatePreferenceStore.preferences()
+            }.onSuccess { prefs ->
+                val available = prefs.availableUpdate?.takeIf {
+                    AppVersionComparator.isRemoteVersionNewer(currentVersionName, it.versionName)
+                }
+                if (available == null && prefs.availableUpdate != null) {
+                    runCatching { updatePreferenceStore.setAvailableUpdate(null) }
+                }
+                update { state ->
+                    state.copy(
+                        update = state.update.copy(
+                            autoCheckEnabled = prefs.autoCheckEnabled,
+                            notifyOnUpdateEnabled = prefs.notifyOnUpdateEnabled,
+                            availableUpdate = available,
+                        ),
+                    )
+                }
+            }
         }
     }
 
@@ -718,8 +754,13 @@ class SettingsViewModel(
             }.getOrElse {
                 AppUpdateCheckResult.Failure("app_update_check_failed")
             }
-            update { state ->
-                state.copy(update = result.toSettingsUpdateUi())
+            update { state -> state.copy(update = result.toSettingsUpdateUi(state.update)) }
+            when (result) {
+                is AppUpdateCheckResult.UpdateAvailable ->
+                    runCatching { updatePreferenceStore.setAvailableUpdate(result.update) }
+                AppUpdateCheckResult.UpToDate ->
+                    runCatching { updatePreferenceStore.setAvailableUpdate(null) }
+                else -> Unit
             }
         }
     }
@@ -727,6 +768,31 @@ class SettingsViewModel(
     fun dismissPendingUpdate() {
         update { state ->
             state.copy(update = state.update.copy(pendingUpdate = null))
+        }
+    }
+
+    fun setAutoCheckUpdates(enabled: Boolean) {
+        update { state -> state.copy(update = state.update.copy(autoCheckEnabled = enabled)) }
+        updateCheckScheduler.setAutoCheckEnabled(enabled)
+        viewModelScope.launch {
+            runCatching { updatePreferenceStore.setAutoCheckEnabled(enabled) }
+        }
+    }
+
+    fun setNotifyOnUpdate(enabled: Boolean) {
+        update { state -> state.copy(update = state.update.copy(notifyOnUpdateEnabled = enabled)) }
+        viewModelScope.launch {
+            runCatching { updatePreferenceStore.setNotifyOnUpdateEnabled(enabled) }
+        }
+    }
+
+    fun showAvailableUpdateDialog() {
+        viewModelScope.launch {
+            val available = runCatching { updatePreferenceStore.preferences().availableUpdate }
+                .getOrNull() ?: _uiState.value.update.availableUpdate ?: return@launch
+            update { state ->
+                state.copy(update = state.update.copy(pendingUpdate = available))
+            }
         }
     }
 
@@ -862,6 +928,8 @@ class SettingsViewModel(
                 NotificationWindowChoicesLoader { _, _ -> emptyList() },
             currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
             appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
+            updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore,
+            updateCheckScheduler: UpdateCheckScheduler = NoopUpdateCheckScheduler,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -880,6 +948,8 @@ class SettingsViewModel(
                         notificationWindowChoicesLoader = notificationWindowChoicesLoader,
                         currencyPreferenceStore = currencyPreferenceStore,
                         appearancePreferenceStore = appearancePreferenceStore,
+                        updatePreferenceStore = updatePreferenceStore,
+                        updateCheckScheduler = updateCheckScheduler,
                     ) as T
             }
     }
@@ -915,26 +985,29 @@ class SettingsViewModel(
     }
 }
 
-private fun AppUpdateCheckResult.toSettingsUpdateUi(): SettingsUpdateUi =
+private fun AppUpdateCheckResult.toSettingsUpdateUi(previous: SettingsUpdateUi): SettingsUpdateUi =
     when (this) {
-        is AppUpdateCheckResult.UpdateAvailable -> SettingsUpdateUi(
+        is AppUpdateCheckResult.UpdateAvailable -> previous.copy(
             isChecking = false,
             statusLabelResId = R.string.settings_update_status_update_available,
             pendingUpdate = update,
+            availableUpdate = update,
         )
-        AppUpdateCheckResult.UpToDate -> SettingsUpdateUi(
+        AppUpdateCheckResult.UpToDate -> previous.copy(
             isChecking = false,
             statusLabelResId = R.string.settings_update_status_latest,
+            pendingUpdate = null,
+            availableUpdate = null,
         )
-        AppUpdateCheckResult.NoRelease -> SettingsUpdateUi(
+        AppUpdateCheckResult.NoRelease -> previous.copy(
             isChecking = false,
             statusLabelResId = R.string.settings_update_status_no_release,
         )
-        AppUpdateCheckResult.NoApkAsset -> SettingsUpdateUi(
+        AppUpdateCheckResult.NoApkAsset -> previous.copy(
             isChecking = false,
             statusLabelResId = R.string.settings_update_status_no_apk,
         )
-        is AppUpdateCheckResult.Failure -> SettingsUpdateUi(
+        is AppUpdateCheckResult.Failure -> previous.copy(
             isChecking = false,
             statusLabelResId = R.string.settings_update_status_failed,
         )

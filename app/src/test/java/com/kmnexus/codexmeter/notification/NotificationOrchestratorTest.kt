@@ -41,7 +41,7 @@ class NotificationOrchestratorTest {
         assertEquals("quota_alerts", NotificationChannels.QUOTA_ALERTS_CHANNEL_ID)
         assertEquals("account_errors", NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID)
         assertEquals(
-            listOf("quota_status", "quota_alerts", "account_errors"),
+            listOf("quota_status", "quota_alerts", "account_errors", "app_updates"),
             NotificationChannels.definitions.map { it.id },
         )
     }

@@ -7,6 +7,7 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -110,6 +111,45 @@ class GitHubReleaseAppUpdateCheckerTest {
         val result = checker.checkForUpdate(currentVersionName = "0.1.0")
 
         assertEquals(AppUpdateCheckResult.NoRelease, result)
+    }
+
+    @Test
+    fun `maps release body to release notes`() = runTest {
+        server.enqueue(
+            MockResponse.Builder()
+                .code(200)
+                .body(
+                    """
+                    {
+                      "tag_name": "v0.2.0",
+                      "html_url": "https://github.com/KyoMio/CodexMeter/releases/tag/v0.2.0",
+                      "body": "## Changes\n- new stuff",
+                      "assets": [
+                        {
+                          "name": "CodexMeter-0.2.0.apk",
+                          "browser_download_url": "https://example.test/app.apk"
+                        }
+                      ]
+                    }
+                    """.trimIndent(),
+                )
+                .build(),
+        )
+
+        val result = newChecker().checkForUpdate(currentVersionName = "0.1.0")
+
+        val update = (result as AppUpdateCheckResult.UpdateAvailable).update
+        assertEquals("## Changes\n- new stuff", update.releaseNotes)
+    }
+
+    @Test
+    fun `missing release body yields null notes`() = runTest {
+        server.enqueue(latestReleaseResponse(tagName = "v0.2.0"))
+
+        val result = newChecker().checkForUpdate(currentVersionName = "0.1.0")
+
+        val update = (result as AppUpdateCheckResult.UpdateAvailable).update
+        assertNull(update.releaseNotes)
     }
 
     private fun newChecker(): GitHubReleaseAppUpdateChecker =

@@ -22,6 +22,8 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadResult
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateInfo
+import com.kmnexus.codexmeter.domain.update.UpdatePreferenceStore
+import com.kmnexus.codexmeter.domain.update.UpdatePreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -512,9 +514,11 @@ class SettingsViewModelTest {
     fun `checking for app update exposes available release dialog`() = runTest {
         val updateInfo = appUpdateInfo()
         val checker = DelayedAppUpdateCheckUseCase(AppUpdateCheckResult.UpdateAvailable(updateInfo))
+        val store = RecordingUpdatePreferenceStore()
         val viewModel = SettingsViewModel(
             appUpdateChecker = checker,
             appUpdateDownloader = RecordingAppUpdateDownloadUseCase(),
+            updatePreferenceStore = store,
             currentVersionName = "0.1.0-debug",
         )
 
@@ -528,7 +532,9 @@ class SettingsViewModelTest {
         val update = viewModel.uiState.value.update
         assertFalse(update.isChecking)
         assertEquals(updateInfo, update.pendingUpdate)
+        assertEquals(updateInfo, update.availableUpdate)
         assertEquals(R.string.settings_update_status_update_available, update.statusLabelResId)
+        assertEquals(updateInfo, store.savedAvailable)
     }
 
     @Test
@@ -820,6 +826,75 @@ class SettingsViewModelTest {
         override suspend fun download(update: AppUpdateInfo): AppUpdateDownloadResult {
             requests += update
             return AppUpdateDownloadResult.Enqueued(downloadId = 42L)
+        }
+    }
+
+    @Test
+    fun `toggling auto-check persists, schedules and updates state`() = runTest {
+        val store = RecordingUpdatePreferenceStore()
+        val scheduler = RecordingUpdateCheckScheduler()
+        val viewModel = SettingsViewModel(
+            updatePreferenceStore = store,
+            updateCheckScheduler = scheduler,
+        )
+
+        viewModel.setAutoCheckUpdates(false)
+        runCurrent()
+
+        assertEquals(false, viewModel.uiState.value.update.autoCheckEnabled)
+        assertEquals(true, viewModel.uiState.value.update.notifyOnUpdateEnabled)
+        assertEquals(listOf(false), scheduler.calls)
+        assertEquals(false, store.autoCheck)
+    }
+
+    @Test
+    fun `toggling notify persists and updates state`() = runTest {
+        val store = RecordingUpdatePreferenceStore()
+        val viewModel = SettingsViewModel(updatePreferenceStore = store)
+
+        viewModel.setNotifyOnUpdate(false)
+        runCurrent()
+
+        assertEquals(false, viewModel.uiState.value.update.notifyOnUpdateEnabled)
+        assertEquals(false, store.notify)
+    }
+
+    @Test
+    fun `loadSettings clears available update when current version caught up`() = runTest {
+        val stale = AppUpdateInfo("0.0.1", "p", "a", "app.apk")
+        val store = RecordingUpdatePreferenceStore(
+            initial = UpdatePreferences(availableUpdate = stale),
+        )
+        val viewModel = SettingsViewModel(
+            updatePreferenceStore = store,
+            currentVersionName = "9.9.9",
+        )
+
+        viewModel.loadSettings()
+        runCurrent()
+
+        assertNull(viewModel.uiState.value.update.availableUpdate)
+        assertEquals(true, store.clearedAvailable)
+    }
+
+    private class RecordingUpdateCheckScheduler : UpdateCheckScheduler {
+        val calls = mutableListOf<Boolean>()
+        override fun setAutoCheckEnabled(enabled: Boolean) { calls += enabled }
+    }
+
+    private class RecordingUpdatePreferenceStore(
+        private val initial: UpdatePreferences = UpdatePreferences(),
+    ) : UpdatePreferenceStore {
+        var autoCheck: Boolean? = null
+        var notify: Boolean? = null
+        var clearedAvailable = false
+        var savedAvailable: AppUpdateInfo? = null
+        override suspend fun preferences() = initial
+        override suspend fun setAutoCheckEnabled(enabled: Boolean) { autoCheck = enabled }
+        override suspend fun setNotifyOnUpdateEnabled(enabled: Boolean) { notify = enabled }
+        override suspend fun setLastNotifiedVersion(versionName: String?) = Unit
+        override suspend fun setAvailableUpdate(update: AppUpdateInfo?) {
+            if (update == null) clearedAvailable = true else savedAvailable = update
         }
     }
 

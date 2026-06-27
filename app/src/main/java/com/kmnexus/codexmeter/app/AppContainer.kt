@@ -12,6 +12,7 @@ import com.kmnexus.codexmeter.data.preferences.CurrentAccountReader
 import com.kmnexus.codexmeter.data.preferences.NotificationPreferencesDataStore
 import com.kmnexus.codexmeter.data.preferences.PrimaryQuotaWindowPreferences
 import com.kmnexus.codexmeter.data.preferences.RetentionPreferences
+import com.kmnexus.codexmeter.data.preferences.UpdatePreferencesDataStore
 import com.kmnexus.codexmeter.data.repository.AccountDeletionRepository
 import com.kmnexus.codexmeter.data.repository.AccountListRepository
 import com.kmnexus.codexmeter.data.repository.AccountMutationRepository
@@ -50,6 +51,9 @@ import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
+import com.kmnexus.codexmeter.domain.update.AppUpdateNotifier
+import com.kmnexus.codexmeter.domain.update.UpdatePreferenceStore
+import com.kmnexus.codexmeter.notification.AndroidAppUpdateNotifier
 import com.kmnexus.codexmeter.notification.AndroidNotificationRequestOptionsReader
 import com.kmnexus.codexmeter.notification.AndroidDeviceCodeLoginNotifier
 import com.kmnexus.codexmeter.notification.AndroidNotificationSink
@@ -151,6 +155,8 @@ class AppContainer private constructor(
     val settingsDiagnosticsReader: SettingsDiagnosticsReader,
     val appUpdateChecker: AppUpdateCheckUseCase,
     val appUpdateDownloader: AppUpdateDownloadUseCase,
+    val updatePreferenceStore: UpdatePreferenceStore,
+    val appUpdateNotifier: AppUpdateNotifier,
     val widgetQuotaStateLoader: WidgetQuotaStateLoader,
     val startupMaintenance: StartupMaintenance,
     val apiKeyLoginUseCase: SessionLoginUseCase,
@@ -201,6 +207,12 @@ class AppContainer private constructor(
             val retentionPreferences = RetentionPreferences(currentAccountPreferences.dataStore)
             val notificationPreferences = NotificationPreferencesDataStore(currentAccountPreferences.dataStore)
             val primaryQuotaWindowPreferences = PrimaryQuotaWindowPreferences(currentAccountPreferences.dataStore)
+            val updatePreferences = UpdatePreferencesDataStore.create(
+                file = appContext.preferencesDataStoreFile(UPDATE_PREFERENCES_FILE_NAME),
+            )
+            val appUpdateNotifier = AndroidAppUpdateNotifier(
+                notificationSink = AndroidNotificationSink(appContext),
+            )
             val httpClient = ProviderHttpClient()
             val usageClient = CodexUsageClient(httpClient)
             val sessionStore = FileSecureSessionStore(
@@ -480,6 +492,8 @@ class AppContainer private constructor(
                 currencyPreferences = currencyPreferences,
                 exchangeRateRepository = exchangeRateRepository,
                 exchangeRateRefresher = ExchangeRateRefresher { exchangeRateRepository.refreshIfStale(clock.instant()) },
+                updatePreferences = updatePreferences,
+                appUpdateNotifier = appUpdateNotifier,
             )
         }
 
@@ -520,6 +534,8 @@ class AppContainer private constructor(
             currencyPreferences: CurrencyPreferencesDataStore,
             exchangeRateRepository: ExchangeRateRepository,
             exchangeRateRefresher: ExchangeRateRefresher,
+            updatePreferences: UpdatePreferenceStore,
+            appUpdateNotifier: AppUpdateNotifier,
         ): AppContainer {
             val sessionImporter = CodexSessionImporter(
                 usageClient = CodexSessionImporter.UsageClient(usageClient::fetchUsage),
@@ -713,6 +729,8 @@ class AppContainer private constructor(
                 settingsDiagnosticsReader = settingsDiagnosticsReader,
                 appUpdateChecker = GitHubReleaseAppUpdateChecker(httpClient),
                 appUpdateDownloader = AndroidAppUpdateDownloader(appContext),
+                updatePreferenceStore = updatePreferences,
+                appUpdateNotifier = appUpdateNotifier,
                 widgetQuotaStateLoader = widgetQuotaStateRepository,
                 startupMaintenance = StartupMaintenance(
                     retentionPreferenceReader = retentionPreferences,
@@ -736,6 +754,7 @@ class AppContainer private constructor(
 
         private const val PREFERENCES_FILE_NAME = "codexmeter.preferences_pb"
         private const val APPEARANCE_PREFERENCES_FILE_NAME = "appearance.preferences_pb"
+        private const val UPDATE_PREFERENCES_FILE_NAME = "update.preferences_pb"
         private const val SESSION_DIRECTORY_NAME = "sessions"
     }
 }

@@ -5,6 +5,7 @@ data class AppUpdateInfo(
     val releasePageUrl: String,
     val apkDownloadUrl: String,
     val apkFileName: String,
+    val releaseNotes: String? = null,
 )
 
 sealed interface AppUpdateCheckResult {
@@ -35,4 +36,9 @@ fun interface AppUpdateDownloadUseCase {
 object NoopAppUpdateDownloadUseCase : AppUpdateDownloadUseCase {
     override suspend fun download(update: AppUpdateInfo): AppUpdateDownloadResult =
         AppUpdateDownloadResult.Failure("app_update_downloader_not_wired")
+}
+
+/** Android-free seam; keeps the update-check use case unit-testable without Android dependencies. */
+fun interface AppUpdateNotifier {
+    fun notifyUpdateAvailable(update: AppUpdateInfo)
 }

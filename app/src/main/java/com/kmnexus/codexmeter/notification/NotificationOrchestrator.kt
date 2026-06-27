@@ -32,6 +32,7 @@ enum class NotificationDestination {
     Home,
     AddAccount,
     ExternalUrl,
+    AppUpdate,
 }
 
 enum class NotificationActionType {
@@ -250,6 +251,7 @@ class NotificationOrchestrator {
     companion object {
         const val STATUS_NOTIFICATION_ID = 1_001
         const val AUTH_LOGIN_NOTIFICATION_ID = 3_002
+        const val APP_UPDATE_NOTIFICATION_ID = 4_001
         private const val QUOTA_ALERT_NOTIFICATION_ID_BASE = 20_000
         private const val ACCOUNT_ERROR_NOTIFICATION_ID_BASE = 30_000
         private const val NOTIFICATION_ID_BUCKET_SIZE = 10_000

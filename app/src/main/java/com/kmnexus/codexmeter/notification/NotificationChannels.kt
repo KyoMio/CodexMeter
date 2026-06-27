@@ -18,6 +18,7 @@ object NotificationChannels {
     const val STATUS_CHANNEL_ID = "quota_status"
     const val QUOTA_ALERTS_CHANNEL_ID = "quota_alerts"
     const val ACCOUNT_ERRORS_CHANNEL_ID = "account_errors"
+    const val APP_UPDATES_CHANNEL_ID = "app_updates"
 
     val definitions: List<NotificationChannelDefinition> = listOf(
         NotificationChannelDefinition(
@@ -38,6 +39,13 @@ object NotificationChannels {
             id = ACCOUNT_ERRORS_CHANNEL_ID,
             nameResId = R.string.notification_channel_account_errors_name,
             descriptionResId = R.string.notification_channel_account_errors_description,
+            importance = NotificationManager.IMPORTANCE_DEFAULT,
+            showBadge = true,
+        ),
+        NotificationChannelDefinition(
+            id = APP_UPDATES_CHANNEL_ID,
+            nameResId = R.string.notification_channel_app_updates_name,
+            descriptionResId = R.string.notification_channel_app_updates_description,
             importance = NotificationManager.IMPORTANCE_DEFAULT,
             showBadge = true,
         ),

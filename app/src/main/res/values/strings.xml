@@ -364,6 +364,11 @@
     <string name="settings_update_dialog_message">CodexMeter %1$s is available. Download the latest APK?</string>
     <string name="settings_update_dialog_download">Download update</string>
     <string name="settings_update_dialog_cancel">Cancel update</string>
+    <string name="settings_update_auto_check_title">Auto-check for updates</string>
+    <string name="settings_update_auto_check_description">Check for a new version once a day in the background</string>
+    <string name="settings_update_notify_title">Notify when an update is found</string>
+    <string name="settings_update_notify_description">Show a system notification when a new version is available</string>
+    <string name="settings_update_download_available">Download %1$s</string>
     <string name="settings_update_download_description">Downloading CodexMeter %1$s APK</string>
     <string name="error_auth_required">Log in again to refresh Codex quota.</string>
     <string name="error_network">Could not refresh. Showing last known data.</string>
@@ -371,4 +376,8 @@
     <string name="error_login_not_wired">Codex device-code login is not wired yet.</string>
     <string name="error_session_persistence">Could not save the Codex session.</string>
     <string name="quota_balance_breakdown_format">Granted %1$s · Topped up %2$s</string>
+    <string name="notification_channel_app_updates_name">App updates</string>
+    <string name="notification_channel_app_updates_description">Alerts when a newer version is available</string>
+    <string name="notification_app_update_title">Update available</string>
+    <string name="notification_app_update_body_format">Version %1$s is available. Tap to view.</string>
 </resources>

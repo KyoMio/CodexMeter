@@ -114,10 +114,12 @@ class AndroidNotificationRenderer(
         val intent = when (metadata.destination) {
             NotificationDestination.Home,
             NotificationDestination.AddAccount,
+            NotificationDestination.AppUpdate,
             -> {
                 val launchDestination = when (metadata.destination) {
                     NotificationDestination.Home -> CodexMeterLaunchDestination.Home
                     NotificationDestination.AddAccount -> CodexMeterLaunchDestination.AddAccount
+                    NotificationDestination.AppUpdate -> CodexMeterLaunchDestination.SettingsUpdate
                     NotificationDestination.ExternalUrl -> CodexMeterLaunchDestination.Home
                 }
                 Intent(appContext, MainActivity::class.java).apply {

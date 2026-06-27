@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +65,8 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
+import com.kmnexus.codexmeter.domain.update.NoopUpdatePreferenceStore
+import com.kmnexus.codexmeter.domain.update.UpdatePreferenceStore
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
@@ -85,6 +89,9 @@ fun SettingsRoute(
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
     appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
+    updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore,
+    updateCheckScheduler: UpdateCheckScheduler = NoopUpdateCheckScheduler,
+    openUpdateDialogOnLaunch: Boolean = false,
     viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModel.factory(
             accountListUseCase = accountListUseCase,
@@ -99,6 +106,8 @@ fun SettingsRoute(
             notificationWindowChoicesLoader = notificationWindowChoicesLoader,
             currencyPreferenceStore = currencyPreferenceStore,
             appearancePreferenceStore = appearancePreferenceStore,
+            updatePreferenceStore = updatePreferenceStore,
+            updateCheckScheduler = updateCheckScheduler,
         ),
     ),
 ) {
@@ -136,6 +145,13 @@ fun SettingsRoute(
     }
     LaunchedEffect(viewModel) {
         viewModel.loadSettings()
+    }
+    var updateDialogConsumed by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openUpdateDialogOnLaunch) {
+        if (openUpdateDialogOnLaunch && !updateDialogConsumed) {
+            updateDialogConsumed = true
+            viewModel.showAvailableUpdateDialog()
+        }
     }
     fun requestPermissionOrEnable(target: SettingsNotificationPermissionTarget, requestedEnabled: Boolean) {
         if (
@@ -205,6 +221,9 @@ fun SettingsRoute(
         onAppUpdateCheckClick = viewModel::checkForUpdates,
         onAppUpdateDismiss = viewModel::dismissPendingUpdate,
         onAppUpdateDownloadClick = viewModel::downloadPendingUpdate,
+        onAppUpdateAvailableClick = viewModel::showAvailableUpdateDialog,
+        onAppUpdateAutoCheckChanged = viewModel::setAutoCheckUpdates,
+        onAppUpdateNotifyChanged = viewModel::setNotifyOnUpdate,
         showBatteryOptimizationHint = SettingsBatteryOptimizationGate.shouldOfferExemption(
             batteryOptimizationIgnored = batteryOptimizationIgnored,
             backgroundRefreshEnabled = uiState.refresh.backgroundRefreshEnabled,
@@ -259,6 +278,9 @@ fun SettingsScreen(
     onAppUpdateCheckClick: () -> Unit = {},
     onAppUpdateDismiss: () -> Unit = {},
     onAppUpdateDownloadClick: () -> Unit = {},
+    onAppUpdateAvailableClick: () -> Unit = {},
+    onAppUpdateAutoCheckChanged: (Boolean) -> Unit = {},
+    onAppUpdateNotifyChanged: (Boolean) -> Unit = {},
     showBatteryOptimizationHint: Boolean = false,
     onBatteryOptimizationClick: () -> Unit = {},
 ) {
@@ -312,7 +334,13 @@ fun SettingsScreen(
         DiagnosticsCard(uiState.diagnostics, onDiagnosticsToggle, onDiagnosticsCopyClick, onDiagnosticsRecheckClick)
         SettingsSectionLabel(R.string.settings_group_about)
         AboutCard(uiState.about, onAboutRepositoryClick)
-        AppUpdateCard(uiState.update, onAppUpdateCheckClick)
+        AppUpdateCard(
+            update = uiState.update,
+            onCheckClick = onAppUpdateCheckClick,
+            onAvailableUpdateClick = onAppUpdateAvailableClick,
+            onAutoCheckChanged = onAppUpdateAutoCheckChanged,
+            onNotifyOnUpdateChanged = onAppUpdateNotifyChanged,
+        )
         Spacer(modifier = Modifier.height(CodexMeterSpacing.bottomNavigationClearance))
     }
 
@@ -334,6 +362,7 @@ fun SettingsScreen(
     uiState.update.pendingUpdate?.let { update ->
         AppUpdateAvailableDialog(
             versionName = update.versionName,
+            releaseNotes = update.releaseNotes,
             onDownloadClick = onAppUpdateDownloadClick,
             onDismiss = onAppUpdateDismiss,
         )
@@ -362,10 +391,11 @@ internal fun SwitchRow(
     @StringRes descriptionResId: Int?,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SettingsItemText(titleResId, descriptionResId, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 
@@ -446,13 +476,29 @@ private fun ConfirmDataActionDialog(
 @Composable
 private fun AppUpdateAvailableDialog(
     versionName: String,
+    releaseNotes: String?,
     onDownloadClick: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.settings_update_dialog_title)) },
-        text = { Text(text = stringResource(R.string.settings_update_dialog_message, versionName)) },
+        text = {
+            Column {
+                Text(text = stringResource(R.string.settings_update_dialog_message, versionName))
+                if (!releaseNotes.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(CodexMeterSpacing.sm))
+                    Text(
+                        text = releaseNotes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .heightIn(max = 220.dp)
+                            .verticalScroll(rememberScrollState()),
+                    )
+                }
+            }
+        },
         confirmButton = {
             TextButton(onClick = onDownloadClick) {
                 Text(text = stringResource(R.string.settings_update_dialog_download))

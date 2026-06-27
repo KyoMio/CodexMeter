@@ -112,6 +112,9 @@ import com.kmnexus.codexmeter.domain.update.AppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.AppUpdateDownloadUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateCheckUseCase
 import com.kmnexus.codexmeter.domain.update.NoopAppUpdateDownloadUseCase
+import com.kmnexus.codexmeter.domain.update.NoopUpdatePreferenceStore
+import com.kmnexus.codexmeter.domain.update.UpdatePreferenceStore
+import com.kmnexus.codexmeter.update.UpdateCheckWorkScheduler
 import com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader
 import com.kmnexus.codexmeter.ui.settings.InMemoryNotificationPreferenceStore
 import com.kmnexus.codexmeter.ui.settings.InMemoryRetentionPreferenceStore
@@ -156,6 +159,8 @@ fun CodexMeterNavHost(
         NotificationWindowChoicesLoader { _, _ -> emptyList() },
     currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore,
     appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore,
+    updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore,
+    launchDestinationValue: String? = null,
 ) {
     val tabs = CodexMeterRoute.bottomTabs
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -560,6 +565,12 @@ fun CodexMeterNavHost(
                         notificationWindowChoicesLoader = notificationWindowChoicesLoader,
                         currencyPreferenceStore = currencyPreferenceStore,
                         appearancePreferenceStore = appearancePreferenceStore,
+                        updatePreferenceStore = updatePreferenceStore,
+                        updateCheckScheduler = { enabled ->
+                            UpdateCheckWorkScheduler.from(settingsContext).setAutoCheckEnabled(enabled)
+                        },
+                        openUpdateDialogOnLaunch =
+                            launchDestinationValue == CodexMeterLaunchDestination.SettingsUpdate.value,
                     )
                 }
             }

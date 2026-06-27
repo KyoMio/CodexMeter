@@ -19,9 +19,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val codexMeterApp = application as CodexMeterApp
-        val startDestination = CodexMeterRoute.startRouteForLaunchDestination(
-            intent?.getStringExtra(CodexMeterRoute.EXTRA_LAUNCH_DESTINATION),
-        )
+        val launchDestinationValue = intent?.getStringExtra(CodexMeterRoute.EXTRA_LAUNCH_DESTINATION)
+        val startDestination = CodexMeterRoute.startRouteForLaunchDestination(launchDestinationValue)
         setContent {
             val themeMode by codexMeterApp.appearancePreferenceStore.themeMode
                 .collectAsStateWithLifecycle(initialValue = codexMeterApp.initialThemeMode)
@@ -39,6 +38,8 @@ class MainActivity : ComponentActivity() {
             CodexMeterTheme(themeMode = themeMode, fontScheme = CodexMeterFontScheme.MonoFocusGeistMono) {
                 CodexMeterNavHost(
                     startDestination = startDestination,
+                    launchDestinationValue = launchDestinationValue,
+                    updatePreferenceStore = codexMeterApp.updatePreferenceStore,
                     deviceCodeLoginController = codexMeterApp.deviceCodeLoginController,
                     deviceCodeLoginNotifier = codexMeterApp.deviceCodeLoginNotifier,
                     accountListUseCase = codexMeterApp.accountListUseCase,
