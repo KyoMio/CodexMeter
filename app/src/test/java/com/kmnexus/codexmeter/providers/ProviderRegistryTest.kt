@@ -32,4 +32,17 @@ class ProviderRegistryTest {
         assertTrue(ds.supportsBalance)
         assertEquals(ProviderAuthKind.ApiKeyImport, ds.authKind)
     }
+
+    @Test
+    fun zaiBalanceProviderIsApiKeyBalance() {
+        val config = ProviderRegistry.configFor(com.kmnexus.codexmeter.domain.model.ProviderId("zai_balance"))
+        assertEquals(ProviderAuthKind.ApiKeyImport, config.authKind)
+        assertTrue(config.supportsBalance)
+        assertEquals("z.ai API", config.displayName)
+    }
+
+    @Test
+    fun zaiCodingPlanProvider_hasRenamedDisplayName() {
+        assertEquals("z.ai Coding Plan", ProviderRegistry.configFor(ProviderId("zai")).displayName)
+    }
 }

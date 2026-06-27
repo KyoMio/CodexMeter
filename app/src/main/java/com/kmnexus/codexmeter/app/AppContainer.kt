@@ -91,6 +91,9 @@ import com.kmnexus.codexmeter.providers.cursor.network.CursorUsageClient
 import com.kmnexus.codexmeter.providers.kimi.KimiRefreshProvider
 import com.kmnexus.codexmeter.providers.kimi.auth.KimiSessionImporter
 import com.kmnexus.codexmeter.providers.kimi.network.KimiQuotaClient
+import com.kmnexus.codexmeter.providers.zaibalance.ZaiBalanceRefreshProvider
+import com.kmnexus.codexmeter.providers.zaibalance.auth.ZaiBalanceSessionImporter
+import com.kmnexus.codexmeter.providers.zaibalance.network.ZaiBalanceClient
 import com.kmnexus.codexmeter.providers.claude.ClaudeRefreshProvider
 import com.kmnexus.codexmeter.providers.claude.auth.ClaudeSessionImporter
 import com.kmnexus.codexmeter.providers.claude.network.ClaudeUsageClient
@@ -279,6 +282,13 @@ class AppContainer private constructor(
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
+            val zaiBalanceClient = ZaiBalanceClient(httpClient)
+            val zaiBalanceRefreshProvider = ZaiBalanceRefreshProvider(
+                client = zaiBalanceClient,
+                sessionStore = sessionStore,
+                payloadCipher = payloadCipher,
+                clock = clock,
+            )
             val claudeUsageClient = ClaudeUsageClient(httpClient)
             val claudeTokenClient = OAuthTokenClient(
                 httpClient = httpClient,
@@ -319,6 +329,7 @@ class AppContainer private constructor(
                     ProviderId("minimax") to minimaxRefreshProvider,
                     ProviderId("cursor") to cursorRefreshProvider,
                     ProviderId("kimi") to kimiRefreshProvider,
+                    ProviderId("zai_balance") to zaiBalanceRefreshProvider,
                     ProviderId("claude") to claudeRefreshProvider,
                     ProviderId("antigravity") to antigravityRefreshProvider,
                 ),
@@ -349,6 +360,12 @@ class AppContainer private constructor(
             )
             val kimiSessionImporter = KimiSessionImporter(
                 client = kimiQuotaClient,
+                sessionStore = sessionStore,
+                payloadCipher = payloadCipher,
+                clock = clock,
+            )
+            val zaiBalanceSessionImporter = ZaiBalanceSessionImporter(
+                client = zaiBalanceClient,
                 sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
@@ -385,6 +402,7 @@ class AppContainer private constructor(
                 zaiSessionImporter = zaiSessionImporter,
                 cursorSessionImporter = cursorSessionImporter,
                 kimiSessionImporter = kimiSessionImporter,
+                zaiBalanceSessionImporter = zaiBalanceSessionImporter,
                 claudeSessionImporter = claudeSessionImporter,
                 antigravitySessionImporter = antigravitySessionImporter,
                 deviceCodeLoginNotifier = AndroidDeviceCodeLoginNotifier(
@@ -479,6 +497,7 @@ class AppContainer private constructor(
             zaiSessionImporter: ZaiSessionImporter,
             cursorSessionImporter: CursorSessionImporter,
             kimiSessionImporter: KimiSessionImporter,
+            zaiBalanceSessionImporter: ZaiBalanceSessionImporter,
             claudeSessionImporter: ClaudeSessionImporter,
             antigravitySessionImporter: AntigravitySessionImporter,
             deviceCodeLoginNotifier: DeviceCodeLoginNotifier,
@@ -522,6 +541,7 @@ class AppContainer private constructor(
                     ProviderId("minimax") to minimaxSessionImporter,
                     ProviderId("cursor") to cursorSessionImporter,
                     ProviderId("kimi") to kimiSessionImporter,
+                    ProviderId("zai_balance") to zaiBalanceSessionImporter,
                     ProviderId("claude") to claudeSessionImporter,
                     ProviderId("antigravity") to antigravitySessionImporter,
                 ),

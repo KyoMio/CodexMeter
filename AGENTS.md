@@ -1,6 +1,6 @@
 # CodexMeter Agent Guide
 
-This repository is the Android project for **CodexMeter** (`codexbar-apk`): a self-use / small-scale sideloaded Android 12+ app for monitoring official Codex quota usage.
+This repository is the Android project for **CodexMeter** (`codexbar-apk`): a self-use / small-scale sideloaded Android 12+ app for monitoring AI provider quota and balance usage across multiple providers (started Codex-only; Codex remains the primary provider).
 
 This file is the canonical operating guide for AI agents and human maintainers working in this repo. `CLAUDE.md` must stay aligned with this file.
 
@@ -26,8 +26,7 @@ If these documents conflict, stop and update the documents or ask for a decision
 - Debug package name: `com.kmnexus.codexmeter.debug`.
 - Target platform: Android 12+.
 - Distribution: self-use / small-scale sideloaded APK.
-- MVP provider: Codex.
-- Future provider expansion: Gemini / Claude-style quota providers may be added later.
+- MVP provider: Started Codex-only; now ships 9 providers (Codex, DeepSeek, z.ai Coding Plan, z.ai API, MiniMax, Cursor, Kimi, Claude, Antigravity) registered in ProviderRegistry.
 
 MVP core surfaces:
 
