@@ -292,8 +292,11 @@ class AppContainer private constructor(
             val claudeUsageClient = ClaudeUsageClient(httpClient)
             val claudeTokenClient = OAuthTokenClient(
                 httpClient = httpClient,
-                // Mirrors Hermes' proven exchange: console.anthropic.com + JSON body + state + UA.
-                tokenEndpoint = "https://console.anthropic.com/v1/oauth/token",
+                // Mirrors Hermes' proven exchange: claude.ai + JSON body + state + UA. The host is
+                // claude.ai (not console.anthropic.com, whose /v1/oauth/token now 404s); the
+                // console.anthropic.com/oauth/code/callback redirect_uri is just the registered
+                // client identifier echoed back in the exchange, not a host we call.
+                tokenEndpoint = "https://claude.ai/v1/oauth/token",
                 clientId = "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
                 diagnosticsPrefix = "claude_oauth",
                 useJsonBody = true,
