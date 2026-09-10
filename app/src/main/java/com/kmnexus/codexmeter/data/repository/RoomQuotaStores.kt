@@ -59,6 +59,12 @@ class RoomRefreshAttemptStore(
     override suspend fun save(attempt: RefreshAttempt) {
         refreshAttemptDao.insert(attempt.toEntity())
     }
+
+    override suspend fun latestFor(account: ProviderAccount): RefreshAttempt? =
+        refreshAttemptDao.getLatestForAccount(
+            providerId = account.providerId.value,
+            localAccountId = account.localAccountId.value,
+        )?.toDomain()
 }
 
 class RoomRefreshAccountStatusStore(

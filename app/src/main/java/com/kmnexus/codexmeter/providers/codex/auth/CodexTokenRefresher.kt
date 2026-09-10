@@ -92,6 +92,7 @@ class CodexTokenRefresher(
                 ?: existingSession.refreshToken
 
             val refreshedIdToken = response.idToken?.takeIf { it.isNotBlank() } ?: existingSession.idToken
+            val now = clock.instant()
             Result.Success(
                 session = existingSession.copy(
                     accessToken = accessToken,
@@ -101,7 +102,12 @@ class CodexTokenRefresher(
                         ?: CodexJwtClaims.chatGptAccountId(refreshedIdToken),
                     accountEmail = existingSession.accountEmail
                         ?: CodexJwtClaims.email(refreshedIdToken),
-                    lastRefresh = clock.instant(),
+                    lastRefresh = now,
+                    // Knowing when this token dies is what lets the provider stop rotating the
+                    // refresh token on every poll; a response without expires_in keeps it unknown.
+                    tokenExpiresAtEpochSeconds = response.expiresInSeconds
+                        ?.takeIf { it > 0 }
+                        ?.let { now.epochSecond + it },
                 ),
             )
         } catch (_: SerializationException) {
@@ -206,4 +212,6 @@ private data class CodexTokenRefreshResponseDto(
     val refreshToken: String? = null,
     @SerialName("id_token")
     val idToken: String? = null,
+    @SerialName("expires_in")
+    val expiresInSeconds: Long? = null,
 )

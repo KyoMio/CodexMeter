@@ -9,4 +9,9 @@ data class CodexSessionPayload(
     val accountId: String?,
     val accountEmail: String? = null,
     val lastRefresh: Instant?,
+    /**
+     * When the access token stops being usable, from the token endpoint's `expires_in`. Null for
+     * sessions saved before this field existed; those refresh once on next use and then carry it.
+     */
+    val tokenExpiresAtEpochSeconds: Long? = null,
 )

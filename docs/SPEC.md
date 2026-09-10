@@ -687,12 +687,20 @@ Rules:
 
 - The Codex OAuth client id must be stored once in provider-private config with a source comment.
 - Refresh should be attempted before usage fetch when provider rules indicate the access token may be stale.
+- Staleness is decided by the stored token expiry (`expires_in` recorded at login and at every
+  refresh, minus a 60s skew). Sessions saved before that field existed have no expiry and refresh
+  once on next use. Refreshing on every poll is not allowed: it rotates the refresh token several
+  times an hour, and any rotation whose result is not persisted invalidates the stored credential.
 - Refresh must also be attempted after a 401/403 when a refresh token exists, unless the error is already known terminal.
 - `refresh_token_expired`, `refresh_token_reused`, `invalid_grant`, `refresh_token_invalidated` map to auth required.
 - New access/id tokens replace encrypted payload atomically.
 - If a refresh response includes a non-empty new refresh token, replace it atomically.
 - If a refresh response omits a new refresh token, keep the existing refresh token, matching Hermes Agent behavior.
 - If token refresh fails terminally, keep last-known-good quota visible and mark account needs reauth.
+- A single `401` / `403` does not mark the account needs-reauth. Because needsReauth removes the
+  account from background refresh until a manual retry, those statuses must repeat on consecutive
+  attempts before the flag is set. Auth errors that no retry can fix — missing or undecryptable
+  session, rejected refresh token — still flag immediately.
 
 ### 9.4 Legacy `auth.json` migration
 

@@ -72,6 +72,7 @@ class AndroidKeystoreCodexSessionCipher(
             accountId = accountId,
             accountEmail = accountEmail,
             lastRefresh = lastRefresh?.toString(),
+            tokenExpiresAtEpochSeconds = tokenExpiresAtEpochSeconds,
         )
 
     private fun StoredCodexSessionPayload.toDomain(): CodexSessionPayload =
@@ -82,6 +83,7 @@ class AndroidKeystoreCodexSessionCipher(
             accountId = accountId,
             accountEmail = accountEmail,
             lastRefresh = lastRefresh?.let(Instant::parse),
+            tokenExpiresAtEpochSeconds = tokenExpiresAtEpochSeconds,
         )
 
     private companion object {
@@ -106,4 +108,6 @@ private data class StoredCodexSessionPayload(
     val accountId: String?,
     val accountEmail: String? = null,
     val lastRefresh: String?,
+    // Additive and optional: sessions written before this field decode with null and refresh once.
+    val tokenExpiresAtEpochSeconds: Long? = null,
 )

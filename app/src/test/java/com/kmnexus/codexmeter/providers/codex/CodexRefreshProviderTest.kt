@@ -7,6 +7,7 @@ import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
+import com.kmnexus.codexmeter.domain.refresh.QuotaError
 import com.kmnexus.codexmeter.domain.refresh.RefreshTrigger
 import com.kmnexus.codexmeter.providers.codex.auth.CodexTokenRefresher
 import com.kmnexus.codexmeter.providers.codex.dto.CodexRateLimitDto
@@ -136,6 +137,161 @@ class CodexRefreshProviderTest {
         val failure = result as ProviderRefreshResult.Failure
         assertEquals("error_network", failure.error.safeMessageKey)
         assertEquals("codex_refresh_session_save_failed", failure.error.diagnosticsDigest)
+    }
+
+    @Test
+    fun `unexpired access token is reused without rotating the refresh token`() = runTest {
+        // Rotating the refresh token on every poll is what makes a Codex login look "expired": any
+        // rotation whose result is not persisted leaves the app holding a token the server retired.
+        val store = RecordingSecureSessionStore(envelope(localAccountId = "local-1"))
+        val tokenRefresh = RecordingTokenRefresh(refreshedSession())
+        val usageFetcher = RecordingUsageFetcher(successfulUsageDto())
+        val provider = provider(
+            store = store,
+            cipher = RecordingCodexSessionCipher(
+                decryptedSession = storedSession(
+                    tokenExpiresAtEpochSeconds = now.plusSeconds(1_800).epochSecond,
+                ),
+            ),
+            tokenRefresh = tokenRefresh,
+            usageFetcher = usageFetcher,
+        )
+
+        val result = provider.refresh(account(), RefreshTrigger.Periodic)
+
+        assertTrue(result is ProviderRefreshResult.Success)
+        assertTrue(tokenRefresh.refreshTokens.isEmpty())
+        assertEquals(listOf("old-access" to "acct-1"), usageFetcher.requests)
+        assertTrue(store.savedEnvelopes.isEmpty())
+    }
+
+    @Test
+    fun `access token inside the expiry skew is refreshed before fetching usage`() = runTest {
+        val tokenRefresh = RecordingTokenRefresh(refreshedSession())
+        val usageFetcher = RecordingUsageFetcher(successfulUsageDto())
+        val provider = provider(
+            store = RecordingSecureSessionStore(envelope(localAccountId = "local-1")),
+            cipher = RecordingCodexSessionCipher(
+                decryptedSession = storedSession(
+                    tokenExpiresAtEpochSeconds = now.plusSeconds(30).epochSecond,
+                ),
+            ),
+            tokenRefresh = tokenRefresh,
+            usageFetcher = usageFetcher,
+        )
+
+        val result = provider.refresh(account(), RefreshTrigger.Periodic)
+
+        assertTrue(result is ProviderRefreshResult.Success)
+        assertEquals(listOf("old-refresh"), tokenRefresh.refreshTokens)
+        assertEquals(listOf("new-access" to "acct-1"), usageFetcher.requests)
+    }
+
+    @Test
+    fun `legacy session without a stored expiry still refreshes before fetching usage`() = runTest {
+        val tokenRefresh = RecordingTokenRefresh(refreshedSession())
+        val provider = provider(
+            store = RecordingSecureSessionStore(envelope(localAccountId = "local-1")),
+            cipher = RecordingCodexSessionCipher(
+                decryptedSession = storedSession(tokenExpiresAtEpochSeconds = null),
+            ),
+            tokenRefresh = tokenRefresh,
+            usageFetcher = RecordingUsageFetcher(successfulUsageDto()),
+        )
+
+        val result = provider.refresh(account(), RefreshTrigger.Periodic)
+
+        assertTrue(result is ProviderRefreshResult.Success)
+        assertEquals(listOf("old-refresh"), tokenRefresh.refreshTokens)
+    }
+
+    @Test
+    fun `usage auth failure on an unexpired token refreshes once and retries`() = runTest {
+        val tokenRefresh = RecordingTokenRefresh(refreshedSession())
+        val usageFetcher = SequencedUsageFetcher(
+            listOf(
+                CodexUsageClient.Result.Failure(
+                    QuotaError.AuthRequired(httpStatus = 401, diagnosticsDigest = "codex_usage_auth_required_401"),
+                ),
+                CodexUsageClient.Result.Success(successfulUsageDto()),
+            ),
+        )
+        val provider = provider(
+            store = RecordingSecureSessionStore(envelope(localAccountId = "local-1")),
+            cipher = RecordingCodexSessionCipher(
+                decryptedSession = storedSession(
+                    tokenExpiresAtEpochSeconds = now.plusSeconds(1_800).epochSecond,
+                ),
+            ),
+            tokenRefresh = tokenRefresh,
+            usageFetcher = usageFetcher,
+        )
+
+        val result = provider.refresh(account(), RefreshTrigger.Periodic)
+
+        assertTrue(result is ProviderRefreshResult.Success)
+        assertEquals(listOf("old-refresh"), tokenRefresh.refreshTokens)
+        assertEquals(listOf("old-access" to "acct-1", "new-access" to "acct-1"), usageFetcher.requests)
+    }
+
+    @Test
+    fun `usage auth failure after a just-refreshed token is not retried again`() = runTest {
+        val tokenRefresh = RecordingTokenRefresh(refreshedSession())
+        val usageFetcher = SequencedUsageFetcher(
+            listOf(
+                CodexUsageClient.Result.Failure(
+                    QuotaError.AuthRequired(httpStatus = 401, diagnosticsDigest = "codex_usage_auth_required_401"),
+                ),
+                CodexUsageClient.Result.Success(successfulUsageDto()),
+            ),
+        )
+        val provider = provider(
+            store = RecordingSecureSessionStore(envelope(localAccountId = "local-1")),
+            cipher = RecordingCodexSessionCipher(
+                decryptedSession = storedSession(tokenExpiresAtEpochSeconds = null),
+            ),
+            tokenRefresh = tokenRefresh,
+            usageFetcher = usageFetcher,
+        )
+
+        val result = provider.refresh(account(), RefreshTrigger.Periodic)
+
+        assertTrue(result is ProviderRefreshResult.Failure)
+        assertEquals("error_auth_required", (result as ProviderRefreshResult.Failure).error.safeMessageKey)
+        assertEquals(listOf("old-refresh"), tokenRefresh.refreshTokens)
+        assertEquals(1, usageFetcher.requests.size)
+    }
+
+    private fun storedSession(tokenExpiresAtEpochSeconds: Long?): CodexSessionPayload =
+        CodexSessionPayload(
+            accessToken = "old-access",
+            refreshToken = "old-refresh",
+            idToken = "old-id",
+            accountId = "acct-1",
+            lastRefresh = Instant.parse("2026-05-23T10:00:00Z"),
+            tokenExpiresAtEpochSeconds = tokenExpiresAtEpochSeconds,
+        )
+
+    private fun refreshedSession(): CodexSessionPayload =
+        CodexSessionPayload(
+            accessToken = "new-access",
+            refreshToken = "new-refresh",
+            idToken = "new-id",
+            accountId = "acct-1",
+            lastRefresh = now,
+            tokenExpiresAtEpochSeconds = now.plusSeconds(3_600).epochSecond,
+        )
+
+    private class SequencedUsageFetcher(
+        results: List<CodexUsageClient.Result>,
+    ) : CodexUsageFetcher {
+        private val remaining = ArrayDeque(results)
+        val requests = mutableListOf<Pair<String, String?>>()
+
+        override suspend fun fetchUsage(accessToken: String, accountId: String?): CodexUsageClient.Result {
+            requests += accessToken to accountId
+            return remaining.removeFirst()
+        }
     }
 
     private fun provider(

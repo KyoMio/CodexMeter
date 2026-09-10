@@ -177,6 +177,8 @@ class RefreshCoordinator(
         error: QuotaError,
     ): RefreshResult.Failure {
         val lastKnownGood = snapshotStore.latestFor(account)
+        // Read the previous attempt before saving this one, so the auth-failure streak can be seen.
+        val previousAttempt = attemptStore.latestFor(account)
         val finishedAt = clock.instant()
         val attempt = RefreshAttempt(
             attemptId = attemptIdProvider.nextId(),
@@ -193,7 +195,7 @@ class RefreshCoordinator(
             diagnosticsDigest = error.diagnosticsDigest,
         )
         attemptStore.save(attempt)
-        if (error.userActionRequired) {
+        if (error.userActionRequired && needsReauthAfterAuthFailure(previousAttempt, error)) {
             accountStatusStore.markNeedsReauth(account = account, updatedAt = finishedAt)
         }
         publishCurrentState(
@@ -229,6 +231,7 @@ class RefreshCoordinator(
         val deferred: CompletableDeferred<RefreshResult>,
         val owner: Boolean,
     )
+
 }
 
 fun interface RefreshProvider {
@@ -251,6 +254,12 @@ interface SnapshotStore {
 
 interface RefreshAttemptStore {
     suspend fun save(attempt: RefreshAttempt)
+
+    /**
+     * The account's most recent attempt, used to tell a repeated auth failure from a one-off. A
+     * store with no history answers null, which counts as "no failure before this one".
+     */
+    suspend fun latestFor(account: ProviderAccount): RefreshAttempt? = null
 }
 
 interface RefreshAccountStatusStore {

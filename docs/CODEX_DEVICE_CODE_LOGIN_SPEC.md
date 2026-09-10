@@ -227,7 +227,7 @@ MVP 不要求持久化此模型。
 - refresh token
 - id token，如果存在
 - account id（优先使用 token 响应顶层字段；device-code 响应缺失时，从 `id_token` 的 `https://api.openai.com/auth.chatgpt_account_id` claim 派生，用于后续 `ChatGPT-Account-Id` usage 校验）
-- token expiry / last refresh metadata
+- token expiry / last refresh metadata（`tokenExpiresAtEpochSeconds`，来自 token 响应的 `expires_in`）
 
 要求：
 

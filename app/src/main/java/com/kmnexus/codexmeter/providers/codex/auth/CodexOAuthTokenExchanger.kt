@@ -94,6 +94,7 @@ class CodexOAuthTokenExchanger(
             val accountEmail = response.email?.takeIf { it.isNotBlank() }
                 ?: CodexJwtClaims.email(idToken)
 
+            val now = clock.instant()
             Result.Success(
                 session = CodexSessionPayload(
                     accessToken = accessToken,
@@ -101,7 +102,10 @@ class CodexOAuthTokenExchanger(
                     idToken = idToken,
                     accountId = accountId,
                     accountEmail = accountEmail,
-                    lastRefresh = clock.instant(),
+                    lastRefresh = now,
+                    tokenExpiresAtEpochSeconds = response.expiresInSeconds
+                        ?.takeIf { it > 0 }
+                        ?.let { now.epochSecond + it },
                 ),
             )
         } catch (_: SerializationException) {
@@ -215,4 +219,6 @@ private data class CodexOAuthTokenResponseDto(
     @SerialName("account_id")
     val accountId: String? = null,
     val email: String? = null,
+    @SerialName("expires_in")
+    val expiresInSeconds: Long? = null,
 )

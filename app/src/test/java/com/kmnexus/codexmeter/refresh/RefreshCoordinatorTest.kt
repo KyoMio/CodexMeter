@@ -341,11 +341,74 @@ class RefreshCoordinatorTest {
     }
 
     @Test
-    fun `auth required refresh marks account as needing reauth`() = runTest {
+    fun `a single auth failure does not mark the account as needing reauth`() = runTest {
+        // Flagging on the first 401 drops the account out of background refresh until the user
+        // manually retries, so a provider hiccup reads to them as "the login keeps expiring".
         val accountStatusStore = RecordingRefreshAccountStatusStore()
         val error = QuotaError.AuthRequired(
             httpStatus = 401,
             diagnosticsDigest = "safe-auth-digest",
+        )
+        val coordinator = coordinator(
+            provider = RecordingRefreshProvider { ProviderRefreshResult.Failure(error) },
+            accountStatusStore = accountStatusStore,
+        )
+
+        coordinator.refresh(account, RefreshTrigger.Periodic)
+
+        assertTrue(accountStatusStore.needsReauthAccounts.isEmpty())
+    }
+
+    @Test
+    fun `two consecutive auth failures mark the account as needing reauth`() = runTest {
+        val accountStatusStore = RecordingRefreshAccountStatusStore()
+        val error = QuotaError.AuthRequired(
+            httpStatus = 401,
+            diagnosticsDigest = "safe-auth-digest",
+        )
+        val coordinator = coordinator(
+            provider = RecordingRefreshProvider { ProviderRefreshResult.Failure(error) },
+            accountStatusStore = accountStatusStore,
+        )
+
+        coordinator.refresh(account, RefreshTrigger.Periodic)
+        coordinator.refresh(account, RefreshTrigger.Periodic)
+
+        assertEquals(listOf(account to now), accountStatusStore.needsReauthAccounts)
+    }
+
+    @Test
+    fun `an auth failure following a success starts the count over`() = runTest {
+        val accountStatusStore = RecordingRefreshAccountStatusStore()
+        val error = QuotaError.AuthRequired(
+            httpStatus = 401,
+            diagnosticsDigest = "safe-auth-digest",
+        )
+        val snapshot = quotaSnapshot("snapshot-1")
+        var failNext = true
+        val coordinator = coordinator(
+            provider = RecordingRefreshProvider {
+                if (failNext) ProviderRefreshResult.Failure(error) else ProviderRefreshResult.Success(snapshot)
+            },
+            accountStatusStore = accountStatusStore,
+        )
+
+        coordinator.refresh(account, RefreshTrigger.Periodic)
+        failNext = false
+        coordinator.refresh(account, RefreshTrigger.Periodic)
+        failNext = true
+        coordinator.refresh(account, RefreshTrigger.Periodic)
+
+        assertTrue(accountStatusStore.needsReauthAccounts.isEmpty())
+    }
+
+    @Test
+    fun `an auth error that cannot be transient marks the account immediately`() = runTest {
+        // A missing or undecryptable session carries no HTTP status: retrying cannot fix it.
+        val accountStatusStore = RecordingRefreshAccountStatusStore()
+        val error = QuotaError.AuthRequired(
+            httpStatus = null,
+            diagnosticsDigest = "codex_refresh_session_missing",
         )
         val coordinator = coordinator(
             provider = RecordingRefreshProvider { ProviderRefreshResult.Failure(error) },
@@ -432,6 +495,11 @@ class RefreshCoordinatorTest {
         override suspend fun save(attempt: RefreshAttempt) {
             savedAttempts += attempt
         }
+
+        override suspend fun latestFor(account: ProviderAccount): RefreshAttempt? =
+            savedAttempts.lastOrNull {
+                it.providerId == account.providerId && it.localAccountId == account.localAccountId
+            }
     }
 
     private class RecordingRefreshAccountStatusStore : RefreshAccountStatusStore {
