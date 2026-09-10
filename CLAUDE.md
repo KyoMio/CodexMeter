@@ -29,7 +29,7 @@ Do not rely on memory of previous sessions. Read the repo files.
 - Android package: `com.kmnexus.codexmeter`
 - Platform: Android 12+
 - MVP purpose: show AI provider quota and balance usage through app dashboard, resizable Widget and persistent notification; started Codex-only, Codex remains the primary provider.
-- MVP provider: Started Codex-only; now ships 9 providers (Codex, DeepSeek, z.ai Coding Plan, z.ai API, MiniMax, Cursor, Kimi, Claude, Antigravity) registered in ProviderRegistry.
+- MVP provider: Started Codex-only; now ships 10 providers (Codex, DeepSeek, z.ai Coding Plan, z.ai API, MiniMax, Cursor, Kimi, Claude, Antigravity, Grok) registered in ProviderRegistry.
 
 ## Non-negotiable boundaries
 

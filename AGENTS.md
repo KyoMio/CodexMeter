@@ -26,7 +26,7 @@ If these documents conflict, stop and update the documents or ask for a decision
 - Debug package name: `com.kmnexus.codexmeter.debug`.
 - Target platform: Android 12+.
 - Distribution: self-use / small-scale sideloaded APK.
-- MVP provider: Started Codex-only; now ships 9 providers (Codex, DeepSeek, z.ai Coding Plan, z.ai API, MiniMax, Cursor, Kimi, Claude, Antigravity) registered in ProviderRegistry.
+- MVP provider: Started Codex-only; now ships 10 providers (Codex, DeepSeek, z.ai Coding Plan, z.ai API, MiniMax, Cursor, Kimi, Claude, Antigravity, Grok) registered in ProviderRegistry.
 
 MVP core surfaces:
 

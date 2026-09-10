@@ -598,10 +598,10 @@ Tabbar 是主导航，升级后使用轻量浮动玻璃胶囊，不做强折射�
 - WebView 认证页（Kimi Cookie、Claude/Antigravity OAuth）首次打开时弹提示对话框，说明操作步骤并展示对应 top bar 图标，让用户知道操作入口；之后不再重复弹出。
 - WebView 操作图标：清除会话（`ic_action_clear`）、确认登录（`ic_action_done`）、重新加载（OAuth 页专用）。
 
-#### Codex 登录页（device-code）
+#### 设备码登录页（Codex / Grok）
 
-- 页面展示紧凑的一行 device code + 复制按钮，并提供打开 Codex verification 页的主操作。
-- Codex verification 页面通过外部浏览器打开，不内嵌 WebView。
+- 页面展示紧凑的一行 device code + 复制按钮，并提供打开 verification 页的主操作；登录屏与登录通知文案按 Provider 显示名参数化（Codex / Grok），认证方式标签使用 `auth_method_device_code`（设备码登录 / Device Login）。
+- verification 页面（Codex / xAI）通过外部浏览器打开，不内嵌 WebView。
 - 通知权限关闭时，页面内 code 行仍是可用兜底。
 
 #### API Key 登录页（DeepSeek / z.ai / MiniMax）
@@ -895,6 +895,7 @@ MVP 支持：
 - 图标资源命名使用语义前缀，例如 `ic_tab_home`、`ic_tab_account`、`ic_tab_settings`。
 - 避免使用 Android 保留名，例如 `icon`、`logo`、`background`。
 - 线性图标保持统一 stroke、圆角端点和 24dp 画布。
+- Provider 品牌图标使用 `ic_brand_*` 单色描边矢量；Grok 当前为占位 slash / 斜杠风格矢量（`ic_brand_grok`），最终视觉待设计定稿后替换。
 
 ### Theme Tokens
 

@@ -186,13 +186,14 @@ Codex 是第一个 Provider，但公共架构不得写死 Codex。
 
 ## 6. Provider 接入现状
 
-当前已通过内置 `ProviderRegistry` 实现 9 个 Provider。`ProviderConfig` 声明每个 Provider 的 displayName、iconResId、认证类型（`ProviderAuthKind`）和能力标志。
+当前已通过内置 `ProviderRegistry` 实现 10 个 Provider。`ProviderConfig` 声明每个 Provider 的 displayName、iconResId、认证类型（`ProviderAuthKind`）和能力标志。
 
 ### 6.1 认证类型（ProviderAuthKind）
 
 | 认证类型 | Provider |
 |---|---|
-| `OAuthWebView`（Codex 特有 device-code 外部浏览器流程） | Codex |
+| `OAuthWebView`（Codex 特有 device-code 外部浏览器流程，历史遗留枚举名） | Codex |
+| `DeviceCodeLogin`（RFC 8628 设备码外部浏览器登录） | Grok |
 | `ApiKeyImport`（应用内 API Key 输入框） | DeepSeek、z.ai Coding Plan、MiniMax、z.ai API |
 | `CookieAuth`（内嵌 WebView 提取 Cookie） | Cursor、Kimi |
 | `OAuthPkceLogin`（Claude=WebView 拦截 code；Antigravity=loopback server） | Claude、Antigravity |
@@ -210,6 +211,7 @@ Codex 是第一个 Provider，但公共架构不得写死 Codex。
 | `zai_balance` | z.ai API | ApiKeyImport | 是 |
 | `claude` | Claude | OAuthPkceLogin（WebView 拦截） | 否 |
 | `antigravity` | Antigravity | OAuthPkceLogin（loopback server） | 否 |
+| `grok` | Grok | DeviceCodeLogin | 否 |
 
 ### 6.3 组装方式
 
@@ -217,6 +219,7 @@ Codex 是第一个 Provider，但公共架构不得写死 Codex。
 - 每个 Provider 的 `<Name>RefreshProvider` 实现 `RefreshProvider`，供 `RefreshCoordinator` 调用。
 - 每个 Provider 的 `<Name>SessionImporter` 实现通用 `SessionImporter` 接口，并通过 `SessionImportRouter` 按 `ProviderAuthKind` 路由。
 - Codex 特有：`CodexDeviceCodeLoginUseCase` 负责 device-code 登录状态机；`CodexDeviceCodeLoginController` 暴露 domain facade。
+- Grok 设备码登录：`GrokDeviceCodeLoginController` 实现 provider 无关的 `DeviceCodeLoginController` facade，与 Codex 控制器一起注册进按 `ProviderId` 索引的 device-code 控制器 / 通知器 map（Grok 通知显示名 "Grok"，Codex 默认不变）。
 - 通用 domain 层：`ApiKeyLoginUseCase` 和 `SessionLoginUseCase` 供 API Key 和 WebView/OAuth 登录使用。
 - `providers/common/auth` 包含 `LoopbackCallbackServer`（Antigravity loopback）和 `OAuthTokenClient`（通用 token 换取）。
 
@@ -270,6 +273,8 @@ Session 采用通用 envelope + Provider 私有加密 payload。
 - Provider 私有 OAuth endpoint
 
 Codex 私有 payload 由 Codex Provider 自己定义和迁移。
+
+Grok 私有 payload（schemaVersion=1）由 `providers/grok/session` 定义，包含 accessToken、refreshToken、idToken、tokenExpiresAtEpochSeconds、tokenEndpoint（OIDC discovery 缓存，legacy 值触发重发现）、accountId、email、lastRefreshEpochSeconds；xAI 每次刷新轮换 refresh token，刷新单次请求、不做传输层重试（`ProviderHttpClient.noRetry`）。
 
 ### 7.3 QuotaSnapshot
 
@@ -325,6 +330,7 @@ Codex 私有 payload 由 Codex Provider 自己定义和迁移。
 | Kimi | `quota` | Percent |
 | Claude | `usage` | UsageCount / Percent |
 | Antigravity | 多模型分桶 | MultiModelFraction |
+| Grok | `weekly`（月度 period → `monthly`，未知 period → `grok_usage_period`） | Percent |
 
 UI 只消费 `displayKind` 分支渲染，不识别 Provider 私有窗口 id。
 
@@ -569,6 +575,14 @@ MVP 不启用 per-use biometric / user-auth gating。
 - Provider client：`CodexDeviceCodeClient`、`CodexOAuthTokenExchanger`。
 - 会话校验与保存：`CodexSessionImporter`。
 
+**Device-code 登录（Grok / `DeviceCodeLogin`）**
+
+- UI：复用 `AddAccountScreen` / `DeviceCodeLoginViewModel`，登录屏文案按 Provider 显示名参数化。
+- Domain facade：`GrokDeviceCodeLoginController` 实现 provider 无关的 `DeviceCodeLoginController`。
+- Provider client：`GrokOAuthDiscoveryClient`（`auth.x.ai` OIDC discovery）、`GrokDeviceCodeClient`（RFC 8628 轮询）、`GrokTokenRefresher`（轮换回写、单次请求不重试）、`GrokBillingClient`（额度校验与采集，`GET https://cli-chat-proxy.grok.com/v1/billing?format=credits`）。
+- 会话校验与保存：`GrokSessionImporter`（两段式，billing 校验成功才落库）。
+- Grok 登录通知与 Codex 共用登录通知 ID（同一时刻只有一路设备码登录在飞）。
+
 **API Key（DeepSeek / z.ai Coding Plan / MiniMax）**
 
 - UI：`ApiKeyAuthScreen`（共用，AuthScaffold top bar）。
@@ -596,6 +610,7 @@ MVP 不启用 per-use biometric / user-auth gating。
 **路由**
 
 - `ProviderSelectionSheet`（底部 Sheet，从 tab bar 升起）展示所有已注册 Provider，用户选择后导航到对应认证页。
+- 设备码登录使用 provider 参数化路由 `devicecode:<providerId>[:<reloginAccountId>[:<expectedProviderAccountId>]]`；NavHost 以 `deviceCodeLoginControllers` / `deviceCodeLoginNotifiers`（`Map<ProviderId, …>`，空 map 回退 Noop）装配控制器；Codex 保留 legacy `login` / `codexrelogin:` 路由。
 - `SessionImportRouter` 按 `ProviderAuthKind` 将校验成功的候选 session 路由到对应 `SessionImporter`。
 
 所有认证流程的共同约束：新连接必须在 official usage API 校验成功后，才保存账号、加密 session 和初始 `QuotaSnapshot`；UI 不直接处理 token、cookie 或私有 OAuth 细节。

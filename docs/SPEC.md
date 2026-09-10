@@ -47,7 +47,7 @@ The MVP must support:
 - Package: `com.kmnexus.codexmeter`.
 - Debug package: `com.kmnexus.codexmeter.debug`.
 - Android 12+ only (`minSdk = 31`).
-- Multi-provider UI: Codex, DeepSeek, z.ai Coding Plan, MiniMax, Cursor, Kimi, Claude, Antigravity, z.ai API; all providers use a shared provider-aware domain layer.
+- Multi-provider UI: Codex, DeepSeek, z.ai Coding Plan, MiniMax, Cursor, Kimi, Claude, Antigravity, z.ai API, Grok (SuperGrok device-code login); all providers use a shared provider-aware domain layer.
 - Hermes-aligned Codex device-code login through an external browser verification handoff, per `docs/CODEX_DEVICE_CODE_LOGIN_SPEC.md`.
 - No new user-facing `auth.json` file / full JSON import path; existing saved OAuth sessions continue to refresh normally.
 - Official usage API validation before saving a newly connected account.
@@ -569,7 +569,7 @@ Rules:
 
 ### 8.1 Current provider wiring
 
-All 9 providers are wired by hand in `AppContainer` using `ProviderRegistry`.
+All 10 providers are wired by hand in `AppContainer` using `ProviderRegistry`.
 
 - `ProviderRegistry` holds a `ProviderConfig` per provider (displayName, icon, `ProviderAuthKind`, capability flags).
 - Each provider's `<Name>RefreshProvider` implements `RefreshProvider` used by `RefreshCoordinator`.
@@ -580,6 +580,7 @@ All 9 providers are wired by hand in `AppContainer` using `ProviderRegistry`.
 Auth screen routing by kind:
 
 - `OAuthWebView` (Codex) → existing device-code flow (`AddAccountScreen` / `DeviceCodeLoginViewModel`).
+- `DeviceCodeLogin` (Grok) → provider-parameterized device-code flow via the `devicecode:<providerId>[:<reloginAccountId>[:<expectedProviderAccountId>]]` route; `AddAccountRoute` resolves the controller/notifier from the `deviceCodeLoginControllers` / `deviceCodeLoginNotifiers` maps keyed by `ProviderId` (empty maps fall back to Noop); Codex keeps its legacy `login` / `codexrelogin:` routes on the `OAuthWebView` flow.
 - `ApiKeyImport` → `ApiKeyAuthScreen`.
 - `CookieAuth` → `WebViewAuthScreen` with cookie capture mode.
 - `OAuthPkceLogin` → `WebViewAuthScreen` with OAuth intercept or loopback mode per provider.
