@@ -390,33 +390,36 @@ class GrokDeviceCodeLoginController(
             }
         }
 
+        // Commit runs the billing validation network call, so it stays OUTSIDE the state lock —
+        // holding the lock across it would block cancelLatest until the call finishes and let a
+        // late cancel land as Saved instead of Cancelled. Only the resulting state write is locked.
+        val commitResult = try {
+            sessionImporter.commitPreparedDeviceCodeSession(prepared)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            null
+        }
+
         return stateMutex.withLock {
             if (!isLatestLocked(attemptId)) {
                 return@withLock currentState
             }
-            try {
-                when (val result = sessionImporter.commitPreparedDeviceCodeSession(prepared)) {
-                    is GrokSessionImporter.Result.Failure -> {
-                        currentState = GrokDeviceCodeLoginState.ValidationFailed(attemptId, result.message)
-                        currentState
-                    }
-                    is GrokSessionImporter.Result.Success -> {
-                        currentState = GrokDeviceCodeLoginState.Saved(
-                            attemptId = attemptId,
-                            account = result.account,
-                            snapshot = result.snapshot,
-                        )
-                        activeAttempt = null
-                        pollInFlightAttemptId = null
-                        currentState
-                    }
+            when (commitResult) {
+                null ->
+                    GrokDeviceCodeLoginState.ValidationFailed(attemptId, "error_network")
+                is GrokSessionImporter.Result.Failure ->
+                    GrokDeviceCodeLoginState.ValidationFailed(attemptId, commitResult.message)
+                is GrokSessionImporter.Result.Success -> {
+                    activeAttempt = null
+                    pollInFlightAttemptId = null
+                    GrokDeviceCodeLoginState.Saved(
+                        attemptId = attemptId,
+                        account = commitResult.account,
+                        snapshot = commitResult.snapshot,
+                    )
                 }
-            } catch (exception: CancellationException) {
-                throw exception
-            } catch (_: Exception) {
-                currentState = GrokDeviceCodeLoginState.ValidationFailed(attemptId, "error_network")
-                currentState
-            }
+            }.also { currentState = it }
         }
     }
 

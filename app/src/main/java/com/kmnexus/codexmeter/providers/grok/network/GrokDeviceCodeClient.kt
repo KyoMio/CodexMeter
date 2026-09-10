@@ -286,7 +286,9 @@ class GrokDeviceCodeClient(
         class Success<out T>(
             val value: T,
         ) : Result<T> {
-            override fun toString(): String = "Success(value=$value)"
+            // Redact unconditionally: today's payloads override toString, but a future non-redacting
+            // wrapper type must not start leaking token material through this default.
+            override fun toString(): String = "Success(value=[REDACTED])"
         }
 
         object Denied : Result<Nothing> {

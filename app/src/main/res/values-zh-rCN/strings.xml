@@ -115,7 +115,7 @@
     <string name="add_account_device_code_validation_failed">授权已完成，但额度校验失败。可不重新生成 code 直接重试校验。</string>
     <string name="add_account_device_code_saved">Codex 账号已连接。</string>
     <string name="add_account_device_code_connected">已连接 %1$s。</string>
-    <string name="add_account_device_code_account_mismatch">授权的 Codex 账号与预期账号不一致。</string>
+    <string name="add_account_device_code_account_mismatch">授权的账号与预期账号不一致。</string>
     <string name="add_account_mismatch_dialog_title">登录的不是同一个账号</string>
     <string name="add_account_mismatch_dialog_message">这不是你要重新登录的账号。是否将其作为新账号添加？</string>
     <string name="add_account_mismatch_dialog_confirm">添加为新账号</string>
@@ -374,7 +374,7 @@
     <string name="error_network">暂时无法刷新，正在显示最近数据。</string>
     <string name="error_unknown">暂时无法刷新。</string>
     <string name="error_login_not_wired">Codex device-code 登录尚未接入。</string>
-    <string name="error_session_persistence">无法保存 Codex 会话。</string>
+    <string name="error_session_persistence">无法保存会话。</string>
     <string name="error_grok_access_denied">Grok 登录请求被拒绝，请重新生成授权码后重试。</string>
     <string name="quota_balance_breakdown_format">赠送 %1$s · 充值 %2$s</string>
     <string name="notification_channel_app_updates_name">应用更新</string>

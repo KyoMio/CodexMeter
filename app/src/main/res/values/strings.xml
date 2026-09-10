@@ -115,7 +115,7 @@
     <string name="add_account_device_code_validation_failed">Authorization completed, but quota validation failed. You can retry validation without generating a new code.</string>
     <string name="add_account_device_code_saved">Codex account connected.</string>
     <string name="add_account_device_code_connected">Connected %1$s.</string>
-    <string name="add_account_device_code_account_mismatch">The authorized Codex account does not match the expected account.</string>
+    <string name="add_account_device_code_account_mismatch">The authorized account does not match the expected account.</string>
     <string name="add_account_mismatch_dialog_title">Different account signed in</string>
     <string name="add_account_mismatch_dialog_message">This is not the account you were re-authenticating. Add it as a new account instead?</string>
     <string name="add_account_mismatch_dialog_confirm">Add as new account</string>
@@ -374,7 +374,7 @@
     <string name="error_network">Could not refresh. Showing last known data.</string>
     <string name="error_unknown">Could not refresh right now.</string>
     <string name="error_login_not_wired">Codex device-code login is not wired yet.</string>
-    <string name="error_session_persistence">Could not save the Codex session.</string>
+    <string name="error_session_persistence">Could not save the session.</string>
     <string name="error_grok_access_denied">Grok sign-in was denied. Generate a new code to retry.</string>
     <string name="quota_balance_breakdown_format">Granted %1$s · Topped up %2$s</string>
     <string name="notification_channel_app_updates_name">App updates</string>
