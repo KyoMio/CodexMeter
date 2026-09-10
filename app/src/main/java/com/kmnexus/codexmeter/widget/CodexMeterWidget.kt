@@ -499,7 +499,7 @@ private fun WidgetBrandIcon(state: WidgetQuotaState, sizeDp: Int) {
 }
 
 private fun WidgetField.titleResId(): Int =
-    com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes(windowId)
+    com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes(windowId, limitWindowSeconds)
 
 private fun WidgetField.valueText(context: Context): String =
     if (isBalance) {

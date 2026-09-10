@@ -10,6 +10,7 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 /** A selectable notification window identified by its stable windowId. */
 data class NotificationWindowChoice(
     val windowId: QuotaWindowId,
+    val limitWindowSeconds: Int? = null,
 )
 
 fun interface NotificationWindowChoicesLoader {
@@ -39,6 +40,6 @@ class DefaultNotificationWindowChoicesLoader(
             providerId = resolvedProvider.value,
             localAccountId = resolvedLocal.value,
         )?.toDomain() ?: return emptyList()
-        return snapshot.windows.map { NotificationWindowChoice(it.windowId) }
+        return snapshot.windows.map { NotificationWindowChoice(it.windowId, it.limitWindowSeconds) }
     }
 }

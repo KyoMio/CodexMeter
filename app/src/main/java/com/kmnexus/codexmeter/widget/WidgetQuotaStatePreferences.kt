@@ -110,6 +110,7 @@ private fun Preferences.readFields(): List<WidgetField> {
             balanceCurrency = this[WidgetQuotaPreferenceKeys.fieldBalanceCurrency(i)],
             resetAt = this[WidgetQuotaPreferenceKeys.fieldResetAt(i)]?.toInstantOrNull(),
             tone = enumValue(WidgetQuotaPreferenceKeys.fieldTone(i), WidgetQuotaTone.Neutral),
+            limitWindowSeconds = this[WidgetQuotaPreferenceKeys.fieldLimitWindowSeconds(i)],
         )
     }
 }
@@ -127,6 +128,7 @@ private fun MutablePreferences.writeFields(fields: List<WidgetField>) {
             remove(WidgetQuotaPreferenceKeys.fieldBalanceCurrency(i))
             remove(WidgetQuotaPreferenceKeys.fieldResetAt(i))
             remove(WidgetQuotaPreferenceKeys.fieldTone(i))
+            remove(WidgetQuotaPreferenceKeys.fieldLimitWindowSeconds(i))
         } else {
             this[WidgetQuotaPreferenceKeys.fieldWindowId(i)] = field.windowId
             this[WidgetQuotaPreferenceKeys.fieldIsBalance(i)] = field.isBalance
@@ -135,6 +137,7 @@ private fun MutablePreferences.writeFields(fields: List<WidgetField>) {
             putOrRemove(WidgetQuotaPreferenceKeys.fieldBalanceCurrency(i), field.balanceCurrency)
             putOrRemove(WidgetQuotaPreferenceKeys.fieldResetAt(i), field.resetAt?.toString())
             this[WidgetQuotaPreferenceKeys.fieldTone(i)] = field.tone.name
+            putOrRemove(WidgetQuotaPreferenceKeys.fieldLimitWindowSeconds(i), field.limitWindowSeconds)
         }
     }
 }
@@ -177,6 +180,7 @@ internal object WidgetQuotaPreferenceKeys {
     fun fieldBalanceCurrency(i: Int) = stringPreferencesKey("widget_field_${i}_balance_currency")
     fun fieldResetAt(i: Int) = stringPreferencesKey("widget_field_${i}_reset_at")
     fun fieldTone(i: Int) = stringPreferencesKey("widget_field_${i}_tone")
+    fun fieldLimitWindowSeconds(i: Int) = intPreferencesKey("widget_field_${i}_limit_window_seconds")
 }
 
 private const val DEFAULT_PROVIDER_NAME = "CodexMeter"

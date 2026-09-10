@@ -95,7 +95,12 @@ class CodexMeterWidgetConfigurationActivity : ComponentActivity() {
             val windowOptionsByAccount = selectableAccounts.associate { account ->
                 val options = accounts.latestQuotaSnapshots[account.localAccountId]?.windows
                     ?.filter { it.availability == QuotaWindowAvailability.Available }
-                    ?.map { WidgetWindowOption(it.windowId.value, quotaWindowLabelRes(it.windowId.value)) }
+                    ?.map {
+                        WidgetWindowOption(
+                            it.windowId.value,
+                            quotaWindowLabelRes(it.windowId.value, it.limitWindowSeconds),
+                        )
+                    }
                     ?.distinctBy { it.windowId }
                     .orEmpty()
                 account.localAccountId.value to options

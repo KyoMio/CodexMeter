@@ -54,6 +54,27 @@ class WidgetQuotaStateRepositoryTest {
         }
     }
 
+    @Test
+    fun `widget field carries provider-reported window duration`() = runTest {
+        withRepository { db, repository ->
+            db.providerAccountDao().upsert(account(localAccountId = "acc-1", displayName = "Work"))
+            // Codex 移除 5 小时窗口后，five_hour 槽位可能实际承载周额度（604800 秒）。
+            // 微件字段必须携带上报时长，标签才能按时长而非槽位选取。
+            db.quotaSnapshotDao().insert(
+                snapshot(snapshotId = "snapshot-1", localAccountId = "acc-1", fiveHourWindowSeconds = 604800),
+            )
+
+            val config = WidgetQuotaConfiguration(
+                providerId = "codex", localAccountId = "acc-1",
+                selectedWindowIds = listOf("five_hour"),
+            )
+            val state = repository.loadWidgetQuotaState(config)
+
+            assertEquals(listOf("five_hour"), state.fields.map { it.windowId })
+            assertEquals(604800, state.fields[0].limitWindowSeconds)
+        }
+    }
+
     private suspend fun withRepository(
         notificationPreferences: NotificationPreferences = NotificationPreferences(),
         block: suspend (CodexMeterDatabase, WidgetQuotaStateRepository) -> Unit,
@@ -104,6 +125,7 @@ class WidgetQuotaStateRepositoryTest {
         localAccountId: String,
         fiveHourUsed: Int = 62,
         weeklyUsed: Int = 41,
+        fiveHourWindowSeconds: Int = 18_000,
     ) = QuotaSnapshotEntity(
         snapshotId = snapshotId,
         providerId = "codex",
@@ -112,7 +134,7 @@ class WidgetQuotaStateRepositoryTest {
         fetchedAt = Instant.parse("2026-05-23T11:50:00Z").toEpochMilli(),
         source = "manualRefresh",
         planType = "plus",
-        windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":$fiveHourUsed,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":$weeklyUsed,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]""",
+        windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":$fiveHourUsed,"resetAt":1779555600000,"limitWindowSeconds":$fiveHourWindowSeconds,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":$weeklyUsed,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]""",
         creditsJson = null,
         responseDigest = "safe-digest-$snapshotId",
     )

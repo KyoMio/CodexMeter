@@ -511,6 +511,28 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `window choice label follows reported duration for positional window ids`() = runTest {
+        val viewModel = SettingsViewModel(
+            notificationWindowChoicesLoader = com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader { _, _ ->
+                listOf(
+                    com.kmnexus.codexmeter.app.NotificationWindowChoice(
+                        QuotaWindowId("five_hour"),
+                        limitWindowSeconds = 604_800,
+                    ),
+                )
+            },
+        )
+
+        viewModel.loadSettings()
+        runCurrent()
+
+        assertEquals(
+            R.string.account_quota_weekly_label,
+            viewModel.uiState.value.persistentNotification.windowChoices.single().labelResId,
+        )
+    }
+
+    @Test
     fun `checking for app update exposes available release dialog`() = runTest {
         val updateInfo = appUpdateInfo()
         val checker = DelayedAppUpdateCheckUseCase(AppUpdateCheckResult.UpdateAvailable(updateInfo))

@@ -553,20 +553,24 @@ class AccountViewModelTest {
             source = QuotaSnapshotSource.ManualRefresh,
             planType = planType,
             windows = listOf(
-                quotaWindow("five_hour", fiveHourUsedPercent),
-                quotaWindow("weekly", weeklyUsedPercent),
+                quotaWindow("five_hour", fiveHourUsedPercent, limitWindowSeconds = 18_000),
+                quotaWindow("weekly", weeklyUsedPercent, limitWindowSeconds = 604_800),
             ),
             credits = credits,
             responseDigest = "safe-digest",
         )
 
-    private fun quotaWindow(windowId: String, usedPercent: Int?): QuotaWindow =
+    private fun quotaWindow(
+        windowId: String,
+        usedPercent: Int?,
+        limitWindowSeconds: Int = 18_000,
+    ): QuotaWindow =
         QuotaWindow(
             windowId = QuotaWindowId(windowId),
             titleKey = "quota_window_$windowId",
             usedPercent = usedPercent,
             resetAt = Instant.parse("2026-05-23T12:00:00Z"),
-            limitWindowSeconds = 18_000,
+            limitWindowSeconds = limitWindowSeconds,
             isPrimaryCandidate = true,
             availability = QuotaWindowAvailability.Available,
         )

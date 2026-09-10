@@ -28,8 +28,40 @@ fun currencySymbol(currency: String?): String = when (currency?.uppercase()) {
     else -> "$currency "
 }
 
+/**
+ * Codex is the only provider that names its windows by position: the usage API exposes
+ * `primary_window` / `secondary_window`, so the mapper can only guess `five_hour` / `weekly` from
+ * the slot an entry arrived in. That guess broke when Codex dropped the 5-hour window and its
+ * `primary_window` started carrying the weekly quota. For these two ids the window duration the
+ * provider reports is the truth. Every other provider names its own windows, so their ids keep
+ * winning — Claude's 7-day Opus and Sonnet windows share one duration but must stay distinguishable.
+ */
+private val POSITIONAL_WINDOW_IDS = setOf("five_hour", "weekly")
+
+private const val FIVE_HOUR_SECONDS = 5 * 60 * 60
+private const val DAY_SECONDS = 24 * 60 * 60
+private const val WEEK_SECONDS = 7 * DAY_SECONDS
+
 @StringRes
-fun quotaWindowLabelRes(windowId: String): Int = when (windowId) {
+fun quotaWindowLabelRes(windowId: String, limitWindowSeconds: Int? = null): Int {
+    if (windowId in POSITIONAL_WINDOW_IDS && limitWindowSeconds != null) {
+        // A duration we cannot name is still better served by the neutral label than by a positional
+        // guess that would state a window length the provider never reported.
+        return windowDurationLabelRes(limitWindowSeconds) ?: R.string.window_label_generic
+    }
+    return positionalOrProviderNamedLabelRes(windowId)
+}
+
+@StringRes
+private fun windowDurationLabelRes(limitWindowSeconds: Int): Int? = when (limitWindowSeconds) {
+    FIVE_HOUR_SECONDS -> R.string.account_quota_five_hour_label
+    DAY_SECONDS -> R.string.window_label_daily
+    WEEK_SECONDS -> R.string.account_quota_weekly_label
+    else -> null
+}
+
+@StringRes
+private fun positionalOrProviderNamedLabelRes(windowId: String): Int = when (windowId) {
     "five_hour", "zai_5h_window", "claude_5h_window", "kimi_rate_window", "minimax_interval" ->
         R.string.account_quota_five_hour_label
     "weekly", "zai_weekly_window", "kimi_weekly_window", "minimax_weekly" -> R.string.account_quota_weekly_label

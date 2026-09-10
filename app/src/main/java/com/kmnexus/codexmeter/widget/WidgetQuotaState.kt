@@ -33,6 +33,9 @@ data class WidgetField(
     val balanceCurrency: String?,
     val resetAt: Instant?,
     val tone: WidgetQuotaTone,
+    // Provider-reported window duration. Positional ids (Codex "five_hour"/"weekly") pick their
+    // label from this instead of the slot they arrived in.
+    val limitWindowSeconds: Int? = null,
 )
 
 data class WidgetQuotaState(

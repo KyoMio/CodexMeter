@@ -347,6 +347,13 @@ Codex mapping:
 
 - `rate_limit.primary_window` maps to `five_hour`.
 - `rate_limit.secondary_window` maps to `weekly`.
+- These two ids are positional, not semantic: Codex assigns windows to the primary/secondary slot and
+  may change what a slot holds (it temporarily removed the 5-hour window, after which
+  `primary_window` carried the weekly quota). Window ids stay stable so saved widget, alert and
+  primary-window preferences keep matching; the **display label** is chosen from
+  `limit_window_seconds` instead, and falls back to the neutral label when the duration has no name.
+  Provider-named window ids (Claude, z.ai, Kimi, MiniMax, Cursor, Antigravity) always keep their own
+  label, since several of them share a duration.
 - `used_percent` maps to `usedPercent`.
 - `reset_at` maps to `resetAt`.
 - `limit_window_seconds` maps to `limitWindowSeconds`.

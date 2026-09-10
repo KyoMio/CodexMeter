@@ -64,6 +64,15 @@ class WidgetQuotaStateFactoryTest {
     }
 
     @Test
+    fun `fields carry provider-reported window duration`() {
+        val state = freshState(
+            windows = listOf(percentWindow("five_hour", usedPercent = 41).copy(limitWindowSeconds = 604800)),
+        )
+        val result = factory.create(state, selectedWindowIds = listOf("five_hour"))
+        assertEquals(604800, result.fields[0].limitWindowSeconds)
+    }
+
+    @Test
     fun `unavailable windows are excluded`() {
         val state = freshState(
             windows = listOf(

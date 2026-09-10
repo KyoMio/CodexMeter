@@ -19,7 +19,7 @@ class WidgetQuotaStatePreferencesTest {
             tone = WidgetQuotaTone.Success,
             clickTarget = WidgetClickTarget.Home,
             fields = listOf(
-                WidgetField("five_hour", false, 87, null, null, Instant.parse("2026-06-02T14:30:00Z"), WidgetQuotaTone.Success),
+                WidgetField("five_hour", false, 87, null, null, Instant.parse("2026-06-02T14:30:00Z"), WidgetQuotaTone.Success, limitWindowSeconds = 604800),
                 WidgetField("balance", true, null, "8.50", "USD", null, WidgetQuotaTone.Neutral),
             ),
             isUnconfigured = false,
@@ -32,6 +32,9 @@ class WidgetQuotaStatePreferencesTest {
         assertEquals(2, restored.fields.size)
         assertEquals("five_hour", restored.fields[0].windowId)
         assertEquals(87, restored.fields[0].percent)
+        // The widget renders from these preferences, so the window duration must survive the round
+        // trip or duration-based labels regress on the home-screen surface.
+        assertEquals(604800, restored.fields[0].limitWindowSeconds)
         assertEquals(Instant.parse("2026-06-02T14:30:00Z"), restored.fields[0].resetAt)
         assertTrue(restored.fields[1].isBalance)
         assertEquals("8.50", restored.fields[1].balanceAmount)

@@ -340,7 +340,7 @@ class HomeViewModel(
         val quotaStatus = toQuotaStatus()
         return HomeQuotaCardUi(
             windowId = windowId.value,
-            titleResId = quotaWindowLabelRes(windowId.value),
+            titleResId = quotaWindowLabelRes(windowId.value, limitWindowSeconds),
             displayKind = displayKind,
             usedPercent = usedPercent,
             balanceAmount = balanceAmount,

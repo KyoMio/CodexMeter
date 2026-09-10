@@ -607,7 +607,7 @@ class AccountViewModel(
             val nativeCurrency = converted.originalBalanceCurrency ?: converted.balanceCurrency
             AccountQuotaSummaryUi(
                 windowId = converted.windowId.value,
-                labelResId = quotaWindowLabelRes(converted.windowId.value),
+                labelResId = quotaWindowLabelRes(converted.windowId.value, converted.limitWindowSeconds),
                 percent = if (converted.displayKind == QuotaWindowDisplayKind.Balance) null else converted.displayPercent,
                 valueText = converted.summaryValueText(),
                 originalValueText = formatProviderBalance(converted.originalBalanceAmount, converted.originalBalanceCurrency),
@@ -623,7 +623,7 @@ class AccountViewModel(
         displayableWindows(snapshot).take(MAX_SUMMARY_WINDOWS).map { window ->
             AccountAlertToggleUi(
                 windowId = window.windowId.value,
-                labelResId = quotaWindowLabelRes(window.windowId.value),
+                labelResId = quotaWindowLabelRes(window.windowId.value, window.limitWindowSeconds),
                 enabled = notificationPreferences.isQuotaAlertEnabled(
                     providerId = providerId,
                     localAccountId = localAccountId,

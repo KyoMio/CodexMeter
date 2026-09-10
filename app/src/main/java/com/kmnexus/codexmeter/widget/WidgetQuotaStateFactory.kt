@@ -78,6 +78,7 @@ class WidgetQuotaStateFactory(
                     balanceCurrency = if (isBalance) window.balanceCurrency else null,
                     resetAt = window.resetAt,
                     tone = window.percentTone(notificationPreferences),
+                    limitWindowSeconds = window.limitWindowSeconds,
                 )
             }
     }

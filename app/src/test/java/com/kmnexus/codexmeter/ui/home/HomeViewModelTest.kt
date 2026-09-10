@@ -623,6 +623,7 @@ class HomeViewModelTest {
                     windowId = QuotaWindowId("weekly"),
                     usedPercent = 41,
                     resetAt = Instant.parse("2026-05-25T00:00:00Z"),
+                    limitWindowSeconds = 604_800,
                 ),
             ),
             credits = credits,
@@ -633,13 +634,14 @@ class HomeViewModelTest {
         windowId: QuotaWindowId,
         usedPercent: Int?,
         resetAt: Instant?,
+        limitWindowSeconds: Int = 18_000,
     ): QuotaWindow =
         QuotaWindow(
             windowId = windowId,
             titleKey = "quota_window_${windowId.value}",
             usedPercent = usedPercent,
             resetAt = resetAt,
-            limitWindowSeconds = 18_000,
+            limitWindowSeconds = limitWindowSeconds,
             isPrimaryCandidate = true,
             availability = QuotaWindowAvailability.Available,
         )
@@ -649,6 +651,7 @@ class HomeViewModelTest {
             windowId = QuotaWindowId("weekly"),
             usedPercent = usedPercent,
             resetAt = Instant.parse("2026-05-25T00:00:00Z"),
+            limitWindowSeconds = 604_800,
         )
 
     private fun primaryWindowWithKind(displayKind: QuotaWindowDisplayKind): QuotaWindow =

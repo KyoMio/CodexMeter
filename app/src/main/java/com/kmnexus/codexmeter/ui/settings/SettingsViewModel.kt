@@ -1046,7 +1046,7 @@ private fun SettingsRetentionOption.toRetentionPreference(): RetentionPreference
 private fun NotificationWindowChoice.toSettingsNotificationWindowChoice(): SettingsNotificationWindowChoice =
     SettingsNotificationWindowChoice(
         windowId = windowId,
-        labelResId = quotaWindowLabelRes(windowId.value),
+        labelResId = quotaWindowLabelRes(windowId.value, limitWindowSeconds),
     )
 
 private fun SettingsNotificationAccountSelection.toNotificationAccountSelection(): NotificationAccountSelection? =
