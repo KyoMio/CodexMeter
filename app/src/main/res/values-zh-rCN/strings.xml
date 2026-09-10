@@ -114,7 +114,7 @@
     <string name="add_account_device_code_exchanging">已收到授权，正在交换 Codex 会话…</string>
     <string name="add_account_device_code_validating">正在用 Codex 额度接口校验会话…</string>
     <string name="add_account_device_code_validation_failed">授权已完成，但额度校验失败。可不重新生成 code 直接重试校验。</string>
-    <string name="add_account_device_code_saved">Codex 账号已连接。</string>
+    <string name="add_account_device_code_saved">账号已连接。</string>
     <string name="add_account_device_code_connected">已连接 %1$s。</string>
     <string name="add_account_device_code_account_mismatch">授权的账号与预期账号不一致。</string>
     <string name="add_account_mismatch_dialog_title">登录的不是同一个账号</string>

@@ -114,7 +114,7 @@
     <string name="add_account_device_code_exchanging">Authorization received. Exchanging it for a Codex session…</string>
     <string name="add_account_device_code_validating">Validating the session with Codex quota usage…</string>
     <string name="add_account_device_code_validation_failed">Authorization completed, but quota validation failed. You can retry validation without generating a new code.</string>
-    <string name="add_account_device_code_saved">Codex account connected.</string>
+    <string name="add_account_device_code_saved">Account connected.</string>
     <string name="add_account_device_code_connected">Connected %1$s.</string>
     <string name="add_account_device_code_account_mismatch">The authorized account does not match the expected account.</string>
     <string name="add_account_mismatch_dialog_title">Different account signed in</string>
