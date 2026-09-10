@@ -93,5 +93,13 @@ class CodexMeterRouteTest {
         )
         assertEquals("devicecode:grok:acct-1", relogin.routeValue)
         assertEquals(relogin, AddAccountEntryMode.fromRouteValue(relogin.routeValue))
+
+        val reloginWithExpected = AddAccountEntryMode.DeviceCodeLogin(
+            providerId = grok,
+            reloginAccountId = com.kmnexus.codexmeter.domain.model.LocalAccountId("acct-1"),
+            expectedProviderAccountId = "sub-789",
+        )
+        assertEquals("devicecode:grok:acct-1:sub-789", reloginWithExpected.routeValue)
+        assertEquals(reloginWithExpected, AddAccountEntryMode.fromRouteValue(reloginWithExpected.routeValue))
     }
 }

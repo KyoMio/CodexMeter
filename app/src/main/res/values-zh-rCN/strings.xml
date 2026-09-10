@@ -97,10 +97,10 @@
     <string name="account_add_dialog_title">添加 Codex 账号</string>
     <string name="account_add_dialog_description">在浏览器打开 Codex 验证页，复制授权码，并在那里完成授权。</string>
     <string name="account_add_login_to_codex">登录 Codex</string>
-    <string name="add_account_title">添加 Codex 账号</string>
-    <string name="add_account_description">使用 Codex device-code 登录。授权码会显示在本页，也可从登录通知复制。</string>
-    <string name="add_account_codex_title">Codex device-code 登录</string>
-    <string name="add_account_start_device_code_login">开始 Codex 登录</string>
+    <string name="add_account_title">添加 %1$s 账号</string>
+    <string name="add_account_description">使用 %1$s device-code 登录。授权码会显示在本页，也可从登录通知复制。</string>
+    <string name="add_account_codex_title">%1$s device-code 登录</string>
+    <string name="add_account_start_device_code_login">开始 %1$s 登录</string>
     <string name="add_account_device_code_format">授权码：%1$s</string>
     <string name="add_account_copy_code">复制</string>
     <string name="add_account_open_verification_page">打开 Codex 验证页</string>
@@ -374,7 +374,7 @@
     <string name="error_auth_required">请重新登录后刷新 Codex 额度。</string>
     <string name="error_network">暂时无法刷新，正在显示最近数据。</string>
     <string name="error_unknown">暂时无法刷新。</string>
-    <string name="error_login_not_wired">Codex device-code 登录尚未接入。</string>
+    <string name="error_login_not_wired">Device-code 登录尚未接入。</string>
     <string name="error_session_persistence">无法保存会话。</string>
     <string name="error_grok_access_denied">Grok 登录请求被拒绝，请重新生成授权码后重试。</string>
     <string name="quota_balance_breakdown_format">赠送 %1$s · 充值 %2$s</string>

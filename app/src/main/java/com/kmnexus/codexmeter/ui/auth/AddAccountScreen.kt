@@ -50,6 +50,7 @@ fun AddAccountRoute(
     entryMode: AddAccountEntryMode = AddAccountEntryMode.Choose,
     deviceCodeLoginController: DeviceCodeLoginController = NoopDeviceCodeLoginController,
     deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier,
+    providerDisplayName: String = "Codex",
     viewModel: DeviceCodeLoginViewModel = viewModel(
         factory = DeviceCodeLoginViewModel.factory(
             controller = deviceCodeLoginController,
@@ -74,11 +75,12 @@ fun AddAccountRoute(
     AddAccountScreen(
         uiState = uiState,
         modifier = modifier,
+        providerDisplayName = providerDisplayName,
         onBackClick = {
             viewModel.cancelLogin()
             onBackClick()
         },
-        onStartLoginClick = viewModel::startCodexDeviceCodeLogin,
+        onStartLoginClick = viewModel::startDeviceCodeLogin,
         onCopyCodeClick = { code -> context.copyToClipboard(code) },
         onOpenVerificationClick = { uri -> uriHandler.openUri(uri) },
         onRetryValidationClick = viewModel::retryValidation,
@@ -95,6 +97,7 @@ fun AddAccountRoute(
 fun AddAccountScreen(
     uiState: DeviceCodeLoginUiState,
     modifier: Modifier = Modifier,
+    providerDisplayName: String = "Codex",
     onBackClick: () -> Unit = {},
     onStartLoginClick: () -> Unit = {},
     onCopyCodeClick: (String) -> Unit = {},
@@ -111,7 +114,7 @@ fun AddAccountScreen(
         )
     }
     AuthScaffold(
-        title = stringResource(R.string.add_account_title),
+        title = stringResource(R.string.add_account_title, providerDisplayName),
         onBack = onBackClick,
         modifier = modifier,
     ) {
@@ -125,12 +128,13 @@ fun AddAccountScreen(
             verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.lg),
         ) {
             Text(
-                text = stringResource(R.string.add_account_description),
+                text = stringResource(R.string.add_account_description, providerDisplayName),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             AddAccountDeviceCodeCard(
                 uiState = uiState,
+                providerDisplayName = providerDisplayName,
                 onStartLoginClick = onStartLoginClick,
                 onCopyCodeClick = onCopyCodeClick,
                 onOpenVerificationClick = onOpenVerificationClick,
@@ -146,6 +150,7 @@ fun AddAccountScreen(
 @Composable
 private fun AddAccountDeviceCodeCard(
     uiState: DeviceCodeLoginUiState,
+    providerDisplayName: String,
     onStartLoginClick: () -> Unit,
     onCopyCodeClick: (String) -> Unit,
     onOpenVerificationClick: (String) -> Unit,
@@ -155,7 +160,7 @@ private fun AddAccountDeviceCodeCard(
     AddAccountSurfaceCard {
         Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
             Text(
-                text = stringResource(R.string.add_account_codex_title),
+                text = stringResource(R.string.add_account_codex_title, providerDisplayName),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -189,6 +194,7 @@ private fun AddAccountDeviceCodeCard(
             }
             AddAccountActionRow(
                 status = uiState.status,
+                providerDisplayName = providerDisplayName,
                 onStartLoginClick = onStartLoginClick,
                 onRetryValidationClick = onRetryValidationClick,
                 onCancelLoginClick = onCancelLoginClick,
@@ -235,6 +241,7 @@ private fun AddAccountStatusText(uiState: DeviceCodeLoginUiState) {
 @Composable
 private fun AddAccountActionRow(
     status: DeviceCodeLoginUiStatus,
+    providerDisplayName: String,
     onStartLoginClick: () -> Unit,
     onRetryValidationClick: () -> Unit,
     onCancelLoginClick: () -> Unit,
@@ -281,7 +288,7 @@ private fun AddAccountActionRow(
             modifier = Modifier.fillMaxWidth(),
             shape = CodexMeterShapes.md,
         ) {
-            Text(text = stringResource(R.string.add_account_start_device_code_login))
+            Text(text = stringResource(R.string.add_account_start_device_code_login, providerDisplayName))
         }
     }
 }

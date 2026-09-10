@@ -97,10 +97,10 @@
     <string name="account_add_dialog_title">Add Codex account</string>
     <string name="account_add_dialog_description">Open the Codex verification page in your browser, copy the device code, and finish authorization there.</string>
     <string name="account_add_login_to_codex">Log in to Codex</string>
-    <string name="add_account_title">Add Codex account</string>
-    <string name="add_account_description">Use Codex device-code login. The authorization code is shown here and can also be copied from the login notification.</string>
-    <string name="add_account_codex_title">Codex device-code sign-in</string>
-    <string name="add_account_start_device_code_login">Start Codex sign-in</string>
+    <string name="add_account_title">Add %1$s account</string>
+    <string name="add_account_description">Use %1$s device-code login. The authorization code is shown here and can also be copied from the login notification.</string>
+    <string name="add_account_codex_title">%1$s device-code sign-in</string>
+    <string name="add_account_start_device_code_login">Start %1$s sign-in</string>
     <string name="add_account_device_code_format">Code: %1$s</string>
     <string name="add_account_copy_code">Copy</string>
     <string name="add_account_open_verification_page">Open Codex verification page</string>
@@ -374,7 +374,7 @@
     <string name="error_auth_required">Log in again to refresh Codex quota.</string>
     <string name="error_network">Could not refresh. Showing last known data.</string>
     <string name="error_unknown">Could not refresh right now.</string>
-    <string name="error_login_not_wired">Codex device-code login is not wired yet.</string>
+    <string name="error_login_not_wired">Device-code login is not wired yet.</string>
     <string name="error_session_persistence">Could not save the session.</string>
     <string name="error_grok_access_denied">Grok sign-in was denied. Generate a new code to retry.</string>
     <string name="quota_balance_breakdown_format">Granted %1$s · Topped up %2$s</string>

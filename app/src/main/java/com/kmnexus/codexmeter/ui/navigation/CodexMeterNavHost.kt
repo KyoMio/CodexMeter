@@ -225,7 +225,11 @@ fun CodexMeterNavHost(
             com.kmnexus.codexmeter.providers.ProviderAuthKind.OAuthPkceLogin ->
                 AddAccountEntryMode.WebViewOAuthPkce(providerId, reloginAccountId = localAccountId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.DeviceCodeLogin ->
-                AddAccountEntryMode.DeviceCodeLogin(providerId, reloginAccountId = localAccountId)
+                AddAccountEntryMode.DeviceCodeLogin(
+                    providerId = providerId,
+                    reloginAccountId = localAccountId,
+                    expectedProviderAccountId = providerAccountId,
+                )
         }
         navigateToAddAccount(nextMode)
     }
@@ -281,6 +285,8 @@ fun CodexMeterNavHost(
                             deviceCodeLoginNotifier = deviceCodeLoginNotifiers[
                                 entryMode.providerId,
                             ] ?: deviceCodeLoginNotifier,
+                            providerDisplayName = com.kmnexus.codexmeter.providers.ProviderRegistry
+                                .displayNameFor(entryMode.providerId),
                             onBackClick = { navController.popBackStack() },
                             onLoginSaved = { navigateToAccountAfterSave() },
                         )

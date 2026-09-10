@@ -45,6 +45,8 @@ sealed class AddAccountEntryMode {
     data class DeviceCodeLogin(
         val providerId: ProviderId,
         val reloginAccountId: LocalAccountId? = null,
+        /** When set (re-login), a different signed-in account surfaces as a mismatch decision. */
+        val expectedProviderAccountId: String? = null,
     ) : AddAccountEntryMode()
 
     val routeValue: String
@@ -55,7 +57,9 @@ sealed class AddAccountEntryMode {
             is ApiKeyInput -> "apikey:${providerId.value}".withReloginSuffix(reloginAccountId)
             is WebViewCookieAuth -> "cookie:${providerId.value}".withReloginSuffix(reloginAccountId)
             is WebViewOAuthPkce -> "pkce:${providerId.value}".withReloginSuffix(reloginAccountId)
-            is DeviceCodeLogin -> "devicecode:${providerId.value}".withReloginSuffix(reloginAccountId)
+            is DeviceCodeLogin -> "devicecode:${providerId.value}"
+                .withReloginSuffix(reloginAccountId)
+                .withExpectedAccountSuffix(expectedProviderAccountId)
         }
 
     companion object {
@@ -64,6 +68,9 @@ sealed class AddAccountEntryMode {
 
         private fun String.withReloginSuffix(reloginAccountId: LocalAccountId?): String =
             if (reloginAccountId == null) this else "$this:${reloginAccountId.value}"
+
+        private fun String.withExpectedAccountSuffix(expectedProviderAccountId: String?): String =
+            if (expectedProviderAccountId.isNullOrBlank()) this else "$this:$expectedProviderAccountId"
 
         fun fromRouteValue(routeValue: String?): AddAccountEntryMode {
             if (routeValue == null) return ProviderSelection
@@ -85,11 +92,22 @@ sealed class AddAccountEntryMode {
                         WebViewOAuthPkce(providerId, relogin)
                     }
                 routeValue.startsWith("devicecode:") ->
-                    routeValue.removePrefix("devicecode:").splitProviderAndRelogin { providerId, relogin ->
-                        DeviceCodeLogin(providerId, relogin)
-                    }
+                    routeValue.removePrefix("devicecode:").splitDeviceCodeRoute()
                 else -> ProviderSelection
             }
+        }
+
+        // devicecode:<providerId>[:<reloginLocalAccountId>[:<expectedProviderAccountId>]] — the
+        // expected-account segment only exists on the re-login path and drives the mismatch check.
+        private fun String.splitDeviceCodeRoute(): AddAccountEntryMode {
+            val parts = split(":", limit = 3)
+            val relogin = parts.getOrNull(1)?.takeIf { it.isNotBlank() }?.let(::LocalAccountId)
+            val expectedProviderAccountId = parts.getOrNull(2)?.takeIf { it.isNotBlank() }
+            return DeviceCodeLogin(
+                providerId = ProviderId(parts[0]),
+                reloginAccountId = relogin,
+                expectedProviderAccountId = expectedProviderAccountId,
+            )
         }
 
         private inline fun String.splitProviderAndRelogin(

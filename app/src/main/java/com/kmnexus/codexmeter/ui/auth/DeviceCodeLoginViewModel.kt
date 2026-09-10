@@ -78,19 +78,20 @@ class DeviceCodeLoginViewModel(
         appliedEntryMode = entryMode
         when (entryMode) {
             is AddAccountEntryMode.ProviderSelection -> Unit
-            is AddAccountEntryMode.LoginToCodex -> startCodexDeviceCodeLogin()
-            is AddAccountEntryMode.CodexRelogin -> startCodexRelogin(entryMode.expectedProviderAccountId)
+            is AddAccountEntryMode.LoginToCodex -> startDeviceCodeLogin()
+            is AddAccountEntryMode.CodexRelogin -> startDeviceCodeRelogin(entryMode.expectedProviderAccountId)
             is AddAccountEntryMode.ApiKeyInput -> Unit // handled by the API-key screen
             is AddAccountEntryMode.WebViewCookieAuth -> Unit // handled by the WebView screen
             is AddAccountEntryMode.WebViewOAuthPkce -> Unit // handled by the WebView screen
-            // Relogin degrades to a plain login: without an expected provider account id there is
-            // no mismatch check, and the two-phase importer reconciles by the JWT `sub`, so signing
-            // back into the same provider account rebinds that account in place.
-            is AddAccountEntryMode.DeviceCodeLogin -> startCodexDeviceCodeLogin()
+            // Relogin carries the expected provider account id: a different signed-in account then
+            // surfaces as a mismatch decision. Without it (first login) this degrades to a plain
+            // login; the two-phase importer still reconciles by the JWT `sub` claim.
+            is AddAccountEntryMode.DeviceCodeLogin ->
+                startDeviceCodeRelogin(entryMode.expectedProviderAccountId)
         }
     }
 
-    fun startCodexDeviceCodeLogin() {
+    fun startDeviceCodeLogin() {
         pollJob?.cancel()
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
@@ -104,10 +105,10 @@ class DeviceCodeLoginViewModel(
     }
 
     /**
-     * Re-login for an existing Codex account. When the account's identity is known we ask the controller
-     * to flag a different-account sign-in; otherwise it degrades to a plain login.
+     * Re-login for an existing device-code account. When the account's identity is known we ask the
+     * controller to flag a different-account sign-in; otherwise it degrades to a plain login.
      */
-    fun startCodexRelogin(expectedProviderAccountId: String?) {
+    fun startDeviceCodeRelogin(expectedProviderAccountId: String?) {
         pollJob?.cancel()
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {

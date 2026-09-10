@@ -71,6 +71,64 @@ class DeviceCodeLoginViewModelTest {
         runCurrent()
     }
 
+    /** The provider-parameterized re-login path must carry the expected account id (mismatch check). */
+    @Test
+    fun `device code relogin entry mode passes expected account id to controller`() = runTest {
+        val controller = RecordingDeviceCodeLoginController(
+            reloginResults = ArrayDeque(
+                listOf(
+                    DeviceCodeLoginResult.AwaitingUserAuthorization(
+                        attemptId = "attempt-1",
+                        userCode = "ABCD-EFGH",
+                        verificationUri = "https://auth.x.ai/device",
+                        pollIntervalSeconds = 5,
+                        expiresAt = Instant.parse("2026-09-10T09:15:00Z"),
+                    ),
+                ),
+            ),
+        )
+        val viewModel = DeviceCodeLoginViewModel(controller = controller)
+
+        viewModel.applyEntryMode(
+            AddAccountEntryMode.DeviceCodeLogin(
+                providerId = ProviderId("grok"),
+                reloginAccountId = LocalAccountId("grok-1"),
+                expectedProviderAccountId = "sub-789",
+            ),
+        )
+
+        assertEquals(listOf("sub-789"), controller.reloginExpectedAccountIds)
+        assertEquals(0, controller.startCount)
+        viewModel.cancelLogin()
+        runCurrent()
+    }
+
+    /** Without an expected account id the provider-parameterized mode degrades to a plain login. */
+    @Test
+    fun `device code entry mode without expected account starts plain login`() = runTest {
+        val controller = RecordingDeviceCodeLoginController(
+            startResults = ArrayDeque(
+                listOf(
+                    DeviceCodeLoginResult.AwaitingUserAuthorization(
+                        attemptId = "attempt-1",
+                        userCode = "ABCD-EFGH",
+                        verificationUri = "https://auth.x.ai/device",
+                        pollIntervalSeconds = 5,
+                        expiresAt = Instant.parse("2026-09-10T09:15:00Z"),
+                    ),
+                ),
+            ),
+        )
+        val viewModel = DeviceCodeLoginViewModel(controller = controller)
+
+        viewModel.applyEntryMode(AddAccountEntryMode.DeviceCodeLogin(providerId = ProviderId("grok")))
+
+        assertEquals(1, controller.startCount)
+        assertEquals(emptyList<String>(), controller.reloginExpectedAccountIds)
+        viewModel.cancelLogin()
+        runCurrent()
+    }
+
     @Test
     fun `polling success saves account and updates notifier`() = runTest {
         val account = account("local-1", "Codex Main")
@@ -101,7 +159,7 @@ class DeviceCodeLoginViewModelTest {
             notifier = notifier,
         )
 
-        viewModel.startCodexDeviceCodeLogin()
+        viewModel.startDeviceCodeLogin()
         advanceTimeBy(1_000)
         runCurrent()
 
@@ -148,7 +206,7 @@ class DeviceCodeLoginViewModelTest {
         )
         val viewModel = DeviceCodeLoginViewModel(controller = controller)
 
-        viewModel.startCodexDeviceCodeLogin()
+        viewModel.startDeviceCodeLogin()
         advanceTimeBy(1_000)
         runCurrent()
         assertEquals(DeviceCodeLoginUiStatus.AwaitingUserAuthorization, viewModel.uiState.value.status)
@@ -186,7 +244,7 @@ class DeviceCodeLoginViewModelTest {
         )
         val viewModel = DeviceCodeLoginViewModel(controller = controller)
 
-        viewModel.startCodexDeviceCodeLogin()
+        viewModel.startDeviceCodeLogin()
         advanceTimeBy(1_000)
         runCurrent()
 
@@ -222,7 +280,7 @@ class DeviceCodeLoginViewModelTest {
             notifier = notifier,
         )
 
-        viewModel.startCodexDeviceCodeLogin()
+        viewModel.startDeviceCodeLogin()
         viewModel.cancelLogin()
         advanceTimeBy(5_000)
 
@@ -252,15 +310,22 @@ class DeviceCodeLoginViewModelTest {
         private val pollResults: ArrayDeque<DeviceCodeLoginResult> = ArrayDeque(),
         private val retryResults: ArrayDeque<DeviceCodeLoginResult> = ArrayDeque(),
         private val cancelResults: ArrayDeque<DeviceCodeLoginResult> = ArrayDeque(),
+        private val reloginResults: ArrayDeque<DeviceCodeLoginResult> = ArrayDeque(),
     ) : DeviceCodeLoginController {
         var startCount = 0
             private set
         var pollCount = 0
             private set
+        val reloginExpectedAccountIds = mutableListOf<String>()
 
         override suspend fun startLogin(): DeviceCodeLoginResult {
             startCount += 1
             return startResults.removeFirstOrNull() ?: DeviceCodeLoginResult.Failed(null, "error_unknown")
+        }
+
+        override suspend fun startRelogin(expectedProviderAccountId: String): DeviceCodeLoginResult {
+            reloginExpectedAccountIds += expectedProviderAccountId
+            return reloginResults.removeFirstOrNull() ?: DeviceCodeLoginResult.Failed(null, "error_unknown")
         }
 
         override suspend fun pollLatest(): DeviceCodeLoginResult {
