@@ -654,6 +654,9 @@ Widget **始终跟随系统主题**（与 App 的浅/深/跟随系统设置无�
 
 Widget 支持四种尺寸布局（`WidgetLayoutVariant`），均带头部行（Provider 图标 + 账号名 + 状态）：
 
+- 余额类 Provider（余额为主值，无重置周期）：不显示重置时间；余额先按目标货币换算，再与余额阈值比较，状态文字与重点色随档位变化（正常 / 注意 / 紧张，与首页一致），不得让健康余额账户显示 `暂不可用`。
+- 窗口标签（`five_hour` / `weekly` 等按槽位命名的 id）按 Provider 上报的 `limitWindow_seconds` 选时长词（5h / 24h / 7d），无法命中的时长用中性标签，详见 `docs/SPEC.md` Codex mapping。
+
 **3×1（1 字段）**
 
 - 紧凑横条，展示 1 个配置的窗口字段。

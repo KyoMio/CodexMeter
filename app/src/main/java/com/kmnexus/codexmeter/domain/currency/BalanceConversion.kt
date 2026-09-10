@@ -6,7 +6,7 @@ import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
 /**
  * Returns a copy of this window with its balance converted to [targetCurrency] when rates are
  * present and the amount/currency are convertible. Otherwise returns this window unchanged.
- * Never mutates non-balance windows. Used at Home + notification boundaries only —
+ * Never mutates non-balance windows. Used at Home, notification and widget boundaries only —
  * persisted snapshots always keep the provider's native currency.
  */
 fun QuotaWindow.withConvertedBalance(

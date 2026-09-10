@@ -108,7 +108,19 @@ class WidgetQuotaStateFactory(
         }
 
     private fun QuotaWindow.percentTone(notificationPreferences: NotificationPreferences): WidgetQuotaTone {
-        if (displayKind == QuotaWindowDisplayKind.Balance) return WidgetQuotaTone.Neutral
+        if (displayKind == QuotaWindowDisplayKind.Balance) {
+            // Mirror Home's balance bands, in the converted display currency (the repository converts
+            // before mapping fields). Exhausted (<= 0) shares Danger with the warning band, matching
+            // the quota path above where both severe bands read the same label.
+            val amount = balanceAmount?.toDoubleOrNull()
+            return when {
+                availability != QuotaWindowAvailability.Available || amount == null -> WidgetQuotaTone.Neutral
+                amount <= 0.0 -> WidgetQuotaTone.Danger
+                amount <= notificationPreferences.balanceWarningThreshold -> WidgetQuotaTone.Danger
+                amount <= notificationPreferences.balanceCautionThreshold -> WidgetQuotaTone.Warning
+                else -> WidgetQuotaTone.Success
+            }
+        }
         val percent = displayPercent
         return when {
             availability != QuotaWindowAvailability.Available || percent == null -> WidgetQuotaTone.Neutral

@@ -15,6 +15,7 @@ import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
+import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -50,6 +51,30 @@ class WidgetQuotaStateFactoryTest {
         assertEquals(1, result.fields.size)
         assertFalse(result.fields[0].isBalance)
         assertEquals(60, result.fields[0].percent)
+    }
+
+    @Test
+    fun `balance tone follows balance thresholds`() {
+        val preferences = NotificationPreferences(
+            balanceCautionThreshold = 10.0,
+            balanceWarningThreshold = 2.0,
+        )
+
+        // 镜像 Home 的余额档位：耗尽与紧张同为 Danger（与百分比路径的简化一致），注意为 Warning，健康为 Success。
+        assertEquals(WidgetQuotaTone.Danger, balanceTone("0.00", preferences))
+        assertEquals(WidgetQuotaTone.Danger, balanceTone("1.50", preferences))
+        assertEquals(WidgetQuotaTone.Warning, balanceTone("9.00", preferences))
+        assertEquals(WidgetQuotaTone.Success, balanceTone("42.00", preferences))
+    }
+
+    @Test
+    fun `unreadable balance amount stays neutral`() {
+        val preferences = NotificationPreferences(
+            balanceCautionThreshold = 10.0,
+            balanceWarningThreshold = 2.0,
+        )
+
+        assertEquals(WidgetQuotaTone.Neutral, balanceTone("N/A", preferences))
     }
 
     @Test
@@ -163,4 +188,13 @@ class WidgetQuotaStateFactoryTest {
         availability = QuotaWindowAvailability.Available,
         displayKind = QuotaWindowDisplayKind.Balance, balanceAmount = amount, balanceCurrency = currency,
     )
+
+    private fun balanceTone(amount: String, preferences: NotificationPreferences): WidgetQuotaTone {
+        val state = freshState(windows = listOf(balanceWindow("balance", amount = amount, currency = "USD")))
+        return factory.create(
+            state,
+            notificationPreferences = preferences,
+            selectedWindowIds = listOf("balance"),
+        ).fields.single().tone
+    }
 }

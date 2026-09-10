@@ -1,12 +1,17 @@
 package com.kmnexus.codexmeter.app
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.local.entity.QuotaSnapshotEntity
+import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
+import com.kmnexus.codexmeter.domain.currency.CurrencyPreferences
+import com.kmnexus.codexmeter.domain.currency.ExchangeRates
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.widget.WidgetQuotaConfiguration
+import com.kmnexus.codexmeter.widget.WidgetQuotaTone
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -75,8 +80,48 @@ class WidgetQuotaStateRepositoryTest {
         }
     }
 
+    @Test
+    fun `balance field tone follows thresholds in target currency`() = runTest {
+        withRepository(
+            notificationPreferences = NotificationPreferences(
+                balanceCautionThreshold = 10.0,
+                balanceWarningThreshold = 2.0,
+            ),
+            rates = ExchangeRates(
+                base = "USD",
+                rates = mapOf("USD" to 1.0, "CNY" to 7.0),
+                fetchedAt = Instant.parse("2026-05-23T11:00:00Z"),
+            ),
+        ) { db, repository ->
+            db.providerAccountDao().upsert(account(localAccountId = "acc-1", displayName = "Work"))
+            // ¥63.00 按汇率 7 折成 $9.00，落在注意阈值（$10）与紧张阈值（$2）之间；
+            // 与首页/通知一致，先换算再比较阈值，显示值也用目标货币。
+            db.quotaSnapshotDao().insert(
+                balanceSnapshot(
+                    snapshotId = "snapshot-1",
+                    localAccountId = "acc-1",
+                    amount = "63.00",
+                    currency = "CNY",
+                ),
+            )
+
+            val config = WidgetQuotaConfiguration(
+                providerId = "codex", localAccountId = "acc-1",
+                selectedWindowIds = listOf("balance"),
+            )
+            val state = repository.loadWidgetQuotaState(config)
+
+            val field = state.fields.single()
+            assertEquals("9.00", field.balanceAmount)
+            assertEquals("USD", field.balanceCurrency)
+            assertEquals(WidgetQuotaTone.Warning, field.tone)
+            assertEquals(WidgetQuotaTone.Warning, state.tone)
+        }
+    }
+
     private suspend fun withRepository(
         notificationPreferences: NotificationPreferences = NotificationPreferences(),
+        rates: ExchangeRates? = null,
         block: suspend (CodexMeterDatabase, WidgetQuotaStateRepository) -> Unit,
     ) {
         val db = Room.inMemoryDatabaseBuilder(
@@ -88,6 +133,8 @@ class WidgetQuotaStateRepositoryTest {
             quotaSnapshotDao = db.quotaSnapshotDao(),
             refreshAttemptDao = db.refreshAttemptDao(),
             notificationPreferenceReader = StaticNotificationPreferenceReader(notificationPreferences),
+            currencyPreferenceReader = StaticCurrencyPreferenceReader(CurrencyPreferences()),
+            exchangeRateReader = StaticExchangeRateReader(rates),
             clock = Clock.fixed(Instant.parse("2026-05-23T12:00:00Z"), ZoneOffset.UTC),
         )
 
@@ -102,6 +149,18 @@ class WidgetQuotaStateRepositoryTest {
         private val notificationPreferences: NotificationPreferences,
     ) : NotificationPreferenceReader {
         override suspend fun notificationPreferences(): NotificationPreferences = notificationPreferences
+    }
+
+    private class StaticCurrencyPreferenceReader(
+        private val preferences: CurrencyPreferences,
+    ) : CurrencyPreferenceReader {
+        override suspend fun currencyPreferences(): CurrencyPreferences = preferences
+    }
+
+    private class StaticExchangeRateReader(
+        private val rates: ExchangeRates?,
+    ) : ExchangeRateReader {
+        override suspend fun currentRates(): ExchangeRates? = rates
     }
 
     private fun account(
@@ -125,7 +184,7 @@ class WidgetQuotaStateRepositoryTest {
         localAccountId: String,
         fiveHourUsed: Int = 62,
         weeklyUsed: Int = 41,
-        fiveHourWindowSeconds: Int = 18_000,
+        fiveHourWindowSeconds: Int = 18000,
     ) = QuotaSnapshotEntity(
         snapshotId = snapshotId,
         providerId = "codex",
@@ -135,6 +194,24 @@ class WidgetQuotaStateRepositoryTest {
         source = "manualRefresh",
         planType = "plus",
         windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":$fiveHourUsed,"resetAt":1779555600000,"limitWindowSeconds":$fiveHourWindowSeconds,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":$weeklyUsed,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]""",
+        creditsJson = null,
+        responseDigest = "safe-digest-$snapshotId",
+    )
+
+    private fun balanceSnapshot(
+        snapshotId: String,
+        localAccountId: String,
+        amount: String,
+        currency: String,
+    ) = QuotaSnapshotEntity(
+        snapshotId = snapshotId,
+        providerId = "codex",
+        localAccountId = localAccountId,
+        providerAccountId = "acct-$localAccountId",
+        fetchedAt = Instant.parse("2026-05-23T11:50:00Z").toEpochMilli(),
+        source = "manualRefresh",
+        planType = null,
+        windowsJson = """[{"windowId":"balance","titleKey":"quota_window_balance","usedPercent":null,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Available","displayKind":"Balance","balanceAmount":"$amount","balanceCurrency":"$currency"}]""",
         creditsJson = null,
         responseDigest = "safe-digest-$snapshotId",
     )

@@ -236,6 +236,8 @@ class AppContainer private constructor(
                 refreshAttemptDao = database.refreshAttemptDao(),
                 currentQuotaStateFactory = currentQuotaStateFactory,
                 notificationPreferenceReader = notificationPreferences,
+                currencyPreferenceReader = currencyPreferences,
+                exchangeRateReader = exchangeRateRepository,
                 clock = clock,
             )
             val currentQuotaStateRepository = CurrentQuotaStateRepository(

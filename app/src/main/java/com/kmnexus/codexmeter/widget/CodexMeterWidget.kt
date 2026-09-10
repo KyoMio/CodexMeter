@@ -539,6 +539,9 @@ private fun WidgetQuotaState.launchIntent(context: Context): Intent =
 internal fun WidgetQuotaState.statusLabelResId(): Int =
     when (status) {
         WidgetQuotaStatus.NoAccount -> R.string.widget_connect_codex
+        // Balance accounts follow the same tone-driven words as quota accounts; their tone comes
+        // from the balance thresholds (see WidgetQuotaStateFactory.percentTone), so a healthy
+        // balance reads Normal instead of the old permanent "unavailable".
         WidgetQuotaStatus.Fresh -> when (tone) {
             WidgetQuotaTone.Danger -> R.string.home_quota_status_warning
             WidgetQuotaTone.Warning -> R.string.home_quota_status_caution

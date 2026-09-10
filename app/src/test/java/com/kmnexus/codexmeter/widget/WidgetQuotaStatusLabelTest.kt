@@ -27,6 +27,28 @@ class WidgetQuotaStatusLabelTest {
     }
 
     @Test
+    fun `fresh balance account follows tone status labels`() {
+        // 余额阈值档位同步到微件后，余额账户与额度账户一样按 tone 出状态词
+        // （正常 / 注意 / 紧张），不再固定显示特殊标签或误示「暂不可用」。
+        assertEquals(
+            R.string.home_quota_status_normal,
+            freshState(tone = WidgetQuotaTone.Success).copy(fields = listOf(balanceField())).statusLabelResId(),
+        )
+        assertEquals(
+            R.string.home_quota_status_warning,
+            freshState(tone = WidgetQuotaTone.Danger).copy(fields = listOf(balanceField())).statusLabelResId(),
+        )
+    }
+
+    @Test
+    fun `fresh quota account with unreadable percent still reads unavailable`() {
+        val state = freshState(tone = WidgetQuotaTone.Neutral)
+            .copy(fields = listOf(balanceField(isBalance = false)))
+
+        assertEquals(R.string.home_quota_status_unavailable, state.statusLabelResId())
+    }
+
+    @Test
     fun `non-fresh statuses map to dedicated labels`() {
         assertEquals(R.string.widget_connect_codex, stateWith(WidgetQuotaStatus.NoAccount).statusLabelResId())
         assertEquals(R.string.widget_status_possibly_stale, stateWith(WidgetQuotaStatus.PossiblyStale).statusLabelResId())
@@ -52,6 +74,17 @@ class WidgetQuotaStatusLabelTest {
 
     private fun freshState(tone: WidgetQuotaTone): WidgetQuotaState =
         stateWith(status = WidgetQuotaStatus.Fresh, tone = tone)
+
+    private fun balanceField(isBalance: Boolean = true): WidgetField =
+        WidgetField(
+            windowId = "balance",
+            isBalance = isBalance,
+            percent = null,
+            balanceAmount = null,
+            balanceCurrency = null,
+            resetAt = null,
+            tone = WidgetQuotaTone.Neutral,
+        )
 
     private fun stateWith(
         status: WidgetQuotaStatus,
