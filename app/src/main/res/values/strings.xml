@@ -12,6 +12,7 @@
     <string name="auth_method_cookie">Web Login</string>
     <string name="auth_method_oauth_pkce">OAuth Login</string>
     <string name="auth_method_oauth">OAuth login</string>
+    <string name="auth_method_device_code">Device Login</string>
     <string name="add_provider_title">Add a provider</string>
     <string name="add_provider_subtitle">Choose a service to connect.</string>
     <string name="auth_api_key_label_optional">Label (optional)</string>

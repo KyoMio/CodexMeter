@@ -2,6 +2,7 @@ package com.kmnexus.codexmeter.providers
 
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -44,5 +45,14 @@ class ProviderRegistryTest {
     @Test
     fun zaiCodingPlanProvider_hasRenamedDisplayName() {
         assertEquals("z.ai Coding Plan", ProviderRegistry.configFor(ProviderId("zai")).displayName)
+    }
+
+    @Test
+    fun grokProvider_isDeviceCodeLogin() {
+        val config = ProviderRegistry.configFor(ProviderRegistry.GROK)
+        assertEquals(ProviderAuthKind.DeviceCodeLogin, config.authKind)
+        assertEquals("Grok", config.displayName)
+        assertFalse(config.supportsBalance)
+        assertFalse(config.isDefault)
     }
 }

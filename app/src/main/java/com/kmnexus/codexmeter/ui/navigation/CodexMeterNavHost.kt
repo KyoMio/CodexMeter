@@ -197,6 +197,10 @@ fun CodexMeterNavHost(
                 AddAccountEntryMode.WebViewCookieAuth(providerId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.OAuthPkceLogin ->
                 AddAccountEntryMode.WebViewOAuthPkce(providerId)
+            // Placeholder until the generalized device-code entry mode lands: keep the picker
+            // reachable instead of routing Grok into a Codex-specific flow.
+            com.kmnexus.codexmeter.providers.ProviderAuthKind.DeviceCodeLogin ->
+                AddAccountEntryMode.ProviderSelection
         }
         navigateToAddAccount(nextMode)
     }
@@ -218,6 +222,8 @@ fun CodexMeterNavHost(
                 AddAccountEntryMode.WebViewCookieAuth(providerId, reloginAccountId = localAccountId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.OAuthPkceLogin ->
                 AddAccountEntryMode.WebViewOAuthPkce(providerId, reloginAccountId = localAccountId)
+            com.kmnexus.codexmeter.providers.ProviderAuthKind.DeviceCodeLogin ->
+                AddAccountEntryMode.ProviderSelection
         }
         navigateToAddAccount(nextMode)
     }

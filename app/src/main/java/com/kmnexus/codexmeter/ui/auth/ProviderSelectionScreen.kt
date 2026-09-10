@@ -182,5 +182,6 @@ private fun authTypeLabel(authKind: ProviderAuthKind): String = stringResource(
         ProviderAuthKind.ApiKeyImport -> R.string.auth_method_api_key
         ProviderAuthKind.CookieAuth -> R.string.auth_method_cookie
         ProviderAuthKind.OAuthPkceLogin -> R.string.auth_method_oauth_pkce
+        ProviderAuthKind.DeviceCodeLogin -> R.string.auth_method_device_code
     },
 )

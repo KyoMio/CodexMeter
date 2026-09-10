@@ -6,6 +6,7 @@ object ProviderRegistry {
     /** Known provider ID constants. */
     val CODEX = ProviderId("codex")
     val DEEPSEEK = ProviderId("deepseek")
+    val GROK = ProviderId("grok")
     val ZAI = ProviderId("zai")
     val MINIMAX = ProviderId("minimax")
     val CURSOR = ProviderId("cursor")
@@ -66,6 +67,16 @@ object ProviderRegistry {
             iconResId = com.kmnexus.codexmeter.R.drawable.ic_brand_deepseek,
             authKind = ProviderAuthKind.ApiKeyImport,
             supportsBalance = true,
+            supportsRefill = false,
+            supportsInviteLimitSnooping = false,
+            isDefault = false,
+        ),
+        ProviderConfig(
+            providerId = GROK,
+            displayName = "Grok",
+            iconResId = com.kmnexus.codexmeter.R.drawable.ic_brand_grok,
+            authKind = ProviderAuthKind.DeviceCodeLogin,
+            supportsBalance = false,
             supportsRefill = false,
             supportsInviteLimitSnooping = false,
             isDefault = false,
@@ -132,6 +143,7 @@ enum class ProviderAuthKind {
     ApiKeyImport,
     CookieAuth,
     OAuthPkceLogin,
+    DeviceCodeLogin,
 }
 
 data class ProviderConfig(
