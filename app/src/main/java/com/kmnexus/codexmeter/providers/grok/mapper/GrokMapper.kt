@@ -76,9 +76,13 @@ object GrokMapper {
         )
     }
 
-    /** Weekly is the only observed type so far; a monthly period keeps its own label instead of lying. */
-    private fun windowIdFor(periodType: String?): String =
-        if (periodType?.contains("MONTH", ignoreCase = true) == true) MONTHLY_WINDOW_ID else WEEKLY_WINDOW_ID
+    /** Only recognised period types earn a named label; anything else falls back to a generic id. */
+    private fun windowIdFor(periodType: String?): String = when {
+        periodType?.contains("MONTH", ignoreCase = true) == true -> MONTHLY_WINDOW_ID
+        periodType?.contains("WEEK", ignoreCase = true) == true -> WEEKLY_WINDOW_ID
+        periodType.isNullOrBlank() -> WEEKLY_WINDOW_ID
+        else -> GENERIC_PERIOD_WINDOW_ID
+    }
 
     private fun parseIso(value: String?): Instant? {
         if (value.isNullOrBlank()) return null
@@ -88,5 +92,6 @@ object GrokMapper {
 
     private const val WEEKLY_WINDOW_ID = "weekly"
     private const val MONTHLY_WINDOW_ID = "monthly"
+    private const val GENERIC_PERIOD_WINDOW_ID = "grok_usage_period"
     private val GROK_PROVIDER_ID = ProviderId("grok")
 }

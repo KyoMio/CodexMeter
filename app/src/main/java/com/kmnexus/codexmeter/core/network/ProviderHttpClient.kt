@@ -105,9 +105,18 @@ class ProviderHttpClient(
             else -> toLong()
         }
 
-    private companion object {
-        const val NO_TIMEOUT = 0
-        const val MAX_TIMEOUT_MILLIS = 30_000L
-        val APPLICATION_JSON_MEDIA_TYPE = "application/json".toMediaType()
+    companion object {
+        /**
+         * Client for credential-rotating requests (OAuth refresh grants). OkHttp silently replays a
+         * request after a connection failure; for a refresh token the server has already consumed,
+         * that replay burns the replacement credential — so transport retries stay off here.
+         */
+        fun noRetry(): ProviderHttpClient = ProviderHttpClient(
+            okHttpClient = OkHttpClient.Builder().retryOnConnectionFailure(false).build(),
+        )
+
+        private const val NO_TIMEOUT = 0
+        private const val MAX_TIMEOUT_MILLIS = 30_000L
+        private val APPLICATION_JSON_MEDIA_TYPE = "application/json".toMediaType()
     }
 }

@@ -10,6 +10,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -21,6 +22,7 @@ import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -217,14 +219,18 @@ class GrokDeviceCodeClientTest {
         val client = newClient()
 
         val job = launch { client.awaitAuthorization(sampleChallenge(expiresInSeconds = 300), tokenEndpoint()) }
+        // Let the coroutine run up to its first IO dispatch, then block until that first poll really
+        // reaches the server — so a regression that never starts polling fails here instead of hiding
+        // behind a forgiving request-count bound.
         testScheduler.runCurrent()
+        assertNotNull(server.takeRequest(2, TimeUnit.SECONDS))
         job.cancelAndJoin()
         val countAfterCancel = server.requestCount
 
         advanceUntilIdle()
 
         assertEquals(countAfterCancel, server.requestCount)
-        assertTrue(countAfterCancel <= 1)
+        assertEquals(1, countAfterCancel)
         assertTrue(job.isCancelled)
     }
 

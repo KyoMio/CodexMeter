@@ -71,7 +71,7 @@ private fun positionalOrProviderNamedLabelRes(windowId: String): Int = when (win
     "cursor_on_demand" -> R.string.window_label_on_demand
     "minimax_interval" -> R.string.window_label_interval
     "kimi_daily_window" -> R.string.window_label_daily
-    "kimi_monthly_window" -> R.string.window_label_monthly
+    "monthly", "kimi_monthly_window" -> R.string.window_label_monthly
     "claude_7d_window" -> R.string.window_label_7d
     "claude_7d_opus_window" -> R.string.window_label_7d_opus
     "claude_7d_sonnet_window" -> R.string.window_label_7d_sonnet

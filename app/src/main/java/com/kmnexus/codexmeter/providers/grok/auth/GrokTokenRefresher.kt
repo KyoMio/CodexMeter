@@ -11,20 +11,26 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.longOrNull
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
  * Refreshes the grok access token with a single `refresh_token` grant. xAI rotates the refresh token
  * on every grant, so a transport-level retry could burn the replacement after a lost response — this
  * client therefore issues exactly one request and never retries (mirrors OpenClaw's xai-oauth note
- * and CodexMeter's CodexTokenRefresher rotation write-back policy). A payload whose cached endpoint
- * is missing or the retired `/oauth/token` value triggers re-discovery first.
+ * and CodexMeter's CodexTokenRefresher rotation write-back policy). It defaults to
+ * [ProviderHttpClient.noRetry]; any injected client must equally disable OkHttp transport retries.
+ * A payload whose cached endpoint is missing or the retired `/oauth/token` value triggers
+ * re-discovery first.
  */
 class GrokTokenRefresher(
-    private val httpClient: ProviderHttpClient,
+    private val httpClient: ProviderHttpClient = ProviderHttpClient.noRetry(),
     private val json: Json = defaultJson,
     private val clock: Clock = Clock.systemUTC(),
     private val allowInsecureHttpForTests: Boolean = false,
@@ -90,6 +96,10 @@ class GrokTokenRefresher(
             lastEndpointError = QuotaError.Network(diagnosticsDigest = "grok_refresh_insecure_endpoint")
             return null
         }
+        if (!allowInsecureHttpForTests && endpoint.host != AUTHORITY_HOST) {
+            lastEndpointError = QuotaError.Network(diagnosticsDigest = "grok_refresh_untrusted_host")
+            return null
+        }
         return endpoint.toString()
     }
 
@@ -118,8 +128,7 @@ class GrokTokenRefresher(
                     lastRefreshEpochSeconds = now.epochSecond,
                     // Knowing when the token dies lets callers skip refresh on most polls; a
                     // response without expires_in keeps it unknown (mirrors CodexTokenRefresher).
-                    tokenExpiresAtEpochSeconds = response.expiresInSeconds
-                        ?.takeIf { it > 0 }
+                    tokenExpiresAtEpochSeconds = response.expiresIn.positiveSecondsOrNull()
                         ?.let { now.epochSecond + it },
                 ),
             )
@@ -171,6 +180,17 @@ class GrokTokenRefresher(
             null
         }
 
+    // expires_in has only been observed as an integer; tolerate numeric drift (e.g. 3600.0) or a
+    // quoted string so a type change cannot make decodeSuccess discard an already-rotated token pair.
+    private fun JsonElement?.positiveSecondsOrNull(): Long? =
+        (this as? JsonPrimitive)
+            ?.let { primitive ->
+                primitive.longOrNull
+                    ?: primitive.doubleOrNull?.toLong()
+                    ?: primitive.contentOrNull?.trim()?.toLongOrNull()
+            }
+            ?.takeIf { it > 0 }
+
     sealed interface Result {
         data class Success(
             val session: GrokSessionPayload,
@@ -194,6 +214,7 @@ class GrokTokenRefresher(
         private const val REFRESH_TOKEN_GRANT = "refresh_token"
         private const val ERROR_FIELD = "error"
         private val SUCCESS_STATUS_RANGE = 200..299
+        private val AUTHORITY_HOST = GrokOAuthConfig.ISSUER_URL.toHttpUrl().host
         private val TERMINAL_AUTH_ERROR_CODES = setOf(
             "refresh_token_expired",
             "refresh_token_reused",
@@ -201,8 +222,20 @@ class GrokTokenRefresher(
             "refresh_token_invalidated",
         )
 
-        private suspend fun discoverTokenEndpoint(httpClient: ProviderHttpClient): String? =
-            when (val endpoints = GrokOAuthDiscoveryClient(httpClient).fetchEndpoints()) {
+        // Internal for tests: exercised through a MockWebServer-fronted discovery URL so the real
+        // discovery parse/trust path runs end to end (unit tests cannot reach the auth.x.ai host).
+        internal suspend fun discoverTokenEndpoint(
+            httpClient: ProviderHttpClient,
+            discoveryUrl: String = GrokOAuthConfig.DISCOVERY_URL,
+            allowInsecureHttpForTests: Boolean = false,
+        ): String? =
+            when (
+                val endpoints = GrokOAuthDiscoveryClient(
+                    httpClient = httpClient,
+                    discoveryUrl = discoveryUrl,
+                    allowInsecureHttpForTests = allowInsecureHttpForTests,
+                ).fetchEndpoints()
+            ) {
                 is GrokOAuthDiscoveryClient.Result.Success -> endpoints.value.tokenEndpoint
                 is GrokOAuthDiscoveryClient.Result.Failure -> null
             }
@@ -222,5 +255,5 @@ private data class GrokTokenRefreshResponseDto(
     @SerialName("id_token")
     val idToken: String? = null,
     @SerialName("expires_in")
-    val expiresInSeconds: Long? = null,
+    val expiresIn: JsonElement? = null,
 )

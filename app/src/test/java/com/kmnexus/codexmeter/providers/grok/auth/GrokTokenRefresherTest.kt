@@ -19,6 +19,7 @@ import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -188,6 +189,103 @@ class GrokTokenRefresherTest {
         assertTrue(failure.error is QuotaError.Network)
         assertEquals("grok_refresh_discovery_failed", failure.error.diagnosticsDigest)
         assertEquals(0, server.requestCount)
+    }
+
+    /**
+     * Covers the production default discovery glue (not the injected lambda): the real discovery
+     * client parses and trust-checks the document, and the companion maps it to the token endpoint.
+     */
+    @Test
+    fun `default discovery glue resolves token endpoint from discovery document`() = runTest {
+        server.enqueue(
+            MockResponse.Builder()
+                .code(200)
+                .body(
+                    """
+                    {
+                      "device_authorization_endpoint": "https://auth.x.ai/oauth2/device",
+                      "token_endpoint": "https://auth.x.ai/oauth2/token"
+                    }
+                    """.trimIndent(),
+                )
+                .build(),
+        )
+
+        val endpoint = GrokTokenRefresher.discoverTokenEndpoint(
+            httpClient = ProviderHttpClient(),
+            discoveryUrl = server.url("/.well-known/openid-configuration").toString(),
+            allowInsecureHttpForTests = true,
+        )
+
+        assertEquals("https://auth.x.ai/oauth2/token", endpoint)
+        assertEquals("/.well-known/openid-configuration", server.takeRequest().url.encodedPath)
+    }
+
+    @Test
+    fun `default discovery glue returns null when discovery fails`() = runTest {
+        server.enqueue(MockResponse.Builder().code(500).body("{}").build())
+
+        val endpoint = GrokTokenRefresher.discoverTokenEndpoint(
+            httpClient = ProviderHttpClient(),
+            discoveryUrl = server.url("/.well-known/openid-configuration").toString(),
+            allowInsecureHttpForTests = true,
+        )
+
+        assertNull(endpoint)
+    }
+
+    /** A cached endpoint hijacked off the auth.x.ai host must never receive the refresh token. */
+    @Test
+    fun `cached endpoint on untrusted host is rejected without a request`() = runTest {
+        val refresher = GrokTokenRefresher(
+            httpClient = ProviderHttpClient(),
+            json = json,
+            clock = clock,
+            allowInsecureHttpForTests = false,
+        )
+
+        val result = refresher.refresh(session(tokenEndpoint = "https://evil.example/oauth2/token"))
+
+        assertTrue(result is GrokTokenRefresher.Result.Failure)
+        val failure = result as GrokTokenRefresher.Result.Failure
+        assertTrue(failure.error is QuotaError.Network)
+        assertEquals("grok_refresh_untrusted_host", failure.error.diagnosticsDigest)
+        assertEquals(0, server.requestCount)
+    }
+
+    /**
+     * expires_in has only been observed as an integer; if xAI ever drifts the JSON type, the
+     * already-rotated token pair must still be kept instead of failing decode and burning it.
+     */
+    @Test
+    fun `expires_in type drift keeps rotated tokens and sets expiry`() = runTest {
+        server.enqueue(
+            MockResponse.Builder()
+                .code(200)
+                .body("""{"access_token":"a1","refresh_token":"r1","expires_in":3600.5}""")
+                .build(),
+        )
+        server.enqueue(
+            MockResponse.Builder()
+                .code(200)
+                .body("""{"access_token":"a2","refresh_token":"r2","expires_in":"7200"}""")
+                .build(),
+        )
+        val refresher = newRefresher()
+
+        val first = refresher.refresh(session())
+        val second = refresher.refresh(session())
+
+        assertTrue(first is GrokTokenRefresher.Result.Success)
+        assertTrue(second is GrokTokenRefresher.Result.Success)
+        assertEquals(
+            refreshedAt.epochSecond + 3600,
+            (first as GrokTokenRefresher.Result.Success).session.tokenExpiresAtEpochSeconds,
+        )
+        assertEquals(
+            refreshedAt.epochSecond + 7200,
+            (second as GrokTokenRefresher.Result.Success).session.tokenExpiresAtEpochSeconds,
+        )
     }
 
     private fun newRefresher(

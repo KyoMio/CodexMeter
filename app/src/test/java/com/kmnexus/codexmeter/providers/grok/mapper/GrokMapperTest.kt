@@ -76,6 +76,24 @@ class GrokMapperTest {
         assertEquals(QuotaWindowAvailability.Available, window.availability)
     }
 
+    /** An unrecognised period type must not masquerade as weekly; it falls back to a generic id. */
+    @Test
+    fun `unrecognised period type falls back to generic window id`() {
+        val snapshot = GrokMapper.map(
+            dto = goldenSampleDto().copy(
+                currentPeriod = goldenPeriod(type = "USAGE_PERIOD_TYPE_DAILY"),
+            ),
+            localAccountId = localAccountId,
+            providerAccountId = null,
+            fetchedAt = fetchedAt,
+            source = QuotaSnapshotSource.DeviceCodeLogin,
+        )
+
+        val window = snapshot.windows.single()
+        assertEquals("grok_usage_period", window.windowId.value)
+        assertEquals(QuotaWindowAvailability.Available, window.availability)
+    }
+
     /** Missing fields must degrade to "unavailable", never an estimate and never a throw. */
     @Test
     fun `empty projection maps to unavailable window without throwing`() {
