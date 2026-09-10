@@ -79,4 +79,19 @@ class CodexMeterRouteTest {
             AddAccountEntryMode.fromRouteValue("unexpected"),
         )
     }
+
+    @Test
+    fun `device code entry mode round-trips through the route value`() {
+        val grok = com.kmnexus.codexmeter.domain.model.ProviderId("grok")
+        val mode = AddAccountEntryMode.DeviceCodeLogin(grok)
+        assertEquals("devicecode:grok", mode.routeValue)
+        assertEquals(mode, AddAccountEntryMode.fromRouteValue(mode.routeValue))
+
+        val relogin = AddAccountEntryMode.DeviceCodeLogin(
+            providerId = grok,
+            reloginAccountId = com.kmnexus.codexmeter.domain.model.LocalAccountId("acct-1"),
+        )
+        assertEquals("devicecode:grok:acct-1", relogin.routeValue)
+        assertEquals(relogin, AddAccountEntryMode.fromRouteValue(relogin.routeValue))
+    }
 }

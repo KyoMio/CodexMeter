@@ -62,6 +62,7 @@ import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginController
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginNotifier
 import com.kmnexus.codexmeter.domain.auth.NoopDeviceCodeLoginController
 import com.kmnexus.codexmeter.domain.auth.NoopDeviceCodeLoginNotifier
+import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.auth.ApiKeyLoginUseCase
 import com.kmnexus.codexmeter.domain.auth.SessionLoginUseCase
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
@@ -127,7 +128,10 @@ fun CodexMeterNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     startDestination: String = CodexMeterRoute.Home.route,
-    deviceCodeLoginController: DeviceCodeLoginController = NoopDeviceCodeLoginController,
+    // Per-provider device-code login controllers; lookup falls back to the Noop controller so
+    // previews/tests stay valid with an empty map. The legacy Codex modes resolve the codex entry.
+    deviceCodeLoginControllers: Map<ProviderId, DeviceCodeLoginController> = emptyMap(),
+    deviceCodeLoginNotifiers: Map<ProviderId, DeviceCodeLoginNotifier> = emptyMap(),
     deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier,
     accountListUseCase: AccountListUseCase,
     accountDeleteUseCase: AccountDeleteUseCase,
@@ -197,10 +201,8 @@ fun CodexMeterNavHost(
                 AddAccountEntryMode.WebViewCookieAuth(providerId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.OAuthPkceLogin ->
                 AddAccountEntryMode.WebViewOAuthPkce(providerId)
-            // Placeholder until the generalized device-code entry mode lands: keep the picker
-            // reachable instead of routing Grok into a Codex-specific flow.
             com.kmnexus.codexmeter.providers.ProviderAuthKind.DeviceCodeLogin ->
-                AddAccountEntryMode.ProviderSelection
+                AddAccountEntryMode.DeviceCodeLogin(providerId)
         }
         navigateToAddAccount(nextMode)
     }
@@ -223,7 +225,7 @@ fun CodexMeterNavHost(
             com.kmnexus.codexmeter.providers.ProviderAuthKind.OAuthPkceLogin ->
                 AddAccountEntryMode.WebViewOAuthPkce(providerId, reloginAccountId = localAccountId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.DeviceCodeLogin ->
-                AddAccountEntryMode.ProviderSelection
+                AddAccountEntryMode.DeviceCodeLogin(providerId, reloginAccountId = localAccountId)
         }
         navigateToAddAccount(nextMode)
     }
@@ -257,8 +259,28 @@ fun CodexMeterNavHost(
                     ) {
                         AddAccountRoute(
                             entryMode = entryMode,
-                            deviceCodeLoginController = deviceCodeLoginController,
+                            deviceCodeLoginController = deviceCodeLoginControllers[
+                                com.kmnexus.codexmeter.providers.ProviderRegistry.CODEX,
+                            ] ?: NoopDeviceCodeLoginController,
                             deviceCodeLoginNotifier = deviceCodeLoginNotifier,
+                            onBackClick = { navController.popBackStack() },
+                            onLoginSaved = { navigateToAccountAfterSave() },
+                        )
+                    }
+                }
+                is AddAccountEntryMode.DeviceCodeLogin -> {
+                    CodexMeterDestination(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = innerPadding,
+                    ) {
+                        AddAccountRoute(
+                            entryMode = entryMode,
+                            deviceCodeLoginController = deviceCodeLoginControllers[
+                                entryMode.providerId,
+                            ] ?: NoopDeviceCodeLoginController,
+                            deviceCodeLoginNotifier = deviceCodeLoginNotifiers[
+                                entryMode.providerId,
+                            ] ?: deviceCodeLoginNotifier,
                             onBackClick = { navController.popBackStack() },
                             onLoginSaved = { navigateToAccountAfterSave() },
                         )

@@ -17,6 +17,7 @@ import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginController
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginNotifier
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
+import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.settings.DEFAULT_REFRESH_INTERVAL_MINUTES
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceStore
@@ -93,6 +94,12 @@ class CodexMeterApp :
 
     val deviceCodeLoginController: DeviceCodeLoginController
         get() = appContainer.deviceCodeLoginController
+
+    val deviceCodeLoginControllers: Map<ProviderId, DeviceCodeLoginController>
+        get() = appContainer.deviceCodeLoginControllers
+
+    val deviceCodeLoginNotifiers: Map<ProviderId, DeviceCodeLoginNotifier>
+        get() = appContainer.deviceCodeLoginNotifiers
 
     val deviceCodeLoginNotifier: DeviceCodeLoginNotifier
         get() = appContainer.deviceCodeLoginNotifier

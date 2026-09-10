@@ -37,6 +37,16 @@ sealed class AddAccountEntryMode {
         val reloginAccountId: LocalAccountId? = null,
     ) : AddAccountEntryMode()
 
+    /**
+     * Device-code OAuth flow (external browser verification + in-app polling) for providers whose
+     * auth kind is [com.kmnexus.codexmeter.providers.ProviderAuthKind.DeviceCodeLogin]. Codex keeps
+     * its legacy [LoginToCodex] / [CodexRelogin] routes; this mode is the provider-parameterized path.
+     */
+    data class DeviceCodeLogin(
+        val providerId: ProviderId,
+        val reloginAccountId: LocalAccountId? = null,
+    ) : AddAccountEntryMode()
+
     val routeValue: String
         get() = when (this) {
             is ProviderSelection -> "select"
@@ -45,6 +55,7 @@ sealed class AddAccountEntryMode {
             is ApiKeyInput -> "apikey:${providerId.value}".withReloginSuffix(reloginAccountId)
             is WebViewCookieAuth -> "cookie:${providerId.value}".withReloginSuffix(reloginAccountId)
             is WebViewOAuthPkce -> "pkce:${providerId.value}".withReloginSuffix(reloginAccountId)
+            is DeviceCodeLogin -> "devicecode:${providerId.value}".withReloginSuffix(reloginAccountId)
         }
 
     companion object {
@@ -72,6 +83,10 @@ sealed class AddAccountEntryMode {
                 routeValue.startsWith("pkce:") ->
                     routeValue.removePrefix("pkce:").splitProviderAndRelogin { providerId, relogin ->
                         WebViewOAuthPkce(providerId, relogin)
+                    }
+                routeValue.startsWith("devicecode:") ->
+                    routeValue.removePrefix("devicecode:").splitProviderAndRelogin { providerId, relogin ->
+                        DeviceCodeLogin(providerId, relogin)
                     }
                 else -> ProviderSelection
             }

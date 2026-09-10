@@ -83,6 +83,10 @@ class DeviceCodeLoginViewModel(
             is AddAccountEntryMode.ApiKeyInput -> Unit // handled by the API-key screen
             is AddAccountEntryMode.WebViewCookieAuth -> Unit // handled by the WebView screen
             is AddAccountEntryMode.WebViewOAuthPkce -> Unit // handled by the WebView screen
+            // Relogin degrades to a plain login: without an expected provider account id there is
+            // no mismatch check, and the two-phase importer reconciles by the JWT `sub`, so signing
+            // back into the same provider account rebinds that account in place.
+            is AddAccountEntryMode.DeviceCodeLogin -> startCodexDeviceCodeLogin()
         }
     }
 
