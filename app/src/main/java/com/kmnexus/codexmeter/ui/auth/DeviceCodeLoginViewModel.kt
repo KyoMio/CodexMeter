@@ -357,6 +357,7 @@ internal fun String.toDeviceCodeLoginErrorResId(): Int =
         "error_auth_required" -> R.string.error_auth_required
         "error_session_persistence" -> R.string.error_session_persistence
         "error_login_not_wired" -> R.string.error_login_not_wired
+        "error_grok_access_denied" -> R.string.error_grok_access_denied
         "error_device_code_account_mismatch" -> R.string.add_account_device_code_account_mismatch
         else -> R.string.error_unknown
     }

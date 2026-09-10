@@ -4,7 +4,10 @@ import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginNotifier
 
 class AndroidDeviceCodeLoginNotifier(
     private val notificationSink: NotificationSink,
-    private val orchestrator: DeviceCodeLoginNotificationOrchestrator = DeviceCodeLoginNotificationOrchestrator(),
+    providerDisplayName: String = DeviceCodeLoginNotificationOrchestrator.DEFAULT_PROVIDER_DISPLAY_NAME,
+    private val orchestrator: DeviceCodeLoginNotificationOrchestrator = DeviceCodeLoginNotificationOrchestrator(
+        providerDisplayName = providerDisplayName,
+    ),
     private val registry: DeviceCodeLoginNotificationRegistry = GlobalDeviceCodeLoginNotificationRegistry,
 ) : DeviceCodeLoginNotifier {
     override fun waitingForAuthorization(attemptId: String, userCode: String, verificationUri: String) {

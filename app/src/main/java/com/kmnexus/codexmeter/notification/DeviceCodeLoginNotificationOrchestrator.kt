@@ -3,7 +3,9 @@ package com.kmnexus.codexmeter.notification
 import android.app.PendingIntent
 import com.kmnexus.codexmeter.R
 
-class DeviceCodeLoginNotificationOrchestrator {
+class DeviceCodeLoginNotificationOrchestrator(
+    private val providerDisplayName: String = DEFAULT_PROVIDER_DISPLAY_NAME,
+) {
     fun waitingForAuthorization(
         attemptId: String,
         userCode: String,
@@ -12,8 +14,14 @@ class DeviceCodeLoginNotificationOrchestrator {
         NotificationRequest(
             notificationId = NotificationOrchestrator.AUTH_LOGIN_NOTIFICATION_ID,
             channelId = NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID,
-            title = NotificationText(R.string.notification_auth_login_waiting_title),
-            body = NotificationText(R.string.notification_auth_login_waiting_body_format),
+            title = NotificationText(
+                resourceId = R.string.notification_auth_login_waiting_title,
+                formatArgs = listOf(providerDisplayName),
+            ),
+            body = NotificationText(
+                resourceId = R.string.notification_auth_login_waiting_body_format,
+                formatArgs = listOf(providerDisplayName),
+            ),
             pendingIntent = externalVerificationPendingIntent(
                 requestCode = AUTH_LOGIN_CONTENT_REQUEST_CODE,
                 verificationUri = verificationUri,
@@ -36,7 +44,10 @@ class DeviceCodeLoginNotificationOrchestrator {
         NotificationRequest(
             notificationId = NotificationOrchestrator.AUTH_LOGIN_NOTIFICATION_ID,
             channelId = NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID,
-            title = NotificationText(R.string.notification_auth_login_connected_title),
+            title = NotificationText(
+                resourceId = R.string.notification_auth_login_connected_title,
+                formatArgs = listOf(providerDisplayName),
+            ),
             body = NotificationText(
                 resourceId = R.string.notification_auth_login_connected_body_format,
                 formatArgs = listOf(accountDisplayName.orEmpty()),
@@ -74,7 +85,10 @@ class DeviceCodeLoginNotificationOrchestrator {
         NotificationRequest(
             notificationId = NotificationOrchestrator.AUTH_LOGIN_NOTIFICATION_ID,
             channelId = NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID,
-            title = NotificationText(title),
+            title = NotificationText(
+                resourceId = title,
+                formatArgs = listOf(providerDisplayName),
+            ),
             body = NotificationText(resourceId = body, formatArgs = bodyArgs),
             pendingIntent = addAccountPendingIntent(AUTH_LOGIN_CONTENT_REQUEST_CODE),
             ongoing = false,
@@ -98,7 +112,8 @@ class DeviceCodeLoginNotificationOrchestrator {
             externalUrl = verificationUri,
         )
 
-    private companion object {
+    internal companion object {
+        const val DEFAULT_PROVIDER_DISPLAY_NAME = "Codex"
         const val AUTH_LOGIN_CONTENT_REQUEST_CODE = 41
         const val AUTH_LOGIN_COPY_REQUEST_CODE = 42
         const val CONNECTED_TIMEOUT_MILLIS = 5_000L
