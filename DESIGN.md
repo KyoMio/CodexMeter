@@ -895,7 +895,7 @@ MVP 支持：
 - 图标资源命名使用语义前缀，例如 `ic_tab_home`、`ic_tab_account`、`ic_tab_settings`。
 - 避免使用 Android 保留名，例如 `icon`、`logo`、`background`。
 - 线性图标保持统一 stroke、圆角端点和 24dp 画布。
-- Provider 品牌图标使用 `ic_brand_*` 单色描边矢量；Grok 当前为占位 slash / 斜杠风格矢量（`ic_brand_grok`），最终视觉待设计定稿后替换。
+- Provider 品牌图标使用 `ic_brand_*` 单色描边矢量；Grok 使用官方标志（用户提供 SVG 转制，`ic_brand_grok`，256×246 viewport，与其他品牌图标一致的黑色填充 + 渲染期 tint）。
 
 ### Theme Tokens
 
