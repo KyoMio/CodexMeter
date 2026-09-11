@@ -103,7 +103,7 @@
     <string name="add_account_start_device_code_login">开始 %1$s 登录</string>
     <string name="add_account_device_code_format">授权码：%1$s</string>
     <string name="add_account_copy_code">复制</string>
-    <string name="add_account_open_verification_page">打开 Codex 验证页</string>
+    <string name="add_account_open_verification_page">打开 %1$s 验证页</string>
     <string name="add_account_cancel_login">取消登录</string>
     <string name="add_account_retry_validation">重试校验</string>
     <string name="add_account_restart_login">重新生成 code</string>

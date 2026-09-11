@@ -189,7 +189,7 @@ private fun AddAccountDeviceCodeCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = CodexMeterShapes.md,
                 ) {
-                    Text(text = stringResource(R.string.add_account_open_verification_page))
+                    Text(text = stringResource(R.string.add_account_open_verification_page, providerDisplayName))
                 }
             }
             AddAccountActionRow(

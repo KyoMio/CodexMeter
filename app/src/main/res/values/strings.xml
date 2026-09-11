@@ -103,7 +103,7 @@
     <string name="add_account_start_device_code_login">Start %1$s sign-in</string>
     <string name="add_account_device_code_format">Code: %1$s</string>
     <string name="add_account_copy_code">Copy</string>
-    <string name="add_account_open_verification_page">Open Codex verification page</string>
+    <string name="add_account_open_verification_page">Open %1$s verification page</string>
     <string name="add_account_cancel_login">Cancel sign-in</string>
     <string name="add_account_retry_validation">Retry validation</string>
     <string name="add_account_restart_login">Generate new code</string>
