@@ -328,8 +328,11 @@ class GrokDeviceCodeClient(
         private const val DEFAULT_INTERVAL_SECONDS = 5
         private const val DEFAULT_EXPIRES_IN_SECONDS = 300
         private val SUCCESS_STATUS_RANGE = 200..299
+        // Live xAI serves the device verification page on accounts.x.ai even though the OAuth
+        // issuer and endpoints live on auth.x.ai — both are first-party and must stay trusted.
         private val TRUSTED_VERIFICATION_HOSTS = setOf(
             GrokOAuthConfig.ISSUER_URL.toHttpUrl().host,
+            "accounts.x.ai",
             "x.ai",
         )
         private val defaultJson = Json {

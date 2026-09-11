@@ -93,6 +93,35 @@ class GrokDeviceCodeClientTest {
         assertEquals(300, challenge.expiresInSeconds)
     }
 
+    /** Live xAI returns verification URIs on accounts.x.ai (not auth.x.ai) — must stay trusted. */
+    @Test
+    fun `request device code accepts accounts xai verification uri`() = runTest {
+        server.enqueue(
+            jsonResponse(
+                """
+                {
+                  "device_code": "$SAMPLE_DEVICE_CODE",
+                  "user_code": "84Y6-GZW7",
+                  "verification_uri": "https://accounts.x.ai/oauth2/device",
+                  "verification_uri_complete": "https://accounts.x.ai/oauth2/device?user_code=84Y6-GZW7",
+                  "interval": 5,
+                  "expires_in": 1800
+                }
+                """.trimIndent(),
+            ),
+        )
+        val client = newClient()
+
+        val result = client.requestDeviceCode(deviceAuthorizationEndpoint())
+
+        val challenge = (result as GrokDeviceCodeClient.Result.Success).value
+        assertEquals("https://accounts.x.ai/oauth2/device", challenge.verificationUri)
+        assertEquals(
+            "https://accounts.x.ai/oauth2/device?user_code=84Y6-GZW7",
+            challenge.verificationUriComplete,
+        )
+    }
+
     @Test
     fun `request device code missing fields fails safely`() = runTest {
         server.enqueue(
