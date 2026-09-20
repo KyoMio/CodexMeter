@@ -35,6 +35,20 @@ class DefaultNotificationWindowChoicesLoaderTest {
         }
     }
 
+    @Test
+    fun `window choices skip a slot the provider did not send`() = runTest {
+        withLoader { db, currentAccountReader, loader ->
+            db.providerAccountDao().upsert(account())
+            currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
+            db.quotaSnapshotDao().insert(snapshot())
+
+            val choices = loader.windowChoices(null, null)
+
+            // secondary_window is absent, so the mapper emitted a Missing "weekly" slot.
+            assertEquals(listOf("five_hour"), choices.map { it.windowId.value })
+        }
+    }
+
     private suspend fun withLoader(
         block: suspend (CodexMeterDatabase, InMemoryCurrentAccountReader, DefaultNotificationWindowChoicesLoader) -> Unit,
     ) {
@@ -82,7 +96,7 @@ class DefaultNotificationWindowChoicesLoaderTest {
         fetchedAt = Instant.parse("2026-05-23T11:50:00Z").toEpochMilli(),
         source = "manualRefresh",
         planType = "plus",
-        windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]""",
+        windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":null,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Missing"}]""",
         creditsJson = null,
         responseDigest = "safe-digest",
     )

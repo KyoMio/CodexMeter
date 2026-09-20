@@ -23,14 +23,15 @@ class NotificationPrimaryWindowResolutionTest {
     private fun makeWindow(
         id: String,
         isPrimaryCandidate: Boolean = false,
+        availability: QuotaWindowAvailability = QuotaWindowAvailability.Available,
     ) = QuotaWindow(
         windowId = QuotaWindowId(id),
         titleKey = "key_$id",
-        usedPercent = 50,
+        usedPercent = if (availability == QuotaWindowAvailability.Available) 50 else null,
         resetAt = null,
         limitWindowSeconds = null,
         isPrimaryCandidate = isPrimaryCandidate,
-        availability = QuotaWindowAvailability.Available,
+        availability = availability,
     )
 
     private fun makeSnapshot(windows: List<QuotaWindow>) = QuotaSnapshot(
@@ -71,6 +72,19 @@ class NotificationPrimaryWindowResolutionTest {
         val resolved = resolveNotificationPrimaryWindow(state)
 
         assertEquals(window, resolved)
+    }
+
+    @Test
+    fun `falls back to an available candidate when the chosen window is missing`() {
+        // The user picked "weekly" for the status notification before Codex stopped sending
+        // secondary_window; the quota now lives in the "five_hour" slot.
+        val missing = makeWindow("weekly", isPrimaryCandidate = true, availability = QuotaWindowAvailability.Missing)
+        val available = makeWindow("five_hour", isPrimaryCandidate = true)
+        val state = makeState(primaryWindow = missing, snapshot = makeSnapshot(listOf(available, missing)))
+
+        val resolved = resolveNotificationPrimaryWindow(state)
+
+        assertEquals(available, resolved)
     }
 
     @Test

@@ -18,6 +18,7 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaStateFactory
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
+import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.settings.DefaultPrimaryQuotaWindowPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
@@ -136,14 +137,19 @@ internal class CurrentQuotaStateRepository(
  * Resolves the primary window for the persistent status notification.
  *
  * When the stored persistentNotificationWindowId belongs to a previous account and is absent from
- * the current account's snapshot, [CurrentQuotaState.primaryWindow] is null. Rather than showing
- * no quota in the notification, fall back to the account's own primary-candidate window, or else
- * the first window in the snapshot.
+ * the current account's snapshot, [CurrentQuotaState.primaryWindow] is null. The same applies when
+ * the id is present but the provider stopped sending that slot (Codex without a secondary_window).
+ * Rather than showing no quota in the notification, fall back to the account's own available
+ * primary-candidate window, or else the first window in the snapshot.
  */
-internal fun resolveNotificationPrimaryWindow(state: CurrentQuotaState): QuotaWindow? =
-    state.primaryWindow
-        ?: state.snapshot?.windows?.firstOrNull { it.isPrimaryCandidate }
-        ?: state.snapshot?.windows?.firstOrNull()
+internal fun resolveNotificationPrimaryWindow(state: CurrentQuotaState): QuotaWindow? {
+    val chosen = state.primaryWindow?.takeUnless { it.availability == QuotaWindowAvailability.Missing }
+    if (chosen != null) return chosen
+    val windows = state.snapshot?.windows.orEmpty()
+    return windows.firstOrNull { it.isPrimaryCandidate && it.availability == QuotaWindowAvailability.Available }
+        ?: windows.firstOrNull { it.isPrimaryCandidate }
+        ?: windows.firstOrNull()
+}
 
 private object DefaultStatusNotificationPreferenceReader : NotificationPreferenceReader {
     override suspend fun notificationPreferences(): NotificationPreferences = NotificationPreferences()

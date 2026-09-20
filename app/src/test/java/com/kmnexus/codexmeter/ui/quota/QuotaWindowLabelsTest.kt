@@ -21,6 +21,18 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
+    fun `codex slots are labelled five hour and weekly again once both durations are reported`() {
+        assertEquals(
+            R.string.account_quota_five_hour_label,
+            quotaWindowLabelRes(windowId = "five_hour", limitWindowSeconds = fiveHourSeconds),
+        )
+        assertEquals(
+            R.string.account_quota_weekly_label,
+            quotaWindowLabelRes(windowId = "weekly", limitWindowSeconds = weekSeconds),
+        )
+    }
+
+    @Test
     fun `codex secondary window reporting a five hour duration is labelled five hour`() {
         assertEquals(
             R.string.account_quota_five_hour_label,
