@@ -44,12 +44,13 @@ private const val WEEK_SECONDS = 7 * DAY_SECONDS
 
 @StringRes
 fun quotaWindowLabelRes(windowId: String, limitWindowSeconds: Int? = null): Int {
-    if (windowId in POSITIONAL_WINDOW_IDS && limitWindowSeconds != null) {
-        // A duration we cannot name is still better served by the neutral label than by a positional
-        // guess that would state a window length the provider never reported.
-        return windowDurationLabelRes(limitWindowSeconds) ?: R.string.window_label_generic
+    if (windowId in POSITIONAL_WINDOW_IDS) {
+        // A duration we cannot name (or a missing window that reports none) is still better served by
+        // the neutral label than by a positional guess that would state a window length the provider
+        // never reported — and could collide with the sibling slot's real label.
+        return limitWindowSeconds?.let(::windowDurationLabelRes) ?: R.string.window_label_generic
     }
-    return positionalOrProviderNamedLabelRes(windowId)
+    return providerNamedLabelRes(windowId)
 }
 
 @StringRes
@@ -61,10 +62,10 @@ private fun windowDurationLabelRes(limitWindowSeconds: Int): Int? = when (limitW
 }
 
 @StringRes
-private fun positionalOrProviderNamedLabelRes(windowId: String): Int = when (windowId) {
-    "five_hour", "zai_5h_window", "claude_5h_window", "kimi_rate_window", "minimax_interval" ->
+private fun providerNamedLabelRes(windowId: String): Int = when (windowId) {
+    "zai_5h_window", "claude_5h_window", "kimi_rate_window", "minimax_interval" ->
         R.string.account_quota_five_hour_label
-    "weekly", "zai_weekly_window", "kimi_weekly_window", "minimax_weekly" -> R.string.account_quota_weekly_label
+    "zai_weekly_window", "kimi_weekly_window", "minimax_weekly" -> R.string.account_quota_weekly_label
     "claude_extra_usage" -> R.string.window_label_extra_usage
     "balance" -> R.string.window_label_balance
     "cursor_plan" -> R.string.window_label_plan

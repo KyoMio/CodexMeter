@@ -351,7 +351,9 @@ Codex mapping:
   may change what a slot holds (it temporarily removed the 5-hour window, after which
   `primary_window` carried the weekly quota). Window ids stay stable so saved widget, alert and
   primary-window preferences keep matching; the **display label** is chosen from
-  `limit_window_seconds` instead, and falls back to the neutral label when the duration has no name.
+  `limit_window_seconds` instead, and falls back to the neutral label when the duration has no name
+  or is not reported at all (a missing slot must never reuse the positional label, otherwise it
+  duplicates the sibling slot's real label).
   Provider-named window ids (Claude, z.ai, Kimi, MiniMax, Cursor, Antigravity) always keep their own
   label, since several of them share a duration.
 - `used_percent` maps to `usedPercent`.

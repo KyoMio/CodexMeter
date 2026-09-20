@@ -232,6 +232,44 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `missing codex secondary window does not duplicate the weekly card title`() {
+        // Regression for #4 follow-up: Codex dropped the 5-hour window, so primary_window carries the
+        // weekly quota and secondary_window is absent. The missing slot has no duration and must not
+        // fall back to its positional "7-day" label, or Home shows two "7-day quota" cards.
+        val snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(5))).copy(
+            windows = listOf(
+                quotaWindow(
+                    windowId = QuotaWindowId("five_hour"),
+                    usedPercent = 99,
+                    resetAt = Instant.parse("2026-09-15T09:05:00Z"),
+                    limitWindowSeconds = 604_800,
+                ),
+                QuotaWindow(
+                    windowId = QuotaWindowId("weekly"),
+                    titleKey = "quota_window_weekly",
+                    usedPercent = null,
+                    resetAt = null,
+                    limitWindowSeconds = null,
+                    isPrimaryCandidate = true,
+                    availability = QuotaWindowAvailability.Missing,
+                ),
+            ),
+        )
+
+        val uiState = viewModel.mapToUiState(
+            state = currentState(
+                status = CurrentQuotaStatus.Fresh,
+                freshness = CurrentQuotaFreshness.Fresh,
+                snapshot = snapshot,
+            ),
+        )
+
+        assertEquals(R.string.account_quota_weekly_label, uiState.fiveHourCard?.titleResId)
+        assertEquals(R.string.window_label_generic, uiState.weeklyCard?.titleResId)
+        assertEquals(HomeQuotaStatus.Unavailable, uiState.weeklyCard?.status)
+    }
+
+    @Test
     fun `trend loads for providers whose primary window id is not five_hour`() = runTest {
         // Non-Codex providers (e.g. DeepSeek "balance") have no "five_hour" window, so
         // CurrentQuotaState.primaryWindow is null. The trend must still load by falling back

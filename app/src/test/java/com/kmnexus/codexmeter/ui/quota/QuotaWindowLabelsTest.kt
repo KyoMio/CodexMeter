@@ -45,13 +45,16 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
-    fun `codex window without a reported duration keeps its positional label`() {
+    fun `codex window without a reported duration falls back to the generic label`() {
+        // A missing secondary window carries no duration. Keeping its positional "7-day" label made
+        // Home show two "7-day quota" cards once the primary slot started reporting a weekly duration
+        // (#4 follow-up), so an unnamed positional window must not claim a length either.
         assertEquals(
-            R.string.account_quota_five_hour_label,
+            R.string.window_label_generic,
             quotaWindowLabelRes(windowId = "five_hour", limitWindowSeconds = null),
         )
         assertEquals(
-            R.string.account_quota_weekly_label,
+            R.string.window_label_generic,
             quotaWindowLabelRes(windowId = "weekly", limitWindowSeconds = null),
         )
     }
