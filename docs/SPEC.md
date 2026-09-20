@@ -317,6 +317,8 @@ Rules:
 - Persist snapshots only after a successful provider response.
 - A failed refresh must not overwrite or delete the last successful snapshot.
 - If a provider field is missing, represent the relevant window as unavailable instead of inventing a value.
+  Home does not render a card for a `missing` window (the provider never sent that slot); `decodeFailed`
+  windows still render as unavailable so a broken payload stays noticeable.
 
 ### 6.4 Quota window
 

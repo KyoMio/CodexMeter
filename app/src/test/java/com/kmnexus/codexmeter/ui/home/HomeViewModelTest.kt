@@ -232,10 +232,10 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `missing codex secondary window does not duplicate the weekly card title`() {
+    fun `missing codex secondary window renders no placeholder card`() {
         // Regression for #4 follow-up: Codex dropped the 5-hour window, so primary_window carries the
-        // weekly quota and secondary_window is absent. The missing slot has no duration and must not
-        // fall back to its positional "7-day" label, or Home shows two "7-day quota" cards.
+        // weekly quota and secondary_window is absent. Home used to show two "7-day quota" cards (the
+        // real one plus a "--" placeholder for the missing slot); the missing slot is now hidden.
         val snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(5))).copy(
             windows = listOf(
                 quotaWindow(
@@ -264,9 +264,9 @@ class HomeViewModelTest {
             ),
         )
 
+        assertEquals(listOf("five_hour"), uiState.quotaCards.map { it.windowId })
         assertEquals(R.string.account_quota_weekly_label, uiState.fiveHourCard?.titleResId)
-        assertEquals(R.string.window_label_generic, uiState.weeklyCard?.titleResId)
-        assertEquals(HomeQuotaStatus.Unavailable, uiState.weeklyCard?.status)
+        assertNull(uiState.weeklyCard)
     }
 
     @Test

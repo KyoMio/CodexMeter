@@ -181,6 +181,9 @@ class HomeViewModel(
         val statusDescriptionResId = state.statusDescriptionResId()
         val allWindows = state.allWindows()
         val quotaCards = allWindows
+            // A slot the provider simply did not send (Codex without a secondary_window) is noise as a
+            // "--" placeholder card; decode failures stay visible so a broken payload is noticeable.
+            .filterNot { it.availability == QuotaWindowAvailability.Missing }
             .map { it.withConvertedBalance(currencyPreferences.targetCurrency, exchangeRates) }
             .map { window -> window.toQuotaCard() }
         val effectiveRefreshing = isRefreshing || state.status == CurrentQuotaStatus.Loading
