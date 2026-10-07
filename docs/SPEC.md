@@ -356,11 +356,34 @@ Codex mapping:
   `limit_window_seconds` instead, and falls back to the neutral label when the duration has no name
   or is not reported at all (a missing slot must never reuse the positional label, otherwise it
   duplicates the sibling slot's real label).
-  Provider-named window ids (Claude, z.ai, Kimi, MiniMax, Cursor, Antigravity) always keep their own
-  label, since several of them share a duration.
+  Provider-named window ids (Claude, z.ai, MiniMax, Cursor, Antigravity) keep their own label,
+  since several of them share a duration. Kimi uses the explicit rules below.
 - `used_percent` maps to `usedPercent`.
 - `reset_at` maps to `resetAt`.
 - `limit_window_seconds` maps to `limitWindowSeconds`.
+
+Kimi mapping (GetUsages):
+
+- Keep `kimi_rate_window` and legacy `kimi_weekly_window` ids stable for history, widget, notification
+  selection and alert de-duplication; the latter is a cycle slot, not proof of a weekly period.
+- Read the rate period from `limits[].window.duration/timeUnit`; accept positive, Int-seconds-safe
+  durations with verified `TIME_UNIT_MINUTE`, `TIME_UNIT_HOUR`, `TIME_UNIT_DAY` units. Unknown units,
+  missing/nonpositive values and overflow yield unknown duration, not a guessed 5h period.
+- The current verified `usages[].detail` schema has no duration or full start/end interval. Map its
+  duration to null and display `Cycle quota / 周期额度`, including old snapshots with fabricated 7-day
+  duration. Do not replace the 7-day assumption with a 30-day assumption.
+- Use actual period metadata, or a full start/end interval once those fields are verified for this
+  endpoint. Never infer the period from `resetAt - now`; reset time remains available for existing
+  countdown/date presentation and alerts even when the period is unknown.
+- Home, Account, widget/configuration and notification settings share `quotaWindowLabelRes`; Kimi
+  rate labels follow known durations, otherwise use the neutral cycle label. Notification bodies
+  already show quota percentage/status without a period label and need no separate inference.
+- Source verification: 2026-10-07 raw CodexBar main
+  [KimiModels.swift](https://raw.githubusercontent.com/steipete/CodexBar/main/Sources/CodexBarCore/Providers/Kimi/KimiModels.swift)
+  and [KimiUsageFetcher.swift](https://raw.githubusercontent.com/steipete/CodexBar/main/Sources/CodexBarCore/Providers/Kimi/KimiUsageFetcher.swift).
+  `KimiUsage`/`KimiUsageDetail` expose no start field; only `KimiRateLimit.window` has duration metadata.
+  The separate Code API's `limit_month_total` pool is not the GetUsages endpoint used here and must
+  not be invented on this DTO. No authenticated response was collected for this fix.
 
 Display rules:
 

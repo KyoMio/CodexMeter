@@ -91,6 +91,10 @@ sealed interface WebViewAuthConfig {
          * submit a pre-login token and fail with 401.
          */
         val autoCapture: Boolean = true,
+        /** Explicit trusted paths for cookies not visible at the domain root. */
+        val cookiePaths: List<String> = emptyList(),
+        /** Optional web-session JWT source, read only on explicit confirmation at cookieDomain. */
+        val localStorageTokenKey: String? = null,
         /** Optional JS run on every page load — e.g. to open a provider's login modal automatically. */
         val injectOnLoadJs: String? = null,
         /** Optional one-time tip dialog shown when the screen opens (string resource id). */
@@ -301,6 +305,9 @@ private fun CookieAuthBody(
     val cookieDomain = selectedRegion?.cookieDomain ?: config.cookieDomain
     val noSession = stringResource(R.string.auth_cookie_no_session)
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    DisposableEffect(loginUrl) {
+        onDispose { webViewRef = null }
+    }
 
     // Publish the top-bar actions; re-published when the active region (and thus login URL / cookie
     // domain) changes. `webViewRef` is read lazily inside the clear lambda so it picks up the WebView
@@ -319,8 +326,37 @@ private fun CookieAuthBody(
         }
         onConfirmAction {
             CookieManager.getInstance().flush()
-            val value = readTargetCookie("https://$cookieDomain", config.targetCookieNames)
-            if (value != null) onCredential(value, null) else onError(noSession)
+            fun captureCookie() {
+                val value = (config.cookiePaths + "").firstNotNullOfOrNull { path ->
+                    readTargetCookie("https://$cookieDomain$path", config.targetCookieNames)
+                }
+                if (value != null) onCredential(value, null) else onError(noSession)
+            }
+            val view = webViewRef
+            val storageKey = config.localStorageTokenKey
+            if (storageKey != null && view != null &&
+                BrowserSessionToken.isTrustedUrl(view.url, cookieDomain)
+            ) {
+                val origin = org.json.JSONObject.quote("https://$cookieDomain")
+                val key = org.json.JSONObject.quote(storageKey)
+                // Check inside JS too: navigation may occur between the native check and evaluation.
+                view.evaluateJavascript(
+                    """(() => { try {
+                        if (location.origin !== $origin) return null;
+                        return localStorage.getItem($key);
+                    } catch (_) { return null; } })()""".trimIndent(),
+                ) { result ->
+                    if (webViewRef !== view || !BrowserSessionToken.isTrustedUrl(view.url, cookieDomain)) {
+                        onError(noSession)
+                    } else {
+                        // Prefer the live web token over a potentially stale anonymous cookie.
+                        val token = BrowserSessionToken.fromJavascript(result)
+                        if (token != null) onCredential(token, null) else captureCookie()
+                    }
+                }
+            } else {
+                captureCookie()
+            }
         }
     }
 
@@ -517,6 +553,12 @@ private fun ErrorLine(message: String) {
  * compatibility configuration, not credential or detection tampering.
  */
 private fun configureAuthWebView(webView: WebView, useSoftwareLayer: Boolean) {
+    // WRAP_CONTENT under AndroidView can make Chromium resolve CSS vh/dvh to 0.
+    // Kimi's height:100dvh page then collapses even though the native view has height.
+    webView.layoutParams = android.view.ViewGroup.LayoutParams(
+        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+    )
     val cookieManager = CookieManager.getInstance()
     cookieManager.setAcceptCookie(true)
     cookieManager.setAcceptThirdPartyCookies(webView, true)

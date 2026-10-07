@@ -25,7 +25,7 @@
     <string name="auth_reload">重载授权页</string>
     <string name="auth_tip_title">登录提示</string>
     <string name="auth_tip_got_it">知道了</string>
-    <string name="auth_tip_kimi">kimi 网页由于内嵌浏览器限制无法显示内容。通过手机号码登录后，点击右上角的 %1$s 图标即可，应用将自动验证并保存登录信息。</string>
+    <string name="auth_tip_kimi">通过手机号码登录 Kimi 后，点击右上角的 %1$s 图标即可，应用将自动验证并保存登录信息。</string>
     <string name="auth_tip_claude">由于内嵌浏览器限制，授权页面打开可能卡顿。若登录后授权页面长时间不弹出，点击右上角的 %1$s 图标重新载入授权页。</string>
     <string name="auth_select_region">选择区域</string>
     <string name="auth_oauth_browser_instruction">在浏览器中完成授权后返回 CodexMeter。</string>
@@ -151,6 +151,7 @@
     <string name="account_quota_percent_format">%1$d%%</string>
     <string name="account_quota_placeholder_no_data">暂无数据</string>
     <string name="window_label_generic">额度</string>
+    <string name="window_label_cycle">周期额度</string>
     <string name="window_label_balance">余额</string>
     <string name="window_label_plan">套餐用量</string>
     <string name="window_label_on_demand">按量用量</string>

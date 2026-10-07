@@ -15,8 +15,8 @@ import java.time.Instant
 import java.time.OffsetDateTime
 
 /**
- * Maps the Kimi GetUsages coding scope into quota windows: the scope `detail` is the weekly quota
- * (primary) and the first `limits[].detail` is the short rate-limit window. Counts are strings and
+ * Maps the Kimi GetUsages coding scope into quota windows: the scope `detail` is the cycle quota
+ * and the first `limits[].detail` is the short rate-limit window. Counts are strings and
  * `used` falls back to limit − remaining, matching CodexBar's `KimiUsageSnapshot.toUsageSnapshot`.
  */
 object KimiQuotaMapper {
@@ -30,8 +30,7 @@ object KimiQuotaMapper {
         val usage = dto.codingUsage()
             ?: return emptySnapshot(localAccountId, fetchedAt, source)
 
-        // 5-hour rate window first (primary), then the 7-day window — matching the shared
-        // "5h then 7d" ordering used across providers.
+        // Rate window first (primary), then the cycle quota. Only rate windows report a duration.
         val windows = buildList {
             usage.limits.firstOrNull()?.let { rate ->
                 rate.detail?.let { detail ->
@@ -47,12 +46,14 @@ object KimiQuotaMapper {
                     )
                 }
             }
-            usage.detail?.let { weekly ->
+            usage.detail?.let { cycle ->
                 add(
                     detailToWindow(
-                        detail = weekly,
+                        detail = cycle,
+                        // Keep the historical ID for saved selections; it does not prove a period.
                         windowId = "kimi_weekly_window",
-                        limitWindowSeconds = WEEKLY_WINDOW_SECONDS,
+                        // GetUsages has no verified cycle duration/start; resetTime alone is insufficient.
+                        limitWindowSeconds = null,
                         isPrimary = false,
                         subLabel = null,
                     ),
@@ -120,16 +121,13 @@ object KimiQuotaMapper {
 
     private fun windowSeconds(duration: Int?, timeUnit: String?): Int? {
         if (duration == null || duration <= 0) return null
-        // Kimi sends enum-style units like "TIME_UNIT_MINUTE", so match by substring.
-        val unit = timeUnit?.lowercase() ?: return null
-        return when {
-            unit.contains("second") -> duration
-            unit.contains("minute") || unit.contains("min") -> duration * 60
-            unit.contains("hour") -> duration * 3600
-            unit.contains("day") -> duration * 86400
-            unit.contains("week") -> duration * 7 * 86400
-            else -> null
+        val multiplier = when (timeUnit) {
+            "TIME_UNIT_MINUTE" -> 60L
+            "TIME_UNIT_HOUR" -> 3600L
+            "TIME_UNIT_DAY" -> 86400L
+            else -> return null
         }
+        return (duration * multiplier).takeIf { it <= Int.MAX_VALUE }?.toInt()
     }
 
     private fun parseIso(value: String?): Instant? {
@@ -155,6 +153,5 @@ object KimiQuotaMapper {
         responseDigest = null,
     )
 
-    private const val WEEKLY_WINDOW_SECONDS = 7 * 86400
     private val KIMI_PROVIDER_ID = ProviderId("kimi")
 }

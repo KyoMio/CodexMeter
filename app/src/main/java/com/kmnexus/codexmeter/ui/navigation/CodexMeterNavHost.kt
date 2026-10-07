@@ -364,19 +364,24 @@ fun CodexMeterNavHost(
                                     )
                                     // CodexBar uses a single www.kimi.com host (no region split);
                                     // the kimi-auth cookie is the JWT used for the billing API.
-                                    // The coding console is where the kimi-auth session + billing API
-                                    // live (www.kimi.com/ is just an SEO landing). kimi sets a guest
-                                    // kimi-auth before login, so capture only on explicit "Done".
+                                    // Load /code directly: /code/console client-redirects logged-out
+                                    // users to /code, and in a WebView that redirected page's login
+                                    // button stops opening the modal. kimi sets a guest kimi-auth
+                                    // before login, so capture only on explicit "Done".
                                     "kimi" -> WebViewAuthConfig.Cookie(
                                         providerId = entryMode.providerId,
-                                        loginUrl = "https://www.kimi.com/code/console",
+                                        loginUrl = "https://www.kimi.com/code",
                                         cookieDomain = "www.kimi.com",
                                         targetCookieNames = listOf("kimi-auth"),
                                         autoCapture = false,
+                                        cookiePaths = listOf(
+                                            "/apiv2/kimi.gateway.billing.v1.BillingService/GetUsages",
+                                            "/code/console",
+                                            "/code",
+                                        ),
+                                        localStorageTokenKey = "access_token",
                                         tipResId = R.string.auth_tip_kimi,
-                                        // kimi's logged-out /code landing collapses to 0-height in a
-                                        // WebView, but its login button opens a working modal — so open
-                                        // it automatically (guarded so it won't re-trigger once shown).
+                                        // Open the login modal automatically, unless it is already shown.
                                         injectOnLoadJs = """
                                             if(!document.querySelector('input[type=tel]')){
                                               var t=[].slice.call(document.querySelectorAll('a,button,[role=button]'))

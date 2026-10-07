@@ -29,12 +29,12 @@ fun currencySymbol(currency: String?): String = when (currency?.uppercase()) {
 }
 
 /**
- * Codex is the only provider that names its windows by position: the usage API exposes
+ * Codex names its windows by position: the usage API exposes
  * `primary_window` / `secondary_window`, so the mapper can only guess `five_hour` / `weekly` from
  * the slot an entry arrived in. That guess broke when Codex dropped the 5-hour window and its
  * `primary_window` started carrying the weekly quota. For these two ids the window duration the
- * provider reports is the truth. Every other provider names its own windows, so their ids keep
- * winning — Claude's 7-day Opus and Sonnet windows share one duration but must stay distinguishable.
+ * provider reports is the truth. Kimi is handled separately below; other providers' named windows
+ * keep winning — Claude's 7-day Opus and Sonnet windows share a duration but must stay distinguishable.
  */
 private val POSITIONAL_WINDOW_IDS = setOf("five_hour", "weekly")
 
@@ -44,6 +44,11 @@ private const val WEEK_SECONDS = 7 * DAY_SECONDS
 
 @StringRes
 fun quotaWindowLabelRes(windowId: String, limitWindowSeconds: Int? = null): Int {
+    // Older Kimi snapshots persisted a fabricated 7-day duration. Do not trust it or the legacy ID.
+    if (windowId == "kimi_weekly_window") return R.string.window_label_cycle
+    if (windowId == "kimi_rate_window") {
+        return limitWindowSeconds?.let(::windowDurationLabelRes) ?: R.string.window_label_cycle
+    }
     if (windowId in POSITIONAL_WINDOW_IDS) {
         // A duration we cannot name (or a missing window that reports none) is still better served by
         // the neutral label than by a positional guess that would state a window length the provider
@@ -63,9 +68,9 @@ private fun windowDurationLabelRes(limitWindowSeconds: Int): Int? = when (limitW
 
 @StringRes
 private fun providerNamedLabelRes(windowId: String): Int = when (windowId) {
-    "zai_5h_window", "claude_5h_window", "kimi_rate_window", "minimax_interval" ->
+    "zai_5h_window", "claude_5h_window", "minimax_interval" ->
         R.string.account_quota_five_hour_label
-    "zai_weekly_window", "kimi_weekly_window", "minimax_weekly" -> R.string.account_quota_weekly_label
+    "zai_weekly_window", "minimax_weekly" -> R.string.account_quota_weekly_label
     "claude_extra_usage" -> R.string.window_label_extra_usage
     "balance" -> R.string.window_label_balance
     "cursor_plan" -> R.string.window_label_plan

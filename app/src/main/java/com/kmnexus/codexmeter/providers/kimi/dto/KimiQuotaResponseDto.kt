@@ -4,8 +4,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * Response of `kimi.gateway.billing.v1.BillingService/GetUsages` (www.kimi.com), mirroring CodexBar's
- * `KimiUsageResponse`. The coding scope's `detail` is the weekly quota; `limits[].detail` carries the
- * short rate-limit window. Counts arrive as strings; `resetTime` is ISO-8601.
+ * `KimiUsageResponse`. The coding scope's `detail` is a cycle quota with no verified period metadata;
+ * `limits[].window` describes the short rate-limit period. Counts are strings; `resetTime` is ISO-8601.
  */
 @Serializable
 data class KimiQuotaResponseDto(

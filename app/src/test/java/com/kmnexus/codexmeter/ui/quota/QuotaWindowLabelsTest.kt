@@ -90,6 +90,22 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
+    fun `kimi cycle never trusts the historical weekly id or cached hardcoded duration`() {
+        listOf(null, weekSeconds, 30 * daySeconds).forEach { seconds ->
+            assertEquals(R.string.window_label_cycle, quotaWindowLabelRes("kimi_weekly_window", seconds))
+        }
+    }
+
+    @Test
+    fun `kimi rate label follows API duration and is neutral when unknown`() {
+        assertEquals(R.string.account_quota_five_hour_label, quotaWindowLabelRes("kimi_rate_window", fiveHourSeconds))
+        assertEquals(R.string.window_label_daily, quotaWindowLabelRes("kimi_rate_window", daySeconds))
+        listOf(null, 3 * 60 * 60).forEach { seconds ->
+            assertEquals(R.string.window_label_cycle, quotaWindowLabelRes("kimi_rate_window", seconds))
+        }
+    }
+
+    @Test
     fun `unknown window id still falls back to the generic label`() {
         assertEquals(
             R.string.window_label_generic,

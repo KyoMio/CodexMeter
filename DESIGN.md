@@ -464,6 +464,13 @@ Tabbar 是主导航，升级后使用轻量浮动玻璃胶囊，不做强折射�
 - 5h 与 Weekly 不因主额度设置而隐藏。
 - 状态色只影响状态点、少量文字或进度条，不改变整个卡片底色。
 
+Kimi 周期标签例外（首页 / 账号 / Widget / 通知配置一致）：
+
+- 短窗口按 API 实际时长显示，例如 `5小时额度 / 5h quota`；缺失或无法识别时显示 `周期额度 / Cycle quota`。
+- 长窗口保留历史 `kimi_weekly_window` ID，但不得据此显示 7 天。当前 GetUsages 无已验证周期元数据或完整起止区间，因此使用 `周期额度 / Cycle quota`，旧缓存中的硬编码 7 天也不作为标签依据。
+- 只在接口提供已验证周期元数据或完整起止区间后展示具体周期；不以重置倒计时推断周/月，也不固定把一个月换成 30 天。保留已有 reset 倒计时 / 日期与剩余百分比。
+- 常驻通知正文继续显示百分比与状态，不新增周期推断；通知窗口选择复用共享标签。字段来源与限制见 `docs/SPEC.md` 的 Kimi mapping。
+
 ### 6. Trend Card
 
 趋势只做最近 24 小时极简圆顶柱状图，避免曲线 / 折线在稀疏数据下产生“追点”“过平滑”或定位漂移的观感。
@@ -611,7 +618,10 @@ Tabbar 是主导航，升级后使用轻量浮动玻璃胶囊，不做强折射�
 
 #### WebView 认证页（Cursor / Kimi Cookie；Claude / Antigravity OAuth）
 
-- 内嵌 WebView 承载 Provider 登录页，登录完成后自动提取 cookie 或拦截 OAuth code。
+- 内嵌 WebView 承载 Provider 登录页，登录完成后自动提取 cookie 或拦截 OAuth code；Kimi 会预设游客 Cookie，因此仅在用户点击右上角确认图标后提取并验证。
+- Kimi 确认登录时，仅在 `https://www.kimi.com` 原点读取 localStorage `access_token`（JWT 格式与有效期初筛），无有效值时查询 billing API、`/code/console`、`/code` 与根路径的 `kimi-auth`；仍须通过额度 API 验证才加密保存，不输出凭据。来源：[CodexBar KimiCookieImporter](https://github.com/steipete/CodexBar/blob/main/Sources/CodexBarCore/Providers/Kimi/KimiCookieImporter.swift)。
+- Kimi 直接打开 `/code` 并尝试自动展开手机号登录窗口，避免 `/code/console` 重定向后登录按钮无响应；提示文案只说明登录与确认步骤。
+- 内嵌 WebView 显式使用 MATCH_PARENT 宽高，避免 Compose 默认布局参数导致 CSS `100dvh` 为 0、页面白屏。
 - Kimi 等 Cookie 页使用软件层渲染；Claude 等 OAuth 拦截页使用硬件层（防止 Google 登录页被压缩）。
 - 不展示浏览器地址栏 URL，不要求用户手动粘贴 callback URL。
 
