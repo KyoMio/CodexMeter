@@ -108,6 +108,7 @@ docs/superpowers/
 docs/design/
 sketches/
 spikes/
+tasks/
 
 # Tooling / agent local state (machine-specific, never shared)
 .codegraph/
