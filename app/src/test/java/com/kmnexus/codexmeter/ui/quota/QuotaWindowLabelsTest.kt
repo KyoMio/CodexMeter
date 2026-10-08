@@ -106,6 +106,25 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
+    fun `kimi code named windows keep fixed labels regardless of duration`() {
+        assertEquals(R.string.account_quota_five_hour_label, quotaWindowLabelRes("kimi_code_5h", fiveHourSeconds))
+        assertEquals(R.string.account_quota_weekly_label, quotaWindowLabelRes("kimi_code_7d", weekSeconds))
+        assertEquals(R.string.window_label_monthly, quotaWindowLabelRes("kimi_code_month_total", null))
+        // The cycle fallback window must never claim a period.
+        assertEquals(R.string.window_label_cycle, quotaWindowLabelRes("kimi_code_usage", null))
+        assertEquals(R.string.window_label_cycle, quotaWindowLabelRes("kimi_code_usage", weekSeconds))
+    }
+
+    @Test
+    fun `kimi code rate label follows API duration and is neutral when unknown`() {
+        assertEquals(R.string.account_quota_five_hour_label, quotaWindowLabelRes("kimi_code_rate", fiveHourSeconds))
+        assertEquals(R.string.window_label_daily, quotaWindowLabelRes("kimi_code_rate", daySeconds))
+        listOf(null, 3 * 60 * 60).forEach { seconds ->
+            assertEquals(R.string.window_label_cycle, quotaWindowLabelRes("kimi_code_rate", seconds))
+        }
+    }
+
+    @Test
     fun `unknown window id still falls back to the generic label`() {
         assertEquals(
             R.string.window_label_generic,

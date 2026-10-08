@@ -31,7 +31,7 @@ CodexMeter 是一个面向自用和小范围侧载的 Android 工具 App，用�
 - 本地优先，而不是云端同步服务。
 - 官方数据源，而不是客户端估算。
 - 微件和首页优先，而不是复杂分析系统。
-- 多 Provider 统一管理（Codex / DeepSeek / z.ai Coding Plan / z.ai API / MiniMax / Cursor / Kimi / Claude / Antigravity / Grok），而不是单一服务商工具。
+- 多 Provider 统一管理（Codex / DeepSeek / z.ai Coding Plan / z.ai API / MiniMax / Cursor / Kimi / Kimi Code API / Claude / Antigravity / Grok），而不是单一服务商工具。
 
 ## 4. 目标用户与核心场景
 
@@ -53,7 +53,7 @@ CodexMeter 是一个面向自用和小范围侧载的 Android 工具 App，用�
 
 ### 5.1 MVP 已实现
 
-- 多 Provider 账号接入（Codex device-code；Grok 设备码登录；DeepSeek / z.ai Coding Plan / z.ai API / MiniMax API Key；Cursor / Kimi Cookie WebView；Claude OAuth WebView 拦截；Antigravity OAuth loopback）。
+- 多 Provider 账号接入（Codex device-code；Grok 设备码登录；DeepSeek / z.ai Coding Plan / z.ai API / MiniMax / Kimi Code API Key；Cursor / Kimi Cookie WebView；Claude OAuth WebView 拦截；Antigravity OAuth loopback）。
 - `ProviderSelectionSheet` 底部选择器，统一入口添加任意 Provider 账号。
 - `AuthScaffold` 统一认证页 Chrome。
 - 既有 OAuth 会话兼容，包括历史上从 `auth.json` 导入后已保存的会话。
@@ -137,10 +137,10 @@ MVP 需要展示：
 
 ### 7.1 添加账号入口
 
-添加账号通过统一的 `ProviderSelectionSheet` 底部选择器进入：用户先选择 Provider，再进入该 Provider 对应的认证流程。当前支持 10 个 Provider，按认证类型分为四类：
+添加账号通过统一的 `ProviderSelectionSheet` 底部选择器进入：用户先选择 Provider，再进入该 Provider 对应的认证流程。当前支持 11 个 Provider，按认证类型分为四类：
 
 - **Codex / Grok**：device-code 外部浏览器登录（Codex 为 Hermes 对齐流程，详见 §7.2；Grok 为 SuperGrok 订阅的 xAI 设备码登录，登录与校验形态同 §7.2，额度数据来自 Grok billing 端点）。
-- **DeepSeek / z.ai Coding Plan / z.ai API / MiniMax**：应用内 API Key 输入（`ApiKeyAuthScreen`）。
+- **DeepSeek / z.ai Coding Plan / z.ai API / MiniMax / Kimi Code API**：应用内 API Key 输入（`ApiKeyAuthScreen`）。Kimi Code API 使用 Kimi Code 控制台长期有效的 API Key，调 `GET /coding/v1/usages`；与 Kimi Cookie 接入面（短期 JWT）互相独立，已存 Kimi Cookie 账号不受影响。
 - **Cursor / Kimi**：内嵌 WebView 登录后由 `CookieManager` 自动提取目标 Cookie（`WebViewAuthScreen`）。
 - **Claude / Antigravity**：OAuth PKCE 登录（Claude 走 WebView 拦截回调 code；Antigravity 走外部浏览器 + 127.0.0.1 loopback 短连接）。
 

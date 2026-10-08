@@ -11,6 +11,7 @@ object ProviderRegistry {
     val MINIMAX = ProviderId("minimax")
     val CURSOR = ProviderId("cursor")
     val KIMI = ProviderId("kimi")
+    val KIMI_CODE = ProviderId("kimi_code")
     val CLAUDE = ProviderId("claude")
     val ANTIGRAVITY = ProviderId("antigravity")
     val ZAI_BALANCE = ProviderId("zai_balance")
@@ -86,6 +87,17 @@ object ProviderRegistry {
             displayName = "Kimi",
             iconResId = com.kmnexus.codexmeter.R.drawable.ic_brand_kimi,
             authKind = ProviderAuthKind.CookieAuth,
+            supportsBalance = false,
+            supportsRefill = false,
+            supportsInviteLimitSnooping = false,
+            isDefault = false,
+        ),
+        ProviderConfig(
+            providerId = KIMI_CODE,
+            displayName = "Kimi Code API",
+            // Shares the Kimi brand mark: same product, different credential surface.
+            iconResId = com.kmnexus.codexmeter.R.drawable.ic_brand_kimi,
+            authKind = ProviderAuthKind.ApiKeyImport,
             supportsBalance = false,
             supportsRefill = false,
             supportsInviteLimitSnooping = false,

@@ -311,6 +311,12 @@ fun CodexMeterNavHost(
                                         ApiKeyAuthRegion("🌍 国际站 (api.minimax.io)", "https://api.minimax.io"),
                                         ApiKeyAuthRegion("🇨🇳 中国站 (api.minimaxi.com)", "https://api.minimaxi.com"),
                                     )
+                                    // Kimi Code console keys live on one of two platforms; the first
+                                    // entry is the default region.
+                                    "kimi_code" -> listOf(
+                                        ApiKeyAuthRegion("🇨🇳 中国站 (api.kimi.com)", "https://api.kimi.com"),
+                                        ApiKeyAuthRegion("🌍 国际站 (api.kimi.ai)", "https://api.kimi.ai"),
+                                    )
                                     else -> emptyList()
                                 }
                             }

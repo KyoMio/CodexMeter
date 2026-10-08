@@ -47,7 +47,7 @@ The MVP must support:
 - Package: `com.kmnexus.codexmeter`.
 - Debug package: `com.kmnexus.codexmeter.debug`.
 - Android 12+ only (`minSdk = 31`).
-- Multi-provider UI: Codex, DeepSeek, z.ai Coding Plan, MiniMax, Cursor, Kimi, Claude, Antigravity, z.ai API, Grok (SuperGrok device-code login); all providers use a shared provider-aware domain layer.
+- Multi-provider UI: Codex, DeepSeek, z.ai Coding Plan, MiniMax, Cursor, Kimi, Kimi Code API, Claude, Antigravity, z.ai API, Grok (SuperGrok device-code login); all providers use a shared provider-aware domain layer.
 - Hermes-aligned Codex device-code login through an external browser verification handoff, per `docs/CODEX_DEVICE_CODE_LOGIN_SPEC.md`.
 - No new user-facing `auth.json` file / full JSON import path; existing saved OAuth sessions continue to refresh normally.
 - Official usage API validation before saving a newly connected account.
@@ -385,6 +385,26 @@ Kimi mapping (GetUsages):
   The separate Code API's `limit_month_total` pool is not the GetUsages endpoint used here and must
   not be invented on this DTO. No authenticated response was collected for this fix.
 
+Kimi Code mapping (`kimi_code`, `GET <base>/coding/v1/usages`, Bearer API key):
+
+- Ratio pools win per slot: `usages.limit_5h` → `kimi_code_5h` (18000s, primary candidate),
+  `usages.limit_7d` → `kimi_code_7d` (604800s), `usages.limit_month_total` → `kimi_code_month_total`
+  (duration null — a calendar month has no fixed second count).
+- Count fallbacks are used only when the slot's ratio pool is absent: no `limit_5h` →
+  `limits[0].detail` as `kimi_code_rate` (duration from `window.duration × timeUnit`, overflow-safe,
+  primary candidate); no `limit_7d` → top-level `usage` as `kimi_code_usage` with a **null duration**.
+  Never infer weekly/monthly from the fallback path and never back-compute a period from
+  `resetTime − now`.
+- Ratio windows fill no `usedCount`/`limitCount`; count fallback used = `used`, else
+  `limit − remaining` (not below 0), else 0. A `limit <= 0` count window is missing and skipped.
+  Count fields accept JSON strings, ints and doubles; `used_ratio` is a 0–1 fraction clamped to
+  0–100%. `resetTime` may arrive as `resetTime`/`resetAt`/`reset_time`/`reset_at`.
+- Zero usable windows (`{}`, `{"usages":{}}`, `{"usages":{"limit_5h":{}}}`) fail the fetch with
+  `kimi_code_no_quota_windows` instead of persisting an empty snapshot.
+- Labels: `kimi_code_5h` → 5h quota, `kimi_code_7d` → 7-day quota, `kimi_code_month_total` →
+  monthly, `kimi_code_usage` → neutral cycle, `kimi_code_rate` follows the reported duration with
+  the cycle label as fallback. The cookie-provider (`kimi_*`) label branches are untouched.
+
 Display rules:
 
 - Percent windows: show remaining percent, clamp to 0..100.
@@ -596,7 +616,7 @@ Rules:
 
 ### 8.1 Current provider wiring
 
-All 10 providers are wired by hand in `AppContainer` using `ProviderRegistry`.
+All 11 providers are wired by hand in `AppContainer` using `ProviderRegistry`.
 
 - `ProviderRegistry` holds a `ProviderConfig` per provider (displayName, icon, `ProviderAuthKind`, capability flags).
 - Each provider's `<Name>RefreshProvider` implements `RefreshProvider` used by `RefreshCoordinator`.

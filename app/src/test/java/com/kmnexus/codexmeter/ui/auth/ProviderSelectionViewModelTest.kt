@@ -4,6 +4,7 @@ import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.providers.ProviderAuthKind
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,6 +31,15 @@ class ProviderSelectionViewModelTest {
         assertNotNull(deepseek)
         assertEquals(ProviderAuthKind.ApiKeyImport, deepseek!!.authKind)
         assertTrue(deepseek.supportsBalance)
+    }
+
+    @Test
+    fun `providerSelection contains Kimi Code API with ApiKeyImport auth`() {
+        val kimiCode = ProviderRegistry.all.find { it.providerId.value == "kimi_code" }
+        assertNotNull(kimiCode)
+        assertEquals(ProviderAuthKind.ApiKeyImport, kimiCode!!.authKind)
+        assertEquals("Kimi Code API", kimiCode.displayName)
+        assertFalse(kimiCode.supportsBalance)
     }
 
     @Test

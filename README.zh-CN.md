@@ -50,6 +50,7 @@ CodexMeter 使用 WorkManager 在后台刷新额度（默认约 15 分钟一次�
 | MiniMax | API Key |
 | Cursor | Cookie 采集（应用内 WebView） |
 | Kimi | Cookie 采集（应用内 WebView） |
+| Kimi Code API | API Key（Kimi Code 控制台） |
 
 ## 下载与安装
 

@@ -49,6 +49,11 @@ fun quotaWindowLabelRes(windowId: String, limitWindowSeconds: Int? = null): Int 
     if (windowId == "kimi_rate_window") {
         return limitWindowSeconds?.let(::windowDurationLabelRes) ?: R.string.window_label_cycle
     }
+    // Kimi Code's count-fallback window only has the duration the API reported in `limits[0]`;
+    // same policy as the cookie provider's rate window above.
+    if (windowId == "kimi_code_rate") {
+        return limitWindowSeconds?.let(::windowDurationLabelRes) ?: R.string.window_label_cycle
+    }
     if (windowId in POSITIONAL_WINDOW_IDS) {
         // A duration we cannot name (or a missing window that reports none) is still better served by
         // the neutral label than by a positional guess that would state a window length the provider
@@ -78,6 +83,10 @@ private fun providerNamedLabelRes(windowId: String): Int = when (windowId) {
     "minimax_interval" -> R.string.window_label_interval
     "kimi_daily_window" -> R.string.window_label_daily
     "monthly", "kimi_monthly_window" -> R.string.window_label_monthly
+    "kimi_code_5h" -> R.string.account_quota_five_hour_label
+    "kimi_code_7d" -> R.string.account_quota_weekly_label
+    "kimi_code_month_total" -> R.string.window_label_monthly
+    "kimi_code_usage" -> R.string.window_label_cycle
     "claude_7d_window" -> R.string.window_label_7d
     "claude_7d_opus_window" -> R.string.window_label_7d_opus
     "claude_7d_sonnet_window" -> R.string.window_label_7d_sonnet

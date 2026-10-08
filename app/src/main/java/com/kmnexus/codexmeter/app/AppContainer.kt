@@ -96,6 +96,9 @@ import com.kmnexus.codexmeter.providers.cursor.network.CursorUsageClient
 import com.kmnexus.codexmeter.providers.kimi.KimiRefreshProvider
 import com.kmnexus.codexmeter.providers.kimi.auth.KimiSessionImporter
 import com.kmnexus.codexmeter.providers.kimi.network.KimiQuotaClient
+import com.kmnexus.codexmeter.providers.kimicode.KimiCodeRefreshProvider
+import com.kmnexus.codexmeter.providers.kimicode.auth.KimiCodeSessionImporter
+import com.kmnexus.codexmeter.providers.kimicode.network.KimiCodeUsageClient
 import com.kmnexus.codexmeter.providers.zaibalance.ZaiBalanceRefreshProvider
 import com.kmnexus.codexmeter.providers.zaibalance.auth.ZaiBalanceSessionImporter
 import com.kmnexus.codexmeter.providers.zaibalance.network.ZaiBalanceClient
@@ -316,6 +319,13 @@ class AppContainer private constructor(
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
+            val kimiCodeUsageClient = KimiCodeUsageClient(httpClient)
+            val kimiCodeRefreshProvider = KimiCodeRefreshProvider(
+                client = kimiCodeUsageClient,
+                sessionStore = sessionStore,
+                payloadCipher = payloadCipher,
+                clock = clock,
+            )
             val zaiBalanceClient = ZaiBalanceClient(httpClient)
             val zaiBalanceRefreshProvider = ZaiBalanceRefreshProvider(
                 client = zaiBalanceClient,
@@ -379,6 +389,7 @@ class AppContainer private constructor(
                     ProviderId("minimax") to minimaxRefreshProvider,
                     ProviderId("cursor") to cursorRefreshProvider,
                     ProviderId("kimi") to kimiRefreshProvider,
+                    ProviderId("kimi_code") to kimiCodeRefreshProvider,
                     ProviderId("zai_balance") to zaiBalanceRefreshProvider,
                     ProviderId("claude") to claudeRefreshProvider,
                     ProviderId("antigravity") to antigravityRefreshProvider,
@@ -411,6 +422,12 @@ class AppContainer private constructor(
             )
             val kimiSessionImporter = KimiSessionImporter(
                 client = kimiQuotaClient,
+                sessionStore = sessionStore,
+                payloadCipher = payloadCipher,
+                clock = clock,
+            )
+            val kimiCodeSessionImporter = KimiCodeSessionImporter(
+                usageClient = kimiCodeUsageClient,
                 sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
@@ -453,6 +470,7 @@ class AppContainer private constructor(
                 zaiSessionImporter = zaiSessionImporter,
                 cursorSessionImporter = cursorSessionImporter,
                 kimiSessionImporter = kimiSessionImporter,
+                kimiCodeSessionImporter = kimiCodeSessionImporter,
                 zaiBalanceSessionImporter = zaiBalanceSessionImporter,
                 claudeSessionImporter = claudeSessionImporter,
                 antigravitySessionImporter = antigravitySessionImporter,
@@ -556,6 +574,7 @@ class AppContainer private constructor(
             zaiSessionImporter: ZaiSessionImporter,
             cursorSessionImporter: CursorSessionImporter,
             kimiSessionImporter: KimiSessionImporter,
+            kimiCodeSessionImporter: KimiCodeSessionImporter,
             zaiBalanceSessionImporter: ZaiBalanceSessionImporter,
             claudeSessionImporter: ClaudeSessionImporter,
             antigravitySessionImporter: AntigravitySessionImporter,
@@ -629,6 +648,7 @@ class AppContainer private constructor(
                     ProviderId("minimax") to minimaxSessionImporter,
                     ProviderId("cursor") to cursorSessionImporter,
                     ProviderId("kimi") to kimiSessionImporter,
+                    ProviderId("kimi_code") to kimiCodeSessionImporter,
                     ProviderId("zai_balance") to zaiBalanceSessionImporter,
                     ProviderId("claude") to claudeSessionImporter,
                     ProviderId("antigravity") to antigravitySessionImporter,

@@ -55,4 +55,21 @@ class ProviderRegistryTest {
         assertFalse(config.supportsBalance)
         assertFalse(config.isDefault)
     }
+
+    @Test
+    fun kimiCodeProvider_isApiKeyImportRightAfterKimi() {
+        val config = ProviderRegistry.configFor(ProviderRegistry.KIMI_CODE)
+        assertEquals("Kimi Code API", config.displayName)
+        assertEquals(ProviderAuthKind.ApiKeyImport, config.authKind)
+        assertFalse(config.supportsBalance)
+        assertFalse(config.isDefault)
+        assertEquals(
+            com.kmnexus.codexmeter.R.drawable.ic_brand_kimi,
+            config.iconResId,
+        )
+        val ids = ProviderRegistry.all.map { it.providerId }
+        // Picker order is alphabetical by display name: "Kimi" < "Kimi Code API" < "MiniMax".
+        assertEquals(ids.indexOf(ProviderRegistry.KIMI) + 1, ids.indexOf(ProviderRegistry.KIMI_CODE))
+        assertTrue(ids.indexOf(ProviderRegistry.KIMI_CODE) < ids.indexOf(ProviderRegistry.MINIMAX))
+    }
 }

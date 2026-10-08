@@ -52,6 +52,7 @@ CodexMeter refreshes quota in the background with WorkManager (default every ~15
 | MiniMax | API key |
 | Cursor | Cookie capture (in-app WebView) |
 | Kimi | Cookie capture (in-app WebView) |
+| Kimi Code API | API key (Kimi Code console) |
 
 ## Download & Install
 
