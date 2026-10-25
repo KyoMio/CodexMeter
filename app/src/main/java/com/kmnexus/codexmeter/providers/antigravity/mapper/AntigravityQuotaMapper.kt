@@ -11,48 +11,61 @@ import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
-import com.kmnexus.codexmeter.providers.antigravity.dto.AntigravityQuotaResponseDto
+import com.kmnexus.codexmeter.providers.antigravity.dto.AntigravityQuotaSummaryDto
+import com.kmnexus.codexmeter.providers.antigravity.network.AntigravityModelQuota
 import java.time.Instant
 import java.time.OffsetDateTime
 
 /**
- * Maps Antigravity quota buckets (per-model `remainingFraction`, 0–1) into one window PER MODEL
- * FAMILY (Claude / Gemini / GPT-OSS / Other), with each family's models carried as the window's
- * per-model buckets for the account-page model-detail list. Each family window shows the family's
- * LOWEST remaining quota (the most-constrained model). Internal/code-completion models (chat_*,
- * tab_*, *-agent, *-image) are dropped; every other model id maps to a family, unknown ones land
- * in Other.
+ * Maps Antigravity quota into windows. Two entry points:
  *
- * `retrieveUserQuota` returns proto3 JSON, which omits default values: a fully-depleted model
- * reports no `remainingFraction` at all (mapped to 0.0 = 100% used), and a blank `resetTime`
- * maps to a null `resetAt` while the bucket is kept. Duplicate rows for one model keep the row
- * with the lowest remaining fraction.
+ * - [mapSummary] is the primary path: it turns `:retrieveUserQuotaSummary` groups into one window
+ *   per family (Claude / Gemini / GPT-OSS / Other) × lane (5h / weekly / cycle), so a subscription
+ *   shows its 5-hour AND weekly windows side by side. When the summary reports no known quota the
+ *   window list is empty and the caller falls back to [map].
+ * - [map] is the per-model fallback (`:fetchAvailableModels` merged with `:retrieveUserQuota`):
+ *   one window PER MODEL FAMILY, with each family's models carried as the window's per-model
+ *   buckets for the account-page model-detail list. Each family window shows the family's LOWEST
+ *   remaining quota (the most-constrained model). Internal/code-completion models (chat_*, tab_*,
+ *   *-agent, *-image) are dropped; every other model id maps to a family, unknown ones land in
+ *   Other.
+ *
+ * Both sources return proto3 JSON, which omits default values: a fully-depleted model or bucket
+ * reports no `remainingFraction` at all (mapped to 0.0 = 100% used), and a blank `resetTime` maps
+ * to a null `resetAt` while the entry is kept. Duplicate rows for one model keep the row with the
+ * lowest remaining fraction.
  */
 object AntigravityQuotaMapper {
-    private enum class Family(val windowId: String, val priority: Int) {
-        Claude("antigravity_claude_window", 0),
-        Gemini("antigravity_gemini_window", 1),
-        GptOss("antigravity_gpt_oss_window", 2),
-        Other("antigravity_other_window", 3),
+    private enum class Family(val key: String, val windowId: String, val priority: Int) {
+        Claude("claude", "antigravity_claude_window", 0),
+        Gemini("gemini", "antigravity_gemini_window", 1),
+        GptOss("gpt_oss", "antigravity_gpt_oss_window", 2),
+        Other("other", "antigravity_other_window", 3),
+    }
+
+    private enum class Lane(val key: String, val windowSeconds: Int?, val priority: Int) {
+        FiveHour("5h", FIVE_HOUR_SECONDS, 0),
+        Weekly("weekly", WEEK_SECONDS, 1),
+        Cycle("cycle", null, 2),
     }
 
     fun map(
-        dto: AntigravityQuotaResponseDto,
+        tier: String?,
+        models: List<AntigravityModelQuota>,
         localAccountId: LocalAccountId,
         providerAccountId: ProviderAccountId?,
         fetchedAt: Instant,
         source: QuotaSnapshotSource,
     ): QuotaSnapshot {
-        val bucketsByFamily = dto.buckets
+        val bucketsByFamily = models
             .asSequence()
-            .mapNotNull { bucket ->
-                val modelId = bucket.modelId ?: return@mapNotNull null
-                val family = familyOf(modelId) ?: return@mapNotNull null
+            .mapNotNull { model ->
+                val family = familyOf(model.modelId) ?: return@mapNotNull null
                 family to QuotaModelBucket(
-                    modelId = modelId,
-                    displayName = displayNameFor(modelId),
-                    remainingFraction = (bucket.remainingFraction ?: 0.0).coerceIn(0.0, 1.0),
-                    resetAt = parseIso(bucket.resetTime),
+                    modelId = model.modelId,
+                    displayName = model.label,
+                    remainingFraction = (model.remainingFraction ?: 0.0).coerceIn(0.0, 1.0),
+                    resetAt = parseIso(model.resetTime),
                 )
             }
             // The same model can appear in several rows; keep its most-constrained row (first wins ties).
@@ -85,11 +98,122 @@ object AntigravityQuotaMapper {
             providerAccountId = providerAccountId,
             fetchedAt = fetchedAt,
             source = source,
-            planType = dto.tier,
+            planType = tier,
             windows = windows,
             credits = null,
             responseDigest = null,
         )
+    }
+
+    fun mapSummary(
+        dto: AntigravityQuotaSummaryDto,
+        tier: String?,
+        localAccountId: LocalAccountId,
+        providerAccountId: ProviderAccountId?,
+        fetchedAt: Instant,
+        source: QuotaSnapshotSource,
+    ): QuotaSnapshot {
+        if (!dto.hasKnownQuotaSummary()) {
+            return emptySnapshot(localAccountId, fetchedAt, source)
+        }
+
+        data class BucketWindow(val family: Family, val lane: Lane, val window: QuotaWindow)
+
+        val windows = dto.payload().groups
+            .flatMap { group ->
+                group.buckets.mapNotNull { bucket ->
+                    if (bucket.disabled == true) return@mapNotNull null
+                    val stableId = bucket.bucketId ?: bucket.id
+                    val title = bucket.displayName ?: bucket.name
+                    val remaining = (bucket.remainingFractionOrNull() ?: 0.0).coerceIn(0.0, 1.0)
+                    val family = summaryFamilyOf(stableId, title, group)
+                    val lane = laneOf(bucket.window, stableId, title)
+                    BucketWindow(
+                        family = family,
+                        lane = lane,
+                        window = QuotaWindow(
+                            windowId = QuotaWindowId("antigravity_${family.key}_${lane.key}_window"),
+                            titleKey = "antigravity_${family.key}_${lane.key}_window",
+                            usedPercent = ((1.0 - remaining) * 100).coerceIn(0.0, 100.0).toInt(),
+                            resetAt = parseIso(bucket.resetTime),
+                            limitWindowSeconds = lane.windowSeconds,
+                            isPrimaryCandidate = false,
+                            availability = if (remaining <= 0.0) {
+                                QuotaWindowAvailability.Depleted
+                            } else {
+                                QuotaWindowAvailability.Available
+                            },
+                        ),
+                    )
+                }
+            }
+            // The same window can receive several buckets (e.g. per-tier rows); keep the fullest.
+            .groupBy { it.window.windowId.value }
+            .map { (_, same) ->
+                same.reduce { keep, candidate ->
+                    if ((candidate.window.usedPercent ?: 0) > (keep.window.usedPercent ?: 0)) candidate else keep
+                }
+            }
+            // Most-constrained window first; ties break by family, then by lane recency.
+            .sortedWith(
+                compareByDescending<BucketWindow> { it.window.usedPercent ?: 0 }
+                    .thenBy { it.family.priority }
+                    .thenBy { it.lane.priority },
+            )
+            .mapIndexed { index, bucketWindow -> bucketWindow.window.copy(isPrimaryCandidate = index == 0) }
+
+        return QuotaSnapshot(
+            snapshotId = SnapshotId("antigravity_${fetchedAt}"),
+            providerId = ANTIGRAVITY_PROVIDER_ID,
+            localAccountId = localAccountId,
+            providerAccountId = providerAccountId,
+            fetchedAt = fetchedAt,
+            source = source,
+            planType = tier,
+            windows = windows,
+            credits = null,
+            responseDigest = null,
+        )
+    }
+
+    /**
+     * Lane classification: the bucket's explicit `window` field wins, then the stable bucket id,
+     * then the display title. Candidates are normalized (trimmed, lowercased, underscores to
+     * dashes, trailing " limit" stripped) before matching the session aliases or "weekly".
+     */
+    private fun laneOf(window: String?, bucketId: String?, displayName: String?): Lane {
+        for (candidate in listOf(window, bucketId, displayName)) {
+            val normalized = candidate?.trim()?.lowercase()
+                ?.replace('_', '-')?.removeSuffix(" limit")
+                ?.takeIf { it.isNotBlank() }
+                ?: continue
+            if (normalized in SESSION_LANE_ALIASES) return Lane.FiveHour
+            if (normalized.contains("weekly")) return Lane.Weekly
+        }
+        return Lane.Cycle
+    }
+
+    /** Bucket text first, then the group name with the same rules; anything else is Other. */
+    private fun summaryFamilyOf(
+        bucketId: String?,
+        bucketTitle: String?,
+        group: AntigravityQuotaSummaryDto.QuotaGroup,
+    ): Family {
+        val bucketText = "${bucketId.orEmpty()} ${bucketTitle.orEmpty()}"
+        return familyOfText(bucketText)
+            ?: familyOfText(group.displayName ?: group.name ?: "")
+            ?: Family.Other
+    }
+
+    private fun familyOfText(text: String): Family? {
+        val normalized = text.lowercase()
+        return when {
+            normalized.contains("gemini") -> Family.Gemini
+            normalized.contains("claude") -> Family.Claude
+            normalized.contains("gpt") || normalized.contains("3p") ||
+                normalized.contains("third-party") -> Family.GptOss
+            else -> null
+        }
     }
 
     private fun buildFamilyWindow(family: Family, buckets: List<QuotaModelBucket>): QuotaWindow {
@@ -128,12 +252,6 @@ object AntigravityQuotaMapper {
         }
     }
 
-    /** kebab/snake model id -> readable display name, e.g. "claude-opus-4-6" -> "Claude Opus 4 6". */
-    private fun displayNameFor(modelId: String): String =
-        modelId.split('-', '_')
-            .filter { it.isNotBlank() }
-            .joinToString(" ") { part -> part.replaceFirstChar { it.uppercaseChar() } }
-
     private fun parseIso(value: String?): Instant? {
         if (value.isNullOrBlank()) return null
         return runCatching { Instant.parse(value) }.getOrNull()
@@ -158,4 +276,9 @@ object AntigravityQuotaMapper {
     )
 
     private val ANTIGRAVITY_PROVIDER_ID = ProviderId("antigravity")
+
+    private const val FIVE_HOUR_SECONDS = 18_000
+    private const val WEEK_SECONDS = 604_800
+
+    private val SESSION_LANE_ALIASES = setOf("session", "5h", "5-hour", "five hour", "five-hour")
 }

@@ -331,7 +331,7 @@ Grok 私有 payload（schemaVersion=1）由 `providers/grok/session` 定义，�
 | Kimi | `quota` | Percent |
 | Kimi Code API | `kimi_code_5h`、`kimi_code_7d`、`kimi_code_month_total`、`kimi_code_rate`、`kimi_code_usage` | Percent |
 | Claude | `usage` | UsageCount / Percent |
-| Antigravity | 多模型分桶 | MultiModelFraction |
+| Antigravity | 摘要窗口 `antigravity_<family>_<lane>_window`（lane ∈ 5h/weekly/cycle）；回退 `antigravity_<family>_window` 多模型分桶 | Percent / MultiModelFraction |
 | Grok | `weekly`（月度 period → `monthly`，未知 period → `grok_usage_period`） | Percent |
 
 UI 只消费 `displayKind` 分支渲染，不识别 Provider 私有窗口 id。

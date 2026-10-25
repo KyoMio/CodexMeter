@@ -133,6 +133,47 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
+    fun `antigravity summary family x lane windows keep their named labels`() {
+        assertEquals(
+            R.string.window_label_family_claude_5h,
+            quotaWindowLabelRes("antigravity_claude_5h_window", fiveHourSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_claude_weekly,
+            quotaWindowLabelRes("antigravity_claude_weekly_window", weekSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_gemini_5h,
+            quotaWindowLabelRes("antigravity_gemini_5h_window", fiveHourSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_gemini_weekly,
+            quotaWindowLabelRes("antigravity_gemini_weekly_window", weekSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_gpt_oss_5h,
+            quotaWindowLabelRes("antigravity_gpt_oss_5h_window", fiveHourSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_gpt_oss_weekly,
+            quotaWindowLabelRes("antigravity_gpt_oss_weekly_window", weekSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_other_5h,
+            quotaWindowLabelRes("antigravity_other_5h_window", fiveHourSeconds),
+        )
+        assertEquals(
+            R.string.window_label_family_other_weekly,
+            quotaWindowLabelRes("antigravity_other_weekly_window", weekSeconds),
+        )
+        // The unlabeled cycle lane falls back to the generic label.
+        assertEquals(
+            R.string.window_label_generic,
+            quotaWindowLabelRes("antigravity_claude_cycle_window", null),
+        )
+    }
+
+    @Test
     fun `unknown window id still falls back to the generic label`() {
         assertEquals(
             R.string.window_label_generic,

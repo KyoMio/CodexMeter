@@ -49,7 +49,7 @@ class AntigravitySessionImporter(
                     accessToken = tokens.accessToken,
                     refreshToken = tokens.refreshToken,
                     tokenExpiresAtEpochSeconds = tokens.expiresInSeconds?.let { now.epochSecond + it },
-                    planTier = quotaResult.dto.tier,
+                    planTier = quotaResult.tier,
                 )
                 val jsonBytes = json.encodeToString(AntigravitySessionPayload.serializer(), payload).encodeToByteArray()
                 val encrypted = payloadCipher.encrypt(jsonBytes)
@@ -65,15 +65,26 @@ class AntigravitySessionImporter(
                         updatedAt = now.toString(),
                     ),
                 )
-                Result.success(
-                    AntigravityQuotaMapper.map(
-                        dto = quotaResult.dto,
+                val snapshot = if (quotaResult.summary != null) {
+                    AntigravityQuotaMapper.mapSummary(
+                        dto = quotaResult.summary,
+                        tier = quotaResult.tier,
                         localAccountId = account.localAccountId,
                         providerAccountId = account.providerAccountId,
                         fetchedAt = now,
                         source = QuotaSnapshotSource.OAuthPkceLogin,
-                    ),
-                )
+                    )
+                } else {
+                    AntigravityQuotaMapper.map(
+                        tier = quotaResult.tier,
+                        models = quotaResult.models,
+                        localAccountId = account.localAccountId,
+                        providerAccountId = account.providerAccountId,
+                        fetchedAt = now,
+                        source = QuotaSnapshotSource.OAuthPkceLogin,
+                    )
+                }
+                Result.success(snapshot)
             }
         }
     }

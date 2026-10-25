@@ -95,6 +95,15 @@ private fun providerNamedLabelRes(windowId: String): Int = when (windowId) {
     "antigravity_gemini_window" -> R.string.window_label_family_gemini
     "antigravity_gpt_oss_window" -> R.string.window_label_family_gpt_oss
     "antigravity_other_window" -> R.string.window_label_family_other
+    // Summary-endpoint windows: one id per family × lane; the cycle lane falls through to generic.
+    "antigravity_claude_5h_window" -> R.string.window_label_family_claude_5h
+    "antigravity_claude_weekly_window" -> R.string.window_label_family_claude_weekly
+    "antigravity_gemini_5h_window" -> R.string.window_label_family_gemini_5h
+    "antigravity_gemini_weekly_window" -> R.string.window_label_family_gemini_weekly
+    "antigravity_gpt_oss_5h_window" -> R.string.window_label_family_gpt_oss_5h
+    "antigravity_gpt_oss_weekly_window" -> R.string.window_label_family_gpt_oss_weekly
+    "antigravity_other_5h_window" -> R.string.window_label_family_other_5h
+    "antigravity_other_weekly_window" -> R.string.window_label_family_other_weekly
     else -> when {
         windowId.contains("time_limit", ignoreCase = true) ||
             windowId.contains("mcp", ignoreCase = true) -> R.string.window_label_mcp

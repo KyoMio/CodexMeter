@@ -87,13 +87,27 @@ class AntigravityRefreshProvider(
                 ProviderRefreshResult.Failure(result.error)
             is AntigravityQuotaClient.Result.Success ->
                 ProviderRefreshResult.Success(
-                    AntigravityQuotaMapper.map(
-                        dto = result.dto,
-                        localAccountId = account.localAccountId,
-                        providerAccountId = account.providerAccountId,
-                        fetchedAt = clock.instant(),
-                        source = trigger.toSnapshotSource(),
-                    ),
+                    if (result.summary != null) {
+                        // Primary path: the grouped summary endpoint carries the 5h/weekly lanes.
+                        AntigravityQuotaMapper.mapSummary(
+                            dto = result.summary,
+                            tier = result.tier,
+                            localAccountId = account.localAccountId,
+                            providerAccountId = account.providerAccountId,
+                            fetchedAt = clock.instant(),
+                            source = trigger.toSnapshotSource(),
+                        )
+                    } else {
+                        // Fallback: per-model fractions from fetchAvailableModels (+ retrieveUserQuota).
+                        AntigravityQuotaMapper.map(
+                            tier = result.tier,
+                            models = result.models,
+                            localAccountId = account.localAccountId,
+                            providerAccountId = account.providerAccountId,
+                            fetchedAt = clock.instant(),
+                            source = trigger.toSnapshotSource(),
+                        )
+                    },
                 )
         }
     }

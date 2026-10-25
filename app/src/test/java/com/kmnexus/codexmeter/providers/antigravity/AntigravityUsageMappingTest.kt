@@ -6,6 +6,7 @@ import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.providers.antigravity.dto.AntigravityQuotaResponseDto
 import com.kmnexus.codexmeter.providers.antigravity.mapper.AntigravityQuotaMapper
+import com.kmnexus.codexmeter.providers.antigravity.network.AntigravityModelQuota
 import java.time.Instant
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -16,14 +17,26 @@ import org.junit.Test
 class AntigravityUsageMappingTest {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun map(body: String): QuotaSnapshot =
-        AntigravityQuotaMapper.map(
-            dto = json.decodeFromString<AntigravityQuotaResponseDto>(body).copy(tier = "free-tier"),
+    private fun map(body: String): QuotaSnapshot {
+        val dto = json.decodeFromString<AntigravityQuotaResponseDto>(body)
+        return AntigravityQuotaMapper.map(
+            tier = "free-tier",
+            models = dto.buckets.mapNotNull { bucket ->
+                bucket.modelId?.let {
+                    AntigravityModelQuota(
+                        modelId = it,
+                        label = it,
+                        remainingFraction = bucket.remainingFraction,
+                        resetTime = bucket.resetTime,
+                    )
+                }
+            },
             localAccountId = LocalAccountId("antigravity-1"),
             providerAccountId = null,
             fetchedAt = Instant.parse("2026-06-01T00:00:00Z"),
             source = QuotaSnapshotSource.AppOpenRefresh,
         )
+    }
 
     @Test
     fun groupsBucketsByFamilyAndShowsLowestRemaining() {
