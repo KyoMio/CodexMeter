@@ -165,9 +165,9 @@
     <string name="window_label_mcp">MCP 额度</string>
     <string name="window_label_overview">模型</string>
     <string name="window_label_family_claude">Claude</string>
-    <string name="window_label_family_gemini_pro">Gemini Pro</string>
-    <string name="window_label_family_gemini_flash">Gemini Flash</string>
+    <string name="window_label_family_gemini">Gemini</string>
     <string name="window_label_family_gpt_oss">GPT-OSS</string>
+    <string name="window_label_family_other">其他模型</string>
     <string name="account_quota_alerts_label">额度告警</string>
     <string name="account_model_details_title">模型配额详情</string>
     <string name="account_quota_alert_five_hour">5小时额度告警</string>

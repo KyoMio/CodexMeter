@@ -1,16 +1,29 @@
 package com.kmnexus.codexmeter.providers.antigravity
 
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
+import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
+import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.providers.antigravity.dto.AntigravityQuotaResponseDto
 import com.kmnexus.codexmeter.providers.antigravity.mapper.AntigravityQuotaMapper
 import java.time.Instant
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AntigravityUsageMappingTest {
     private val json = Json { ignoreUnknownKeys = true }
+
+    private fun map(body: String): QuotaSnapshot =
+        AntigravityQuotaMapper.map(
+            dto = json.decodeFromString<AntigravityQuotaResponseDto>(body).copy(tier = "free-tier"),
+            localAccountId = LocalAccountId("antigravity-1"),
+            providerAccountId = null,
+            fetchedAt = Instant.parse("2026-06-01T00:00:00Z"),
+            source = QuotaSnapshotSource.AppOpenRefresh,
+        )
 
     @Test
     fun groupsBucketsByFamilyAndShowsLowestRemaining() {
@@ -19,7 +32,7 @@ class AntigravityUsageMappingTest {
               "buckets": [
                 {"modelId": "claude-opus-4-6-thinking", "remainingFraction": 0.4, "resetTime": "2026-06-01T12:00:00Z"},
                 {"modelId": "claude-sonnet-4-6", "remainingFraction": 0.9, "resetTime": "2026-06-01T12:00:00Z"},
-                {"modelId": "gemini-3.1-pro-high", "remainingFraction": 0.8, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gemini-3.1-pro-high", "remainingFraction": 0.75, "resetTime": "2026-06-01T12:00:00Z"},
                 {"modelId": "gemini-2.5-flash", "remainingFraction": 1.0, "resetTime": "2026-06-01T12:00:00Z"},
                 {"modelId": "gpt-oss-120b-medium", "remainingFraction": 1.0, "resetTime": "2026-06-01T12:00:00Z"},
                 {"modelId": "gemini-3-flash-agent", "remainingFraction": 0.1, "resetTime": "2026-06-01T12:00:00Z"},
@@ -28,15 +41,7 @@ class AntigravityUsageMappingTest {
             }
         """.trimIndent()
 
-        val dto = json.decodeFromString<AntigravityQuotaResponseDto>(body)
-            .copy(tier = "free-tier")
-        val snapshot = AntigravityQuotaMapper.map(
-            dto = dto,
-            localAccountId = LocalAccountId("antigravity-1"),
-            providerAccountId = null,
-            fetchedAt = Instant.parse("2026-06-01T00:00:00Z"),
-            source = QuotaSnapshotSource.AppOpenRefresh,
-        )
+        val snapshot = map(body)
 
         assertEquals("free-tier", snapshot.planType)
 
@@ -45,8 +50,7 @@ class AntigravityUsageMappingTest {
         assertEquals(
             setOf(
                 "antigravity_claude_window",
-                "antigravity_gemini_pro_window",
-                "antigravity_gemini_flash_window",
+                "antigravity_gemini_window",
                 "antigravity_gpt_oss_window",
             ),
             byId.keys,
@@ -58,13 +62,190 @@ class AntigravityUsageMappingTest {
         assertEquals(2, claude.modelBuckets.size)
         assertEquals(true, claude.usesModelBucketSum)
 
-        // Gemini Flash agent model is excluded, so the only flash bucket is full (0% used).
-        val flash = byId.getValue("antigravity_gemini_flash_window")
-        assertEquals(0, flash.usedPercent)
-        assertEquals(1, flash.modelBuckets.size)
-        assertEquals(true, flash.usesModelBucketSum)
+        // Pro and flash share the single Gemini window; lowest remaining 0.75 -> 25% used.
+        // (0.75 is binary-exact: usedPercent truncates via toInt, so 0.8 would assert as 19, not 20.)
+        val gemini = byId.getValue("antigravity_gemini_window")
+        assertEquals(25, gemini.usedPercent)
+        assertEquals(2, gemini.modelBuckets.size)
+        assertEquals(true, gemini.usesModelBucketSum)
 
         // Most-constrained family (Claude, 60% used) is the primary candidate.
         assertEquals("antigravity_claude_window", snapshot.windows.first { it.isPrimaryCandidate }.windowId.value)
+    }
+
+    @Test
+    fun newGeminiModelsShareTheSingleGeminiWindow() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "gemini-3.1-pro-high", "remainingFraction": 0.8, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 1.0, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gemini-4-argon", "remainingFraction": 0.5, "resetTime": "2026-06-01T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        val gemini = snapshot.windows.single { it.windowId.value == "antigravity_gemini_window" }
+        assertEquals(3, gemini.modelBuckets.size)
+        // usedPercent comes from the lowest remaining of the three models (0.5 -> 50% used).
+        assertEquals(50, gemini.usedPercent)
+    }
+
+    @Test
+    fun depletedModelWithoutRemainingFractionIsKeptAsFullyUsed() {
+        // proto3 JSON omits default values: a 100%-used model reports no remainingFraction at all.
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "gemini-2.5-flash", "resetTime": "2026-06-01T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        val gemini = snapshot.windows.single { it.windowId.value == "antigravity_gemini_window" }
+        assertEquals(0.0, gemini.modelBuckets.single().remainingFraction, 0.0)
+        assertEquals(100, gemini.usedPercent)
+        assertEquals(QuotaWindowAvailability.Depleted, gemini.availability)
+    }
+
+    @Test
+    fun bucketWithoutResetTimeIsKeptWithNullResetAt() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "claude-opus-4-6", "remainingFraction": 0.4}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        val claude = snapshot.windows.single { it.windowId.value == "antigravity_claude_window" }
+        assertNull(claude.modelBuckets.single().resetAt)
+        assertNull(claude.resetAt)
+    }
+
+    @Test
+    fun duplicateModelRowsKeepTheLowestRemainingFractionRow() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 0.8, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 0.3, "resetTime": "2026-06-02T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        val gemini = snapshot.windows.single { it.windowId.value == "antigravity_gemini_window" }
+        assertEquals(1, gemini.modelBuckets.size)
+        assertEquals(0.3, gemini.modelBuckets.single().remainingFraction, 0.0)
+        // The whole 0.3 row is kept, not merged with the sibling row.
+        assertEquals(Instant.parse("2026-06-02T12:00:00Z"), gemini.modelBuckets.single().resetAt)
+    }
+
+    @Test
+    fun duplicateModelRowsWithEqualFractionKeepTheFirstRow() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 0.5, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 0.5, "resetTime": "2026-06-02T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        val gemini = snapshot.windows.single { it.windowId.value == "antigravity_gemini_window" }
+        assertEquals(1, gemini.modelBuckets.size)
+        // Ties keep the first occurrence, so the first row's earlier resetTime survives.
+        assertEquals(Instant.parse("2026-06-01T12:00:00Z"), gemini.modelBuckets.single().resetAt)
+    }
+
+    @Test
+    fun unknownModelIdsLandInTheOtherWindow() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "veo-3", "remainingFraction": 0.7, "resetTime": "2026-06-01T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        val other = snapshot.windows.single { it.windowId.value == "antigravity_other_window" }
+        assertEquals(1, other.modelBuckets.size)
+        assertEquals(30, other.usedPercent)
+    }
+
+    @Test
+    fun internalModelsAreStillDropped() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "gemini-3-flash-agent", "remainingFraction": 0.1, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "chat_20706", "remainingFraction": 1.0},
+                {"modelId": "tab_x", "remainingFraction": 0.9},
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 1.0, "resetTime": "2026-06-01T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        // Only the regular model survives; every internal/code-completion model is dropped.
+        val gemini = snapshot.windows.single { it.windowId.value == "antigravity_gemini_window" }
+        assertEquals(listOf("gemini-2.5-flash"), gemini.modelBuckets.map { it.modelId })
+    }
+
+    @Test
+    fun imageModelsAreDroppedEvenWhenMostConstrained() {
+        val body = """
+            {
+              "buckets": [
+                {"modelId": "gemini-2.0-image-preview", "remainingFraction": 0.05, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gemini-2.5-flash", "remainingFraction": 0.5, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "claude-opus-4-6", "remainingFraction": 1.0, "resetTime": "2026-06-01T12:00:00Z"}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        assertTrue(
+            snapshot.windows.flatMap { it.modelBuckets }.none { it.modelId == "gemini-2.0-image-preview" },
+        )
+        // The image model reports the lowest remaining (0.05); it must not drag the Gemini window
+        // down to 95% used — the window reflects the regular models only (0.5 -> 50%).
+        val gemini = snapshot.windows.single { it.windowId.value == "antigravity_gemini_window" }
+        assertEquals(listOf("gemini-2.5-flash"), gemini.modelBuckets.map { it.modelId })
+        assertEquals(50, gemini.usedPercent)
+    }
+
+    @Test
+    fun snapshotIsEmptyWhenEveryBucketIsDropped() {
+        // Only a missing modelId or an internal model triggers the empty snapshot now; a missing
+        // resetTime no longer drops the bucket.
+        val body = """
+            {
+              "buckets": [
+                {"remainingFraction": 0.5, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "chat_20706", "remainingFraction": 1.0}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = map(body)
+
+        assertTrue(snapshot.windows.isEmpty())
+        assertNull(snapshot.planType)
+        assertTrue(snapshot.snapshotId.value.startsWith("antigravity_empty_"))
     }
 }

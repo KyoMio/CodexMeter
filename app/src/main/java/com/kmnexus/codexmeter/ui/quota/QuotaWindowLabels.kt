@@ -92,9 +92,9 @@ private fun providerNamedLabelRes(windowId: String): Int = when (windowId) {
     "claude_7d_sonnet_window" -> R.string.window_label_7d_sonnet
     "antigravity_overview_window" -> R.string.window_label_overview
     "antigravity_claude_window" -> R.string.window_label_family_claude
-    "antigravity_gemini_pro_window" -> R.string.window_label_family_gemini_pro
-    "antigravity_gemini_flash_window" -> R.string.window_label_family_gemini_flash
+    "antigravity_gemini_window" -> R.string.window_label_family_gemini
     "antigravity_gpt_oss_window" -> R.string.window_label_family_gpt_oss
+    "antigravity_other_window" -> R.string.window_label_family_other
     else -> when {
         windowId.contains("time_limit", ignoreCase = true) ||
             windowId.contains("mcp", ignoreCase = true) -> R.string.window_label_mcp

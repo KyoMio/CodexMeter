@@ -17,17 +17,23 @@ import java.time.OffsetDateTime
 
 /**
  * Maps Antigravity quota buckets (per-model `remainingFraction`, 0–1) into one window PER MODEL
- * FAMILY (Claude / Gemini Pro / Gemini Flash / GPT-OSS). Each family window shows the family's
- * LOWEST remaining quota (the most-constrained model) and carries its models as buckets for the
- * account-page model-detail list. Internal/code-completion models (chat_*, tab_*, *-agent, *-image)
- * and buckets without a `resetTime` are excluded.
+ * FAMILY (Claude / Gemini / GPT-OSS / Other), with each family's models carried as the window's
+ * per-model buckets for the account-page model-detail list. Each family window shows the family's
+ * LOWEST remaining quota (the most-constrained model). Internal/code-completion models (chat_*,
+ * tab_*, *-agent, *-image) are dropped; every other model id maps to a family, unknown ones land
+ * in Other.
+ *
+ * `retrieveUserQuota` returns proto3 JSON, which omits default values: a fully-depleted model
+ * reports no `remainingFraction` at all (mapped to 0.0 = 100% used), and a blank `resetTime`
+ * maps to a null `resetAt` while the bucket is kept. Duplicate rows for one model keep the row
+ * with the lowest remaining fraction.
  */
 object AntigravityQuotaMapper {
     private enum class Family(val windowId: String, val priority: Int) {
         Claude("antigravity_claude_window", 0),
-        GeminiPro("antigravity_gemini_pro_window", 1),
-        GeminiFlash("antigravity_gemini_flash_window", 2),
-        GptOss("antigravity_gpt_oss_window", 3),
+        Gemini("antigravity_gemini_window", 1),
+        GptOss("antigravity_gpt_oss_window", 2),
+        Other("antigravity_other_window", 3),
     }
 
     fun map(
@@ -39,7 +45,6 @@ object AntigravityQuotaMapper {
     ): QuotaSnapshot {
         val bucketsByFamily = dto.buckets
             .asSequence()
-            .filter { it.modelId != null && it.remainingFraction != null && !it.resetTime.isNullOrBlank() }
             .mapNotNull { bucket ->
                 val modelId = bucket.modelId ?: return@mapNotNull null
                 val family = familyOf(modelId) ?: return@mapNotNull null
@@ -49,6 +54,13 @@ object AntigravityQuotaMapper {
                     remainingFraction = (bucket.remainingFraction ?: 0.0).coerceIn(0.0, 1.0),
                     resetAt = parseIso(bucket.resetTime),
                 )
+            }
+            // The same model can appear in several rows; keep its most-constrained row (first wins ties).
+            .groupBy({ it.second.modelId })
+            .map { (_, rows) ->
+                rows.reduce { keep, row ->
+                    if (row.second.remainingFraction < keep.second.remainingFraction) row else keep
+                }
             }
             .groupBy({ it.first }, { it.second })
 
@@ -111,9 +123,8 @@ object AntigravityQuotaMapper {
             id.startsWith("chat_") || id.startsWith("tab_") -> null
             id.startsWith("claude") -> Family.Claude
             id.startsWith("gpt-oss") -> Family.GptOss
-            id.contains("gemini") && id.contains("pro") -> Family.GeminiPro
-            id.contains("gemini") && id.contains("flash") -> Family.GeminiFlash
-            else -> null
+            id.contains("gemini") -> Family.Gemini
+            else -> Family.Other
         }
     }
 

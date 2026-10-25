@@ -125,6 +125,14 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
+    fun `antigravity family windows keep their named labels`() {
+        assertEquals(R.string.window_label_family_claude, quotaWindowLabelRes("antigravity_claude_window", null))
+        assertEquals(R.string.window_label_family_gemini, quotaWindowLabelRes("antigravity_gemini_window", null))
+        assertEquals(R.string.window_label_family_gpt_oss, quotaWindowLabelRes("antigravity_gpt_oss_window", null))
+        assertEquals(R.string.window_label_family_other, quotaWindowLabelRes("antigravity_other_window", null))
+    }
+
+    @Test
     fun `unknown window id still falls back to the generic label`() {
         assertEquals(
             R.string.window_label_generic,
