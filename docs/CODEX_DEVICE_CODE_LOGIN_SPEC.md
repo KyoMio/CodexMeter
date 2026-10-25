@@ -358,7 +358,7 @@ AUTH_LOGIN_NOTIFICATION_ID
 - device code response 缺字段时失败。
 - request 成功后生成 AwaitingUserAuthorization 状态。
 - 新 attempt 会取消旧 attempt，旧 attempt 结果不能写入 session。
-- pending/403/404 轮询继续等待。
+- pending/403/404 轮询继续等待（403/404 仅限等待授权的 JSON 响应；Cloudflare 挑战页立即失败并提示被拦截）。
 - expires 后停止轮询并进入 Expired。
 - token exchange 成功但 usage 校验失败时不保存账号。
 - refresh 响应缺新 refresh token 时保留旧值。

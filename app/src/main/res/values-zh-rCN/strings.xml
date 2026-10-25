@@ -384,6 +384,7 @@
     <string name="error_network">暂时无法刷新，正在显示最近数据。</string>
     <string name="error_unknown">暂时无法刷新。</string>
     <string name="error_login_not_wired">Device-code 登录尚未接入。</string>
+    <string name="error_login_blocked">登录请求被 OpenAI 的防护拦截。请更换网络后重新登录。</string>
     <string name="error_session_persistence">无法保存会话。</string>
     <string name="error_grok_access_denied">Grok 登录请求被拒绝，请重新生成授权码后重试。</string>
     <string name="quota_balance_breakdown_format">赠送 %1$s · 充值 %2$s</string>

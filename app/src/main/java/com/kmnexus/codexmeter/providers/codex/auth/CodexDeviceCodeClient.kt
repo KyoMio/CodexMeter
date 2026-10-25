@@ -60,9 +60,15 @@ class CodexDeviceCodeClient(
 
         return when (response.statusCode) {
             in SUCCESS_STATUS_RANGE -> decodeDeviceCodeChallenge(response.body)
-            else -> Result.Failure(
-                QuotaError.Network(diagnosticsDigest = "codex_device_code_http_${response.statusCode}"),
-            )
+            else -> {
+                if (isCloudflareChallengeBody(response.body)) {
+                    Result.Failure(cloudflareBlockedError(diagnosticsDigest = "codex_device_code_blocked"))
+                } else {
+                    Result.Failure(
+                        QuotaError.Network(diagnosticsDigest = "codex_device_code_http_${response.statusCode}"),
+                    )
+                }
+            }
         }
     }
 
@@ -106,16 +112,23 @@ class CodexDeviceCodeClient(
         }
 
         if (response.statusCode == HTTP_FORBIDDEN || response.statusCode == HTTP_NOT_FOUND) {
+            if (isCloudflareChallengeBody(response.body)) {
+                return Result.Failure(
+                    cloudflareBlockedError(diagnosticsDigest = "codex_device_authorization_blocked"),
+                )
+            }
             return Result.Pending
         }
 
         return when (response.statusCode) {
             in SUCCESS_STATUS_RANGE -> decodeAuthorization(response.body)
             else -> {
-                if (isPendingStatusBody(response.body)) {
-                    Result.Pending
-                } else {
-                    Result.Failure(
+                when {
+                    isCloudflareChallengeBody(response.body) -> Result.Failure(
+                        cloudflareBlockedError(diagnosticsDigest = "codex_device_authorization_blocked"),
+                    )
+                    isPendingStatusBody(response.body) -> Result.Pending
+                    else -> Result.Failure(
                         QuotaError.Network(
                             diagnosticsDigest = "codex_device_authorization_http_${response.statusCode}",
                         ),
@@ -235,6 +248,23 @@ class CodexDeviceCodeClient(
             false
         }
 
+    /**
+     * Cloudflare in front of auth.openai.com serves HTML challenge pages to non-browser clients
+     * instead of the OAuth JSON. Without a browser there is no way to obtain clearance, so a
+     * challenge must fail fast with a visible message rather than poll silently until expiry.
+     * Pending responses are JSON and never contain these markers.
+     */
+    private fun isCloudflareChallengeBody(body: String): Boolean {
+        val loweredBody = body.lowercase()
+        return CLOUDFLARE_CHALLENGE_MARKERS.any { marker -> marker in loweredBody }
+    }
+
+    private fun cloudflareBlockedError(diagnosticsDigest: String): QuotaError =
+        QuotaError.Network(
+            diagnosticsDigest = diagnosticsDigest,
+            safeMessageKey = LOGIN_BLOCKED_MESSAGE_KEY,
+        )
+
     private fun JsonObject.stringValue(name: String): String? =
         (this[name] as? JsonPrimitive)
             ?.contentOrNull
@@ -298,6 +328,8 @@ class CodexDeviceCodeClient(
         private const val HTTP_FORBIDDEN = 403
         private const val HTTP_NOT_FOUND = 404
         private val SUCCESS_STATUS_RANGE = 200..299
+        private const val LOGIN_BLOCKED_MESSAGE_KEY = "error_login_blocked"
+        private val CLOUDFLARE_CHALLENGE_MARKERS = listOf("cf-chl", "__cf_chl", "just a moment")
         private val PENDING_STATUSES = setOf(
             "authorization_pending",
             "deviceauth_authorization_pending",

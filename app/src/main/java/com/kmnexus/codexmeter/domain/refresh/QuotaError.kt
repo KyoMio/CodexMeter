@@ -18,8 +18,8 @@ sealed class QuotaError {
 
     data class Network(
         override val diagnosticsDigest: String?,
+        override val safeMessageKey: String = "error_network",
     ) : QuotaError() {
-        override val safeMessageKey: String = "error_network"
         override val httpStatus: Int? = null
         override val retryable: Boolean = true
         override val userActionRequired: Boolean = false

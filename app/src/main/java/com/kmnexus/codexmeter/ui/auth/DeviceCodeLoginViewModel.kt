@@ -359,6 +359,7 @@ class DeviceCodeLoginViewModel(
 internal fun String.toDeviceCodeLoginErrorResId(): Int =
     when (this) {
         "error_network" -> R.string.error_network
+        "error_login_blocked" -> R.string.error_login_blocked
         "error_auth_required" -> R.string.error_auth_required
         "error_session_persistence" -> R.string.error_session_persistence
         "error_login_not_wired" -> R.string.error_login_not_wired

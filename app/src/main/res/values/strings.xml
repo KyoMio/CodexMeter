@@ -384,6 +384,7 @@
     <string name="error_network">Could not refresh. Showing last known data.</string>
     <string name="error_unknown">Could not refresh right now.</string>
     <string name="error_login_not_wired">Device-code login is not wired yet.</string>
+    <string name="error_login_blocked">The login request was blocked by OpenAI\'s protection. Try a different network and sign in again.</string>
     <string name="error_session_persistence">Could not save the session.</string>
     <string name="error_grok_access_denied">Grok sign-in was denied. Generate a new code to retry.</string>
     <string name="quota_balance_breakdown_format">Granted %1$s · Topped up %2$s</string>
