@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.5] - 2026-10-25
 
 ### Fixed
 - Antigravity：所有 Gemini 模型（含 `gemini-4-argon` 等新代号）合并进单一「Gemini」窗口，不再因命名不含 pro/flash 而丢失；100% 耗尽的模型（proto3 响应省略 0.0 值）显示为已用尽而非整桶丢弃；未知模型归入「其他模型」窗口；同一模型多行数据取最低剩余。
