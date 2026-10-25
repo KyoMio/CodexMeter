@@ -470,6 +470,7 @@ fun CodexMeterNavHost(
                                             redirectUriPrefix = "https://console.anthropic.com/oauth/code/callback",
                                             expectedState = state,
                                             appendStateToCode = true,
+                                            manualPasteEnabled = true,
                                             tipResId = R.string.auth_tip_claude,
                                         )
                                     }

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -24,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +55,7 @@ import com.kmnexus.codexmeter.providers.ProviderRegistry
 import com.kmnexus.codexmeter.providers.common.auth.LoopbackCallbackServer
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
+import java.net.URLDecoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -63,7 +66,9 @@ import kotlinx.coroutines.withContext
  * - [Cookie] hosts an embedded WebView and auto-captures the target session cookie once login
  *   completes (Kimi, Cursor).
  * - [OAuthIntercept] hosts an embedded WebView and intercepts the OAuth redirect to extract `code`
- *   without ever surfacing the callback URL (Claude).
+ *   without ever surfacing the callback URL (Claude, Antigravity). Denials / state mismatches /
+ *   load failures surface as messages; the manual `code#state` paste block below the WebView is a
+ *   per-provider opt-in last-resort channel ([WebViewAuthConfig.OAuthIntercept.manualPasteEnabled]).
  * - [OAuthLoopback] opens an external browser (Google blocks OAuth inside WebViews) and captures the
  *   `code` via a single-use [LoopbackCallbackServer] (Antigravity).
  *
@@ -109,6 +114,12 @@ sealed interface WebViewAuthConfig {
         // Anthropic validates `state` in the token exchange, so pass the captured callback as
         // `code#state` (Claude). Google (Antigravity) needs only the bare code.
         val appendStateToCode: Boolean = false,
+        /**
+         * Shows the manual `code#state` paste fallback below the WebView. Only meaningful when the
+         * provider console renders the grant as copyable text (Claude `code=true`); Google's
+         * loopback redirect lands on a dead port with nothing to copy, so Antigravity keeps it off.
+         */
+        val manualPasteEnabled: Boolean = false,
         /** Optional one-time tip dialog shown when the screen opens (string resource id). */
         val tipResId: Int? = null,
     ) : WebViewAuthConfig
@@ -129,6 +140,7 @@ fun WebViewAuthScreen(
     onSaved: () -> Unit = onBack,
 ) {
     val providerConfig = remember(config.providerId) { ProviderRegistry.configFor(config.providerId) }
+    val context = LocalContext.current
     var isVerifying by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val verificationFailed = stringResource(R.string.auth_verification_failed)
@@ -201,6 +213,20 @@ fun WebViewAuthScreen(
                 isVerifying = isVerifying,
                 errorMessage = errorMessage,
                 onCredential = ::submit,
+                onFailure = { failure ->
+                    errorMessage = when (failure) {
+                        is AuthFlowFailure.Denied ->
+                            if (failure.errorCode != null) {
+                                context.getString(R.string.auth_callback_denied, failure.errorCode)
+                            } else {
+                                context.getString(R.string.auth_callback_denied_no_code)
+                            }
+                        AuthFlowFailure.StateMismatch -> context.getString(R.string.auth_callback_state_mismatch)
+                        is AuthFlowFailure.PageLoadFailed ->
+                            context.getString(R.string.auth_page_load_failed, failure.description)
+                        AuthFlowFailure.ManualCodeInvalid -> context.getString(R.string.auth_manual_code_invalid)
+                    }
+                },
                 onWebViewReady = { webView ->
                     webViewReload = { webView.loadUrl(config.authorizationUrl) }
                     clearSession = {
@@ -425,9 +451,21 @@ private fun OAuthInterceptBody(
     isVerifying: Boolean,
     errorMessage: String?,
     onCredential: (String, String?) -> Unit,
+    onFailure: (AuthFlowFailure) -> Unit,
     onWebViewReady: (WebView) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    var manualCode by remember { mutableStateOf("") }
+
+    fun openAuthorizationPage() {
+        runCatching {
+            CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(config.authorizationUrl))
+        }.onFailure {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(config.authorizationUrl)))
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             AndroidView(
@@ -443,6 +481,7 @@ private fun OAuthInterceptBody(
                             expectedState = config.expectedState,
                             appendStateToCode = config.appendStateToCode,
                             onCode = { onCredential(it, config.redirectUriPrefix) },
+                            onFailure = onFailure,
                         )
                         onWebViewReady(this)
                         loadUrl(config.authorizationUrl)
@@ -452,6 +491,44 @@ private fun OAuthInterceptBody(
             if (isVerifying) VerifyingOverlay()
             errorMessage?.let {
                 Column(modifier = Modifier.align(Alignment.BottomStart)) { ErrorLine(it) }
+            }
+        }
+        // Manual fallback for pages the embedded WebView can't finish: the provider console renders
+        // the grant as copyable `code#state` text (Claude `code=true`), so the same submit chain is
+        // reachable without the WebView round-trip. Gated by manualPasteEnabled (Claude only).
+        if (config.manualPasteEnabled) {
+            Text(
+                text = stringResource(R.string.auth_manual_paste_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = CodexMeterSpacing.xl, vertical = CodexMeterSpacing.xs),
+            )
+            TextButton(
+                onClick = { openAuthorizationPage() },
+                modifier = Modifier.padding(horizontal = CodexMeterSpacing.xl),
+            ) { Text(stringResource(R.string.auth_open_in_browser)) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CodexMeterSpacing.xl, vertical = CodexMeterSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = manualCode,
+                    onValueChange = { manualCode = it },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    onClick = {
+                        val credential = parseManualAuthCode(manualCode, config.expectedState)
+                        if (credential == null) {
+                            onFailure(AuthFlowFailure.ManualCodeInvalid)
+                        } else {
+                            onCredential(credential, config.redirectUriPrefix)
+                        }
+                    },
+                ) { Text(stringResource(R.string.auth_submit_code)) }
             }
         }
     }
@@ -625,27 +702,145 @@ private fun readTargetCookie(cookieUrl: String, targetCookieNames: List<String>)
     return targetCookieNames.firstNotNullOfOrNull { cookies[it]?.takeIf { v -> v.isNotEmpty() } }
 }
 
+/** Outcome of classifying an OAuth callback URL against the expected redirect prefix and state. */
+sealed interface OAuthCallbackDecision {
+    /** Valid grant; [credential] is ready for the import chain (already `code#state` when needed). */
+    data class Capture(val credential: String) : OAuthCallbackDecision
+
+    /** The provider reported an authorization error, with its public [errorCode] if any. */
+    data class Denied(val errorCode: String?) : OAuthCallbackDecision
+
+    data object StateMismatch : OAuthCallbackDecision
+
+    data object NotCallback : OAuthCallbackDecision
+}
+
+/**
+ * Structured failures of the OAuth intercept flow, mapped to localized copy at the screen level.
+ * Only provider-published error codes / load descriptions may be shown — never URLs, codes, states
+ * or cookies.
+ */
+sealed interface AuthFlowFailure {
+    data class Denied(val errorCode: String?) : AuthFlowFailure
+
+    data object StateMismatch : AuthFlowFailure
+
+    data class PageLoadFailed(val description: String) : AuthFlowFailure
+
+    data object ManualCodeInvalid : AuthFlowFailure
+}
+
+/**
+ * Classifies an OAuth redirect/callback URL. Precedence: an `error` parameter always denies (even
+ * alongside a matching code+state); then a non-empty `code` with the exact expected `state`
+ * captures; anything else on the callback path is a stale or foreign grant.
+ */
+internal fun evaluateOAuthCallback(
+    url: String,
+    redirectUriPrefix: String,
+    expectedState: String,
+    appendStateToCode: Boolean,
+): OAuthCallbackDecision {
+    if (!url.startsWith(redirectUriPrefix)) return OAuthCallbackDecision.NotCallback
+    val params = callbackQueryParams(url)
+    if (params.containsKey("error")) {
+        return OAuthCallbackDecision.Denied(params["error"]?.takeIf { it.isNotEmpty() })
+    }
+    val code = params["code"]?.takeIf { it.isNotEmpty() } ?: return OAuthCallbackDecision.StateMismatch
+    val state = params["state"] ?: return OAuthCallbackDecision.StateMismatch
+    if (state != expectedState) return OAuthCallbackDecision.StateMismatch
+    return OAuthCallbackDecision.Capture(if (appendStateToCode) "$code#$state" else code)
+}
+
+// Invisible characters clipboard apps can insert around copied text (zero-width space / ZWNJ / ZWJ / BOM).
+private val MANUAL_CODE_ZERO_WIDTH_CHARS = charArrayOf('\u200B', '\u200C', '\u200D', '\uFEFF')
+
+/**
+ * Cleans a hand-pasted `code#state` grant: drops zero-width characters and surrounding whitespace,
+ * then requires exactly one `#` whose suffix equals [expectedState] and a non-empty code. Returns
+ * the cleaned `code#state`, or null when the input is not a valid grant.
+ */
+internal fun parseManualAuthCode(input: String, expectedState: String): String? {
+    val cleaned = input.filter { it !in MANUAL_CODE_ZERO_WIDTH_CHARS }.trim()
+    val parts = cleaned.split('#')
+    if (parts.size != 2) return null
+    val (code, state) = parts
+    if (code.isEmpty() || state != expectedState) return null
+    return cleaned
+}
+
+/** First-value query parameter map, percent-decoded (mirrors `Uri.getQueryParameter` semantics). */
+private fun callbackQueryParams(url: String): Map<String, String> {
+    val query = url.substringAfter('?', "")
+    if (query.isEmpty()) return emptyMap()
+    val params = linkedMapOf<String, String>()
+    for (part in query.split('&')) {
+        if (part.isEmpty()) continue
+        val name = part.substringBefore('=')
+        val rawValue = part.substringAfter('=', "")
+        val value = runCatching { URLDecoder.decode(rawValue, "UTF-8") }.getOrDefault(rawValue)
+        params.putIfAbsent(name, value)
+    }
+    return params
+}
+
 private class RedirectInterceptClient(
     private val redirectUriPrefix: String,
     private val expectedState: String,
     private val appendStateToCode: Boolean,
     private val onCode: (String) -> Unit,
+    private val onFailure: (AuthFlowFailure) -> Unit,
 ) : WebViewClient() {
     private var handled = false
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
         val url = request?.url?.toString() ?: return false
-        if (!url.startsWith(redirectUriPrefix)) return false
-        maybeCapture(view, url)
-        return true
+        return when (
+            val decision =
+                evaluateOAuthCallback(url, redirectUriPrefix, expectedState, appendStateToCode)
+        ) {
+            is OAuthCallbackDecision.NotCallback -> false
+            is OAuthCallbackDecision.Capture -> {
+                if (!handled) {
+                    handled = true
+                    onCode(decision.credential)
+                }
+                true
+            }
+            is OAuthCallbackDecision.Denied -> {
+                reportFailure(AuthFlowFailure.Denied(decision.errorCode))
+                // Let the provider's own error page render instead of swallowing the navigation.
+                false
+            }
+            OAuthCallbackDecision.StateMismatch -> {
+                reportFailure(AuthFlowFailure.StateMismatch)
+                false
+            }
+        }
     }
 
-    // Server-side 302 redirects to the (loopback / callback) URI aren't always routed through
-    // shouldOverrideUrlLoading, so also catch the navigation here and stop the doomed load.
+    // Server-side 302 redirects to the callback URI aren't always routed through
+    // shouldOverrideUrlLoading, so also catch them here. Only a capture stops the load; failures
+    // are reported but the navigation proceeds.
     override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-        if (url != null && url.startsWith(redirectUriPrefix)) {
-            view?.stopLoading()
-            maybeCapture(view, url)
+        val decision =
+            evaluateOAuthCallback(
+                url ?: return,
+                redirectUriPrefix,
+                expectedState,
+                appendStateToCode,
+            )
+        when (decision) {
+            // A fresh non-callback navigation (reload / clear-and-restart) re-arms capture so the
+            // user can sign in again after a failure or a failed verification.
+            is OAuthCallbackDecision.NotCallback -> handled = false
+            is OAuthCallbackDecision.Capture -> if (!handled) {
+                handled = true
+                view?.stopLoading()
+                onCode(decision.credential)
+            }
+            is OAuthCallbackDecision.Denied -> reportFailure(AuthFlowFailure.Denied(decision.errorCode))
+            OAuthCallbackDecision.StateMismatch -> reportFailure(AuthFlowFailure.StateMismatch)
         }
     }
 
@@ -655,15 +850,17 @@ private class RedirectInterceptClient(
         view?.requestFocus()
     }
 
-    private fun maybeCapture(view: WebView?, url: String) {
-        if (handled) return
-        val uri = Uri.parse(url)
-        val code = uri.getQueryParameter("code")
-        val state = uri.getQueryParameter("state")
-        if (code != null && state == expectedState) {
-            handled = true
-            view?.stopLoading()
-            onCode(if (appendStateToCode) "$code#$state" else code)
-        }
+    // Surface main-frame load failures (blocked network, protocol errors, …) instead of leaving a
+    // silent blank page; subresource errors are ignored.
+    override fun onReceivedError(view: WebView?, request: WebResourceRequest, error: WebResourceError) {
+        if (!request.isForMainFrame) return
+        val description = error.description?.toString()?.takeIf { it.isNotBlank() }
+            ?: "error ${error.errorCode}"
+        reportFailure(AuthFlowFailure.PageLoadFailed(description))
+    }
+
+    // After a capture the verification overlay owns the UI; later reports would only overwrite it.
+    private fun reportFailure(failure: AuthFlowFailure) {
+        if (!handled) onFailure(failure)
     }
 }
