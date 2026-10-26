@@ -85,8 +85,13 @@ class AntigravityUsageMappingTest {
         assertEquals(2, gemini.modelBuckets.size)
         assertEquals(true, gemini.usesModelBucketSum)
 
-        // Most-constrained family (Claude/GPT, 60% used) is the primary candidate.
-        assertEquals("antigravity_claude_gpt_window", snapshot.windows.first { it.isPrimaryCandidate }.windowId.value)
+        // Family order (Gemini first) decides placement even though Claude/GPT is the fuller
+        // family (60% vs 25%); the primary candidate is the Gemini window.
+        assertEquals(
+            listOf("antigravity_gemini_window", "antigravity_claude_gpt_window"),
+            snapshot.windows.map { it.windowId.value },
+        )
+        assertEquals("antigravity_gemini_window", snapshot.windows.first { it.isPrimaryCandidate }.windowId.value)
     }
 
     @Test
@@ -207,6 +212,11 @@ class AntigravityUsageMappingTest {
         // Lowest remaining 0.4 -> 60% used.
         assertEquals(60, claudeGpt.usedPercent)
         assertEquals(1, snapshot.windows.size)
+        // With no Gemini family present the primary candidate falls to the Claude/GPT window.
+        assertEquals(
+            "antigravity_claude_gpt_window",
+            snapshot.windows.single { it.isPrimaryCandidate }.windowId.value,
+        )
     }
 
     @Test

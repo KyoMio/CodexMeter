@@ -82,8 +82,49 @@ class AntigravitySummaryMappingTest {
         val gpt = byId.getValue("antigravity_claude_gpt_5h_window")
         assertEquals(75, gpt.usedPercent)
 
+        // CodexBar summary order: family groups (Gemini first), lanes in order inside each family;
+        // usage level does not reorder windows even when a Claude/GPT window is the fullest.
         assertEquals(
-            "antigravity_claude_gpt_5h_window",
+            listOf(
+                "antigravity_gemini_5h_window",
+                "antigravity_gemini_weekly_window",
+                "antigravity_claude_gpt_5h_window",
+                "antigravity_claude_gpt_weekly_window",
+            ),
+            snapshot.windows.map { it.windowId.value },
+        )
+        // Primary follows upstream semantics too: the fullest Gemini window (50%), not the
+        // globally fullest window (claude_gpt 5h at 75%).
+        assertEquals(
+            "antigravity_gemini_5h_window",
+            snapshot.windows.first { it.isPrimaryCandidate }.windowId.value,
+        )
+    }
+
+    @Test
+    fun `primary falls to the fullest claude gpt window when no gemini window exists`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Claude/GPT", "buckets": [
+                {"bucketId": "5h", "displayName": "Claude", "remainingFraction": 0.9},
+                {"bucketId": "weekly", "displayName": "GPT-OSS", "remainingFraction": 0.2}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val snapshot = mapSummary(body)
+
+        // Lanes keep their order (5h before weekly) while the primary candidate ignores order and
+        // picks the fullest Claude/GPT window (weekly, 80% used) in the Gemini group's absence.
+        assertEquals(
+            listOf(
+                "antigravity_claude_gpt_5h_window",
+                "antigravity_claude_gpt_weekly_window",
+            ),
+            snapshot.windows.map { it.windowId.value },
+        )
+        assertEquals(
+            "antigravity_claude_gpt_weekly_window",
             snapshot.windows.first { it.isPrimaryCandidate }.windowId.value,
         )
     }

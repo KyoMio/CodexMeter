@@ -80,15 +80,13 @@ object AntigravityQuotaMapper {
             return emptySnapshot(localAccountId, fetchedAt, source)
         }
 
-        // Most-constrained family (highest used%) first so the account summary surfaces it; the rest
-        // remain available in the expandable per-family model list.
+        // Family order matches the summary path (Gemini first, Claude/GPT after); each family has
+        // a single window so there is no intra-family ordering to decide.
+        val primaryFamily = if (bucketsByFamily.containsKey(Family.Gemini)) Family.Gemini else Family.ClaudeGpt
         val windows = bucketsByFamily.entries
             .map { (family, buckets) -> family to buildFamilyWindow(family, buckets) }
-            .sortedWith(
-                compareByDescending<Pair<Family, QuotaWindow>> { it.second.usedPercent ?: 0 }
-                    .thenBy { it.first.priority },
-            )
-            .mapIndexed { index, (_, window) -> window.copy(isPrimaryCandidate = index == 0) }
+            .sortedBy { it.first.priority }
+            .map { (family, window) -> window.copy(isPrimaryCandidate = family == primaryFamily) }
 
         return QuotaSnapshot(
             snapshotId = SnapshotId("antigravity_${fetchedAt}"),
@@ -154,13 +152,21 @@ object AntigravityQuotaMapper {
                     if ((candidate.window.usedPercent ?: 0) > (keep.window.usedPercent ?: 0)) candidate else keep
                 }
             }
-            // Most-constrained window first; ties break by family, then by lane recency.
+            // Upstream CodexBar order: family groups (Gemini first), then lane inside each family;
+            // usage level does not reorder windows.
             .sortedWith(
-                compareByDescending<BucketWindow> { it.window.usedPercent ?: 0 }
-                    .thenBy { it.family.priority }
+                compareBy<BucketWindow> { it.family.priority }
                     .thenBy { it.lane.priority },
             )
-            .mapIndexed { index, bucketWindow -> bucketWindow.window.copy(isPrimaryCandidate = index == 0) }
+
+        // Upstream primary semantics: the fullest Gemini window, falling back to the fullest
+        // Claude/GPT window when the summary has no Gemini group. Dedup guarantees one window per
+        // family+lane, so "fullest" only matters if that invariant ever breaks.
+        val primary = windows.asSequence()
+            .filter { it.family == Family.Gemini }
+            .maxByOrNull { it.window.usedPercent ?: 0 }
+            ?: windows.filter { it.family == Family.ClaudeGpt }.maxByOrNull { it.window.usedPercent ?: 0 }
+            ?: windows.first()
 
         return QuotaSnapshot(
             snapshotId = SnapshotId("antigravity_${fetchedAt}"),
@@ -170,7 +176,7 @@ object AntigravityQuotaMapper {
             fetchedAt = fetchedAt,
             source = source,
             planType = tier,
-            windows = windows,
+            windows = windows.map { it.window.copy(isPrimaryCandidate = it === primary) },
             credits = null,
             responseDigest = null,
         )
