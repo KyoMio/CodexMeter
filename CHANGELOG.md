@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.6] - 2026-10-26
+
+### Fixed
+- Antigravity 额度抓取与上游 CodexBar 对齐：配额请求注入 project（未 onboard 账号自动走 onboardUser 解析）、User-Agent 改为 Hub 客户端族、主数据源切换到 `retrieveUserQuotaSummary` 分组摘要——修复订阅账号只显示单一窗口、缺每周额度、新模型（如 `gemini-4-argon`）不在列表的问题；`fetchAvailableModels` 作为模型明细回退。
+- Antigravity 窗口按上游双 family 展示：Gemini 与 Claude/GPT（含其他模型）各含 5 小时 / 每周窗口，恰好 2×2；模型明细保留在每个窗口内。
+- Antigravity 窗口排序改为 family 分组（Gemini 在前），周期识别在文本信号之外增加按重置时间推断的兜底；首页与通知的主窗口改为 Gemini 组内最紧（Gemini 缺席时取 Claude/GPT 组内）。
+- 账号卡片额度块改为每行两个的网格布局，展示窗口上限 3 → 4。
+
 ## [0.2.5] - 2026-10-25
 
 ### Fixed
