@@ -439,9 +439,9 @@ class AccountViewModel(
     }
 
     companion object {
-        // Up to three windows so providers with a third surface (Claude 5h/7d/extra-usage,
-        // z.ai 5h/weekly/MCP) show it in the account expanded view.
-        private const val MAX_SUMMARY_WINDOWS = 3
+        // Up to four windows so the 2×2 account summary grid shows every surface (Antigravity
+        // family × lane, Claude 5h/7d/extra-usage, z.ai 5h/weekly/MCP) in the expanded view.
+        private const val MAX_SUMMARY_WINDOWS = 4
 
         fun factory(
             deleteUseCase: AccountDeleteUseCase,

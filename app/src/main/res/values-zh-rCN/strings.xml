@@ -178,6 +178,8 @@
     <string name="window_label_family_gemini_weekly">Gemini · 每周</string>
     <string name="window_label_family_claude_gpt_5h">Claude/GPT · 5小时</string>
     <string name="window_label_family_claude_gpt_weekly">Claude/GPT · 每周</string>
+    <string name="window_label_family_gemini_cycle">Gemini · 周期</string>
+    <string name="window_label_family_claude_gpt_cycle">Claude/GPT · 周期</string>
     <string name="account_quota_alerts_label">额度告警</string>
     <string name="account_model_details_title">模型配额详情</string>
     <string name="account_quota_alert_five_hour">5小时额度告警</string>

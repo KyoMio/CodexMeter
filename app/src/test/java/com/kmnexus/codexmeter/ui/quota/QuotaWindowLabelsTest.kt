@@ -150,9 +150,14 @@ class QuotaWindowLabelsTest {
             R.string.window_label_family_claude_gpt_weekly,
             quotaWindowLabelRes("antigravity_claude_gpt_weekly_window", weekSeconds),
         )
-        // The unlabeled cycle lane falls back to the generic label.
+        // The cycle lane keeps its own family labels (T-506): no Antigravity window falls back to
+        // the bare generic label.
         assertEquals(
-            R.string.window_label_generic,
+            R.string.window_label_family_gemini_cycle,
+            quotaWindowLabelRes("antigravity_gemini_cycle_window", null),
+        )
+        assertEquals(
+            R.string.window_label_family_claude_gpt_cycle,
             quotaWindowLabelRes("antigravity_claude_gpt_cycle_window", null),
         )
     }

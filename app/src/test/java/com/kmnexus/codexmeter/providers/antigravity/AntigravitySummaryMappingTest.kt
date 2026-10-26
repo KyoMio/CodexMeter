@@ -207,6 +207,102 @@ class AntigravitySummaryMappingTest {
     }
 
     @Test
+    fun `unlabeled bucket with a reset three hours out lands in the 5h lane`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Claude", "buckets": [
+                {"bucketId": "usage", "displayName": "Claude", "remainingFraction": 0.5,
+                 "resetTime": "2026-06-01T03:00:00Z"}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val window = mapSummary(body).windows.single()
+
+        // "usage" / "Claude" carry no lane signal; the 3h reset horizon is the only evidence and
+        // only a 5-hour window resets within 6 hours (T-506 real-device feedback).
+        assertEquals("antigravity_claude_gpt_5h_window", window.windowId.value)
+        assertEquals(18_000, window.limitWindowSeconds)
+    }
+
+    @Test
+    fun `unlabeled bucket with a reset five days out lands in the weekly lane`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Claude", "buckets": [
+                {"bucketId": "usage", "displayName": "Claude", "remainingFraction": 0.5,
+                 "resetTime": "2026-06-06T00:00:00Z"}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val window = mapSummary(body).windows.single()
+
+        assertEquals("antigravity_claude_gpt_weekly_window", window.windowId.value)
+        assertEquals(604_800, window.limitWindowSeconds)
+    }
+
+    @Test
+    fun `unlabeled bucket without a reset time stays in the cycle lane`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Claude", "buckets": [
+                {"bucketId": "usage", "displayName": "Claude", "remainingFraction": 0.5}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val window = mapSummary(body).windows.single()
+
+        assertEquals("antigravity_claude_gpt_cycle_window", window.windowId.value)
+    }
+
+    @Test
+    fun `text lane signal wins over a conflicting reset time`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Claude", "buckets": [
+                {"bucketId": "weekly", "displayName": "Claude", "remainingFraction": 0.5,
+                 "resetTime": "2026-06-01T03:00:00Z"}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val window = mapSummary(body).windows.single()
+
+        // Text says weekly while the 3h reset alone would suggest 5h: the bucket's own label is the
+        // stronger evidence, so the reset-time fallback must not fire for text-classified buckets.
+        assertEquals("antigravity_claude_gpt_weekly_window", window.windowId.value)
+    }
+
+    @Test
+    fun `reset time fallback uses closed six hour and seven and a half day bounds`() {
+        // Bounds are inclusive by choice: a 5h window's reset is at most 5h out and a weekly's at
+        // most 7d, so exactly 6h / exactly 7.5d remain unambiguous. Anything further, or a reset
+        // already in the past, cannot be placed and stays cycle.
+        fun bodyWithReset(resetTime: String) = """
+            {"groups": [
+              {"displayName": "Claude", "buckets": [
+                {"bucketId": "usage", "displayName": "Claude", "remainingFraction": 0.5,
+                 "resetTime": "$resetTime"}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val atSixHours = mapSummary(bodyWithReset("2026-06-01T06:00:00Z")).windows.single()
+        assertEquals("antigravity_claude_gpt_5h_window", atSixHours.windowId.value)
+
+        val atSevenAndHalfDays = mapSummary(bodyWithReset("2026-06-08T12:00:00Z")).windows.single()
+        assertEquals("antigravity_claude_gpt_weekly_window", atSevenAndHalfDays.windowId.value)
+
+        val beyondSevenAndHalfDays = mapSummary(bodyWithReset("2026-06-09T00:00:00Z")).windows.single()
+        assertEquals("antigravity_claude_gpt_cycle_window", beyondSevenAndHalfDays.windowId.value)
+
+        val alreadyPast = mapSummary(bodyWithReset("2026-05-31T23:00:00Z")).windows.single()
+        assertEquals("antigravity_claude_gpt_cycle_window", alreadyPast.windowId.value)
+    }
+
+    @Test
     fun `duplicate window ids keep the highest used percent`() {
         val body = """
             {"groups": [

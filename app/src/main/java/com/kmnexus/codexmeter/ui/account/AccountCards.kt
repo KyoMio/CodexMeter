@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -371,54 +372,70 @@ private fun AccountMetadataTile(
 
 @Composable
 private fun QuotaSummaryRow(summaries: List<AccountQuotaSummaryUi>) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
-    ) {
-        summaries.forEach { summary ->
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(CodexMeterShapes.md)
-                    .background(CodexMeterTheme.colors.surfaceSoft)
-                    .padding(CodexMeterSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs),
+    // Two tiles per row (2×2 at four windows); a lone tail tile keeps half width via a weighted
+    // spacer instead of stretching across the card.
+    Column(verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md)) {
+        summaries.chunked(2).forEach { rowSummaries ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.md),
             ) {
-                Text(
-                    text = stringResource(summary.labelResId),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = summary.valueText
-                        ?: summary.percent?.let {
-                            stringResource(R.string.account_quota_percent_format, it)
-                        }
-                        ?: stringResource(R.string.account_quota_placeholder_no_data),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                // Original native balance (shown when conversion occurred)
-                summary.originalValueText?.let { original ->
-                    Text(
-                        text = original,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                rowSummaries.forEach { summary ->
+                    QuotaSummaryTile(summary = summary, modifier = Modifier.weight(1f))
                 }
-                // DeepSeek-style granted/topped-up breakdown (native currency)
-                if (summary.grantedText != null || summary.toppedUpText != null) {
-                    Text(
-                        text = stringResource(
-                            R.string.quota_balance_breakdown_format,
-                            summary.grantedText.orEmpty(),
-                            summary.toppedUpText.orEmpty(),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                if (rowSummaries.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuotaSummaryTile(
+    summary: AccountQuotaSummaryUi,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(CodexMeterShapes.md)
+            .background(CodexMeterTheme.colors.surfaceSoft)
+            .padding(CodexMeterSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(CodexMeterSpacing.xs),
+    ) {
+        Text(
+            text = stringResource(summary.labelResId),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = summary.valueText
+                ?: summary.percent?.let {
+                    stringResource(R.string.account_quota_percent_format, it)
+                }
+                ?: stringResource(R.string.account_quota_placeholder_no_data),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        // Original native balance (shown when conversion occurred)
+        summary.originalValueText?.let { original ->
+            Text(
+                text = original,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // DeepSeek-style granted/topped-up breakdown (native currency)
+        if (summary.grantedText != null || summary.toppedUpText != null) {
+            Text(
+                text = stringResource(
+                    R.string.quota_balance_breakdown_format,
+                    summary.grantedText.orEmpty(),
+                    summary.toppedUpText.orEmpty(),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -178,6 +178,8 @@
     <string name="window_label_family_gemini_weekly">Gemini · Weekly</string>
     <string name="window_label_family_claude_gpt_5h">Claude/GPT · 5-hour</string>
     <string name="window_label_family_claude_gpt_weekly">Claude/GPT · Weekly</string>
+    <string name="window_label_family_gemini_cycle">Gemini · Cycle</string>
+    <string name="window_label_family_claude_gpt_cycle">Claude/GPT · Cycle</string>
     <string name="account_quota_alerts_label">Quota alerts</string>
     <string name="account_model_details_title">Model details</string>
     <string name="account_quota_alert_five_hour">5h quota alert</string>

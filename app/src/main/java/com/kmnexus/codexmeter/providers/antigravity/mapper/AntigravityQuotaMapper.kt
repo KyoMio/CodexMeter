@@ -13,6 +13,7 @@ import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
 import com.kmnexus.codexmeter.providers.antigravity.dto.AntigravityQuotaSummaryDto
 import com.kmnexus.codexmeter.providers.antigravity.network.AntigravityModelQuota
+import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -125,7 +126,8 @@ object AntigravityQuotaMapper {
                     val title = bucket.displayName ?: bucket.name
                     val remaining = (bucket.remainingFractionOrNull() ?: 0.0).coerceIn(0.0, 1.0)
                     val family = summaryFamilyOf(stableId, title, group)
-                    val lane = laneOf(bucket.window, stableId, title)
+                    val resetAt = parseIso(bucket.resetTime)
+                    val lane = laneOf(bucket.window, stableId, title, fetchedAt, resetAt)
                     BucketWindow(
                         family = family,
                         lane = lane,
@@ -133,7 +135,7 @@ object AntigravityQuotaMapper {
                             windowId = QuotaWindowId("antigravity_${family.key}_${lane.key}_window"),
                             titleKey = "antigravity_${family.key}_${lane.key}_window",
                             usedPercent = ((1.0 - remaining) * 100).coerceIn(0.0, 100.0).toInt(),
-                            resetAt = parseIso(bucket.resetTime),
+                            resetAt = resetAt,
                             limitWindowSeconds = lane.windowSeconds,
                             isPrimaryCandidate = false,
                             availability = if (remaining <= 0.0) {
@@ -178,8 +180,20 @@ object AntigravityQuotaMapper {
      * Lane classification: the bucket's explicit `window` field wins, then the stable bucket id,
      * then the display title. Candidates are normalized (trimmed, lowercased, underscores to
      * dashes, trailing " limit" stripped) before matching the session aliases or "weekly".
+     *
+     * Buckets whose text matches nothing get a data-driven fallback before the cycle lane: a 5h
+     * window's reset always sits within the next 5 hours and a weekly's within 7 days, so a reset
+     * horizon within 6h / 7.5 days of the fetch (bounds inclusive) identifies the lane
+     * unambiguously. A reset already in the past, further out, or absent cannot be placed and
+     * stays cycle.
      */
-    private fun laneOf(window: String?, bucketId: String?, displayName: String?): Lane {
+    private fun laneOf(
+        window: String?,
+        bucketId: String?,
+        displayName: String?,
+        fetchedAt: Instant,
+        resetAt: Instant?,
+    ): Lane {
         for (candidate in listOf(window, bucketId, displayName)) {
             val normalized = candidate?.trim()?.lowercase()
                 ?.replace('_', '-')?.removeSuffix(" limit")
@@ -187,6 +201,11 @@ object AntigravityQuotaMapper {
                 ?: continue
             if (normalized in SESSION_LANE_ALIASES) return Lane.FiveHour
             if (normalized.contains("weekly")) return Lane.Weekly
+        }
+        if (resetAt != null) {
+            val untilReset = Duration.between(fetchedAt, resetAt)
+            if (!untilReset.isNegative && untilReset <= SIX_HOURS) return Lane.FiveHour
+            if (!untilReset.isNegative && untilReset <= SEVEN_AND_A_HALF_DAYS) return Lane.Weekly
         }
         return Lane.Cycle
     }
@@ -267,6 +286,11 @@ object AntigravityQuotaMapper {
 
     private const val FIVE_HOUR_SECONDS = 18_000
     private const val WEEK_SECONDS = 604_800
+
+    // Reset-horizon bounds for the text-classification fallback, with slack beyond the real 5h /
+    // 7d windows so stale fetches still classify.
+    private val SIX_HOURS = Duration.ofHours(6)
+    private val SEVEN_AND_A_HALF_DAYS = Duration.ofDays(7).plusHours(12)
 
     private val SESSION_LANE_ALIASES = setOf("session", "5h", "5-hour", "five hour", "five-hour")
 }
