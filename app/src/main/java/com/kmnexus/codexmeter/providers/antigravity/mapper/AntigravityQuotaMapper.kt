@@ -20,15 +20,15 @@ import java.time.OffsetDateTime
  * Maps Antigravity quota into windows. Two entry points:
  *
  * - [mapSummary] is the primary path: it turns `:retrieveUserQuotaSummary` groups into one window
- *   per family (Claude / Gemini / GPT-OSS / Other) × lane (5h / weekly / cycle), so a subscription
- *   shows its 5-hour AND weekly windows side by side. When the summary reports no known quota the
- *   window list is empty and the caller falls back to [map].
+ *   per family (Gemini / Claude-GPT) × lane (5h / weekly / cycle), so a subscription shows its
+ *   5-hour AND weekly windows side by side. When the summary reports no known quota the window
+ *   list is empty and the caller falls back to [map].
  * - [map] is the per-model fallback (`:fetchAvailableModels` merged with `:retrieveUserQuota`):
  *   one window PER MODEL FAMILY, with each family's models carried as the window's per-model
  *   buckets for the account-page model-detail list. Each family window shows the family's LOWEST
  *   remaining quota (the most-constrained model). Internal/code-completion models (chat_*, tab_*,
- *   *-agent, *-image) are dropped; every other model id maps to a family, unknown ones land in
- *   Other.
+ *   *-agent, *-image) are dropped; every other model id — claude, gpt-oss, unknown — joins the
+ *   single Claude/GPT family, matching CodexBar's two known families.
  *
  * Both sources return proto3 JSON, which omits default values: a fully-depleted model or bucket
  * reports no `remainingFraction` at all (mapped to 0.0 = 100% used), and a blank `resetTime` maps
@@ -37,10 +37,8 @@ import java.time.OffsetDateTime
  */
 object AntigravityQuotaMapper {
     private enum class Family(val key: String, val windowId: String, val priority: Int) {
-        Claude("claude", "antigravity_claude_window", 0),
-        Gemini("gemini", "antigravity_gemini_window", 1),
-        GptOss("gpt_oss", "antigravity_gpt_oss_window", 2),
-        Other("other", "antigravity_other_window", 3),
+        Gemini("gemini", "antigravity_gemini_window", 0),
+        ClaudeGpt("claude_gpt", "antigravity_claude_gpt_window", 1),
     }
 
     private enum class Lane(val key: String, val windowSeconds: Int?, val priority: Int) {
@@ -193,27 +191,19 @@ object AntigravityQuotaMapper {
         return Lane.Cycle
     }
 
-    /** Bucket text first, then the group name with the same rules; anything else is Other. */
+    /**
+     * Bucket text first, then the group name. Only "gemini" selects the Gemini family; everything
+     * else — claude, gpt, third-party, unknown text — belongs to the single Claude/GPT family.
+     */
     private fun summaryFamilyOf(
         bucketId: String?,
         bucketTitle: String?,
         group: AntigravityQuotaSummaryDto.QuotaGroup,
     ): Family {
         val bucketText = "${bucketId.orEmpty()} ${bucketTitle.orEmpty()}"
-        return familyOfText(bucketText)
-            ?: familyOfText(group.displayName ?: group.name ?: "")
-            ?: Family.Other
-    }
-
-    private fun familyOfText(text: String): Family? {
-        val normalized = text.lowercase()
-        return when {
-            normalized.contains("gemini") -> Family.Gemini
-            normalized.contains("claude") -> Family.Claude
-            normalized.contains("gpt") || normalized.contains("3p") ||
-                normalized.contains("third-party") -> Family.GptOss
-            else -> null
-        }
+        if (bucketText.lowercase().contains("gemini")) return Family.Gemini
+        val groupText = (group.displayName ?: group.name ?: "").lowercase()
+        return if (groupText.contains("gemini")) Family.Gemini else Family.ClaudeGpt
     }
 
     private fun buildFamilyWindow(family: Family, buckets: List<QuotaModelBucket>): QuotaWindow {
@@ -239,17 +229,15 @@ object AntigravityQuotaMapper {
         )
     }
 
-    /** Classifies a model id into a display family; internal/code-completion models return null. */
+    /**
+     * Classifies a model id into a display family; internal/code-completion models return null.
+     * Everything non-gemini — claude, gpt-oss, unknown ids — joins the Claude/GPT family.
+     */
     private fun familyOf(modelId: String): Family? {
         val id = modelId.lowercase()
-        return when {
-            id.contains("agent") || id.contains("image") -> null
-            id.startsWith("chat_") || id.startsWith("tab_") -> null
-            id.startsWith("claude") -> Family.Claude
-            id.startsWith("gpt-oss") -> Family.GptOss
-            id.contains("gemini") -> Family.Gemini
-            else -> Family.Other
-        }
+        if (id.contains("agent") || id.contains("image")) return null
+        if (id.startsWith("chat_") || id.startsWith("tab_")) return null
+        return if (id.contains("gemini")) Family.Gemini else Family.ClaudeGpt
     }
 
     private fun parseIso(value: String?): Instant? {

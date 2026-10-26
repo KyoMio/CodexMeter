@@ -78,8 +78,8 @@ class QuotaSnapshotWindowRoundTripTest {
     @Test
     fun multiModelBuckets_surviveEntityRoundTrip() {
         val window = QuotaWindow(
-            windowId = QuotaWindowId("antigravity_claude_window"),
-            titleKey = "antigravity_claude_window",
+            windowId = QuotaWindowId("antigravity_claude_gpt_window"),
+            titleKey = "antigravity_claude_gpt_window",
             usedPercent = 15,
             resetAt = null,
             limitWindowSeconds = null,

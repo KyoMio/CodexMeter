@@ -125,23 +125,15 @@ class QuotaWindowLabelsTest {
     }
 
     @Test
-    fun `antigravity family windows keep their named labels`() {
-        assertEquals(R.string.window_label_family_claude, quotaWindowLabelRes("antigravity_claude_window", null))
+    fun `antigravity per-model family windows keep their named labels`() {
+        // Only two families remain (T-505): the claude_gpt window carries Claude, GPT-OSS and every
+        // unknown model under one label; the gemini window keeps its own.
+        assertEquals(R.string.window_label_family_claude_gpt, quotaWindowLabelRes("antigravity_claude_gpt_window", null))
         assertEquals(R.string.window_label_family_gemini, quotaWindowLabelRes("antigravity_gemini_window", null))
-        assertEquals(R.string.window_label_family_gpt_oss, quotaWindowLabelRes("antigravity_gpt_oss_window", null))
-        assertEquals(R.string.window_label_family_other, quotaWindowLabelRes("antigravity_other_window", null))
     }
 
     @Test
     fun `antigravity summary family x lane windows keep their named labels`() {
-        assertEquals(
-            R.string.window_label_family_claude_5h,
-            quotaWindowLabelRes("antigravity_claude_5h_window", fiveHourSeconds),
-        )
-        assertEquals(
-            R.string.window_label_family_claude_weekly,
-            quotaWindowLabelRes("antigravity_claude_weekly_window", weekSeconds),
-        )
         assertEquals(
             R.string.window_label_family_gemini_5h,
             quotaWindowLabelRes("antigravity_gemini_5h_window", fiveHourSeconds),
@@ -151,25 +143,17 @@ class QuotaWindowLabelsTest {
             quotaWindowLabelRes("antigravity_gemini_weekly_window", weekSeconds),
         )
         assertEquals(
-            R.string.window_label_family_gpt_oss_5h,
-            quotaWindowLabelRes("antigravity_gpt_oss_5h_window", fiveHourSeconds),
+            R.string.window_label_family_claude_gpt_5h,
+            quotaWindowLabelRes("antigravity_claude_gpt_5h_window", fiveHourSeconds),
         )
         assertEquals(
-            R.string.window_label_family_gpt_oss_weekly,
-            quotaWindowLabelRes("antigravity_gpt_oss_weekly_window", weekSeconds),
-        )
-        assertEquals(
-            R.string.window_label_family_other_5h,
-            quotaWindowLabelRes("antigravity_other_5h_window", fiveHourSeconds),
-        )
-        assertEquals(
-            R.string.window_label_family_other_weekly,
-            quotaWindowLabelRes("antigravity_other_weekly_window", weekSeconds),
+            R.string.window_label_family_claude_gpt_weekly,
+            quotaWindowLabelRes("antigravity_claude_gpt_weekly_window", weekSeconds),
         )
         // The unlabeled cycle lane falls back to the generic label.
         assertEquals(
             R.string.window_label_generic,
-            quotaWindowLabelRes("antigravity_claude_cycle_window", null),
+            quotaWindowLabelRes("antigravity_claude_gpt_cycle_window", null),
         )
     }
 

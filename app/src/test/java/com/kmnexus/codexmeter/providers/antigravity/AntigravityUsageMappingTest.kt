@@ -58,22 +58,25 @@ class AntigravityUsageMappingTest {
 
         assertEquals("free-tier", snapshot.planType)
 
-        // One window per visible family; internal (chat_*) and agent models excluded.
+        // Two families total: claude and gpt-oss merge into one claude_gpt window; internal
+        // (chat_*) and agent models excluded.
         val byId = snapshot.windows.associateBy { it.windowId.value }
         assertEquals(
             setOf(
-                "antigravity_claude_window",
+                "antigravity_claude_gpt_window",
                 "antigravity_gemini_window",
-                "antigravity_gpt_oss_window",
             ),
             byId.keys,
         )
 
-        // Claude family lowest remaining = 0.4 -> 60% used; both claude models retained as buckets.
-        val claude = byId.getValue("antigravity_claude_window")
-        assertEquals(60, claude.usedPercent)
-        assertEquals(2, claude.modelBuckets.size)
-        assertEquals(true, claude.usesModelBucketSum)
+        // Claude/GPT family lowest remaining = 0.4 -> 60% used; all three models retained as buckets.
+        val claudeGpt = byId.getValue("antigravity_claude_gpt_window")
+        assertEquals(60, claudeGpt.usedPercent)
+        assertEquals(
+            listOf("claude-opus-4-6-thinking", "claude-sonnet-4-6", "gpt-oss-120b-medium"),
+            claudeGpt.modelBuckets.map { it.modelId },
+        )
+        assertEquals(true, claudeGpt.usesModelBucketSum)
 
         // Pro and flash share the single Gemini window; lowest remaining 0.75 -> 25% used.
         // (0.75 is binary-exact: usedPercent truncates via toInt, so 0.8 would assert as 19, not 20.)
@@ -82,8 +85,8 @@ class AntigravityUsageMappingTest {
         assertEquals(2, gemini.modelBuckets.size)
         assertEquals(true, gemini.usesModelBucketSum)
 
-        // Most-constrained family (Claude, 60% used) is the primary candidate.
-        assertEquals("antigravity_claude_window", snapshot.windows.first { it.isPrimaryCandidate }.windowId.value)
+        // Most-constrained family (Claude/GPT, 60% used) is the primary candidate.
+        assertEquals("antigravity_claude_gpt_window", snapshot.windows.first { it.isPrimaryCandidate }.windowId.value)
     }
 
     @Test
@@ -137,9 +140,9 @@ class AntigravityUsageMappingTest {
 
         val snapshot = map(body)
 
-        val claude = snapshot.windows.single { it.windowId.value == "antigravity_claude_window" }
-        assertNull(claude.modelBuckets.single().resetAt)
-        assertNull(claude.resetAt)
+        val claudeGpt = snapshot.windows.single { it.windowId.value == "antigravity_claude_gpt_window" }
+        assertNull(claudeGpt.modelBuckets.single().resetAt)
+        assertNull(claudeGpt.resetAt)
     }
 
     @Test
@@ -182,10 +185,13 @@ class AntigravityUsageMappingTest {
     }
 
     @Test
-    fun unknownModelIdsLandInTheOtherWindow() {
+    fun claudeGptOssAndUnknownModelsShareTheSingleClaudeGptWindow() {
+        // Unknown ids (veo-3) no longer get their own family: everything non-gemini joins claude_gpt.
         val body = """
             {
               "buckets": [
+                {"modelId": "claude-opus-4-6", "remainingFraction": 0.4, "resetTime": "2026-06-01T12:00:00Z"},
+                {"modelId": "gpt-oss-120b-medium", "remainingFraction": 0.9, "resetTime": "2026-06-01T12:00:00Z"},
                 {"modelId": "veo-3", "remainingFraction": 0.7, "resetTime": "2026-06-01T12:00:00Z"}
               ]
             }
@@ -193,9 +199,14 @@ class AntigravityUsageMappingTest {
 
         val snapshot = map(body)
 
-        val other = snapshot.windows.single { it.windowId.value == "antigravity_other_window" }
-        assertEquals(1, other.modelBuckets.size)
-        assertEquals(30, other.usedPercent)
+        val claudeGpt = snapshot.windows.single { it.windowId.value == "antigravity_claude_gpt_window" }
+        assertEquals(
+            listOf("claude-opus-4-6", "gpt-oss-120b-medium", "veo-3"),
+            claudeGpt.modelBuckets.map { it.modelId },
+        )
+        // Lowest remaining 0.4 -> 60% used.
+        assertEquals(60, claudeGpt.usedPercent)
+        assertEquals(1, snapshot.windows.size)
     }
 
     @Test

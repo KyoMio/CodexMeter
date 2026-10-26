@@ -28,7 +28,7 @@ class AntigravitySummaryMappingTest {
         )
 
     @Test
-    fun `maps summary groups into family and lane windows`() {
+    fun `maps summary groups into exactly four two-family lane windows`() {
         val body = """
             {
               "description": "quota summary",
@@ -37,11 +37,9 @@ class AntigravitySummaryMappingTest {
                   {"bucketId": "5h", "displayName": "Gemini Pro", "remainingFraction": 0.5, "resetTime": "2026-06-01T12:00:00Z"},
                   {"bucketId": "weekly", "displayName": "Gemini Pro", "remainingFraction": 0.9}
                 ]},
-                {"displayName": "Claude", "buckets": [
-                  {"bucketId": "5h", "displayName": "Claude", "remainingFraction": 0.25, "resetTime": "2026-06-01T12:00:00Z"}
-                ]},
-                {"displayName": "GPT", "buckets": [
-                  {"bucketId": "5h", "displayName": "GPT-OSS"}
+                {"displayName": "Claude/GPT", "buckets": [
+                  {"bucketId": "5h", "displayName": "Claude", "remainingFraction": 0.25, "resetTime": "2026-06-01T12:00:00Z"},
+                  {"bucketId": "weekly", "displayName": "GPT-OSS", "remainingFraction": 0.7}
                 ]}
               ]
             }
@@ -55,11 +53,13 @@ class AntigravitySummaryMappingTest {
             setOf(
                 "antigravity_gemini_5h_window",
                 "antigravity_gemini_weekly_window",
-                "antigravity_claude_5h_window",
-                "antigravity_gpt_oss_5h_window",
+                "antigravity_claude_gpt_5h_window",
+                "antigravity_claude_gpt_weekly_window",
             ),
             byId.keys,
         )
+        // Real-device acceptance: a subscription shows exactly the 4 family x lane windows.
+        assertEquals(4, snapshot.windows.size)
 
         val gemini5h = byId.getValue("antigravity_gemini_5h_window")
         assertEquals(50, gemini5h.usedPercent)
@@ -75,15 +75,15 @@ class AntigravitySummaryMappingTest {
         assertEquals(604_800, geminiWeekly.limitWindowSeconds)
         assertNull(geminiWeekly.resetAt)
 
-        assertEquals(75, byId.getValue("antigravity_claude_5h_window").usedPercent)
+        assertEquals(75, byId.getValue("antigravity_claude_gpt_5h_window").usedPercent)
+        assertEquals(30, byId.getValue("antigravity_claude_gpt_weekly_window").usedPercent)
 
         // proto3 JSON omits default values: a missing remainingFraction means fully used.
-        val gpt = byId.getValue("antigravity_gpt_oss_5h_window")
-        assertEquals(100, gpt.usedPercent)
-        assertEquals(QuotaWindowAvailability.Depleted, gpt.availability)
+        val gpt = byId.getValue("antigravity_claude_gpt_5h_window")
+        assertEquals(75, gpt.usedPercent)
 
         assertEquals(
-            "antigravity_gpt_oss_5h_window",
+            "antigravity_claude_gpt_5h_window",
             snapshot.windows.first { it.isPrimaryCandidate }.windowId.value,
         )
     }
@@ -101,7 +101,7 @@ class AntigravitySummaryMappingTest {
         val snapshot = mapSummary(body)
 
         val window = snapshot.windows.single()
-        assertEquals("antigravity_claude_weekly_window", window.windowId.value)
+        assertEquals("antigravity_claude_gpt_weekly_window", window.windowId.value)
         assertEquals(604_800, window.limitWindowSeconds)
     }
 
@@ -132,24 +132,78 @@ class AntigravitySummaryMappingTest {
     }
 
     @Test
-    fun `family falls back to the group name and unknown buckets land in other`() {
+    fun `claude gpt third-party and unknown buckets all land in the claude gpt family`() {
         val body = """
             {"groups": [
+              {"displayName": "Claude", "buckets": [
+                {"bucketId": "5h", "displayName": "Sonnet", "remainingFraction": 0.5}
+              ]},
+              {"displayName": "GPT", "buckets": [
+                {"bucketId": "weekly", "displayName": "GPT-OSS"}
+              ]},
               {"displayName": "Third-party models", "buckets": [
-                {"bucketId": "5h", "displayName": "Sonnet proxy", "remainingFraction": 0.5}
+                {"bucketId": "cycle", "displayName": "proxy", "remainingFraction": 0.9}
               ]},
               {"displayName": "Mystery", "buckets": [
-                {"bucketId": "5h", "displayName": "Widget", "remainingFraction": 0.5}
+                {"bucketId": "5h", "displayName": "Widget", "remainingFraction": 0.8}
               ]}
             ]}
         """.trimIndent()
 
         val byId = mapSummary(body).windows.associateBy { it.windowId.value }
 
+        // Everything that is not Gemini belongs to the single claude_gpt family; the 5h rows of the
+        // Claude and Mystery groups share one window (the fullest bucket wins: Sonnet 50% used
+        // beats Widget 19% used — 1 - 0.8 truncates to 19, not 20) and the proto3 omitted
+        // remainingFraction of the GPT weekly row still reads as fully used.
         assertEquals(
-            setOf("antigravity_gpt_oss_5h_window", "antigravity_other_5h_window"),
+            setOf(
+                "antigravity_claude_gpt_5h_window",
+                "antigravity_claude_gpt_weekly_window",
+                "antigravity_claude_gpt_cycle_window",
+            ),
             byId.keys,
         )
+        assertEquals(50, byId.getValue("antigravity_claude_gpt_5h_window").usedPercent)
+        val weekly = byId.getValue("antigravity_claude_gpt_weekly_window")
+        assertEquals(100, weekly.usedPercent)
+        assertEquals(QuotaWindowAvailability.Depleted, weekly.availability)
+    }
+
+    @Test
+    fun `non-gemini buckets under the gemini group stay gemini`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Gemini", "buckets": [
+                {"bucketId": "5h", "displayName": "flash-preview", "remainingFraction": 0.5}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val snapshot = mapSummary(body)
+
+        // The bucket text has no "gemini" in it; the group name decides the family.
+        val window = snapshot.windows.single()
+        assertEquals("antigravity_gemini_5h_window", window.windowId.value)
+    }
+
+    @Test
+    fun `gemini in the bucket text wins over a non-gemini group name`() {
+        val body = """
+            {"groups": [
+              {"displayName": "Claude/GPT", "buckets": [
+                {"bucketId": "5h", "displayName": "gemini-pro-5h", "remainingFraction": 0.5}
+              ]}
+            ]}
+        """.trimIndent()
+
+        val snapshot = mapSummary(body)
+
+        // Bucket text outranks the group name (the "5h" bucketId carries the lane, the display
+        // name carries the family): dropping the bucket-text check and deciding by group name
+        // alone would file this bucket under claude_gpt and turn this test red.
+        val window = snapshot.windows.single()
+        assertEquals("antigravity_gemini_5h_window", window.windowId.value)
     }
 
     @Test
@@ -221,6 +275,6 @@ class AntigravitySummaryMappingTest {
 
         val byId = mapSummary(body).windows.associateBy { it.windowId.value }
 
-        assertEquals(setOf("antigravity_claude_5h_window"), byId.keys)
+        assertEquals(setOf("antigravity_claude_gpt_5h_window"), byId.keys)
     }
 }
