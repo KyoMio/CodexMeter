@@ -8,7 +8,7 @@ import com.kmnexus.codexmeter.core.i18n.AppLocaleController
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.account.AccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.AccountSwitchUseCase
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
 import com.kmnexus.codexmeter.domain.auth.ApiKeyLoginUseCase
 import com.kmnexus.codexmeter.domain.auth.SessionLoginUseCase
@@ -74,8 +74,8 @@ class CodexMeterApp :
     val accountDeleteUseCase: AccountDeleteUseCase
         get() = appContainer.accountDeleteUseCase
 
-    val accountSwitchUseCase: AccountSwitchUseCase
-        get() = appContainer.accountSwitchUseCase
+    val defaultAccountSelectUseCase: DefaultAccountSelectUseCase
+        get() = appContainer.defaultAccountSelectUseCase
 
     val accountRenameUseCase: AccountRenameUseCase
         get() = appContainer.accountRenameUseCase

@@ -112,32 +112,24 @@ data class SettingsAlertsUi(
     val balanceWarning: Double = DEFAULT_BALANCE_WARNING_THRESHOLD,
 )
 
-sealed interface SettingsNotificationAccountSelection {
-    data object FollowCurrent : SettingsNotificationAccountSelection
-
-    data class Account(
-        val providerId: ProviderId,
-        val localAccountId: LocalAccountId,
-        val displayName: String,
-    ) : SettingsNotificationAccountSelection
-}
+/** One lockable notification target. No "follow" option remains: the account is fixed. */
+data class SettingsNotificationAccountSelection(
+    val providerId: ProviderId,
+    val localAccountId: LocalAccountId,
+    val displayName: String,
+)
 
 data class SettingsNotificationAccountChoice(
     val selection: SettingsNotificationAccountSelection,
 ) {
-    val stableId: String =
-        when (selection) {
-            SettingsNotificationAccountSelection.FollowCurrent -> "follow_current"
-            is SettingsNotificationAccountSelection.Account -> selection.localAccountId.value
-        }
+    val stableId: String = selection.localAccountId.value
 }
 
 data class SettingsPersistentNotificationUi(
     val enabled: Boolean = true,
-    val accountSelection: SettingsNotificationAccountSelection = SettingsNotificationAccountSelection.FollowCurrent,
-    val accountChoices: List<SettingsNotificationAccountChoice> = listOf(
-        SettingsNotificationAccountChoice(SettingsNotificationAccountSelection.FollowCurrent),
-    ),
+    /** Null until the migration locks a concrete account or the device has no accounts. */
+    val accountSelection: SettingsNotificationAccountSelection? = null,
+    val accountChoices: List<SettingsNotificationAccountChoice> = emptyList(),
     val selectedWindowId: QuotaWindowId = DEFAULT_NOTIFICATION_WINDOW_ID,
     val windowChoices: List<SettingsNotificationWindowChoice> = emptyList(),
 )
@@ -458,12 +450,9 @@ class SettingsViewModel(
         }
     }
 
-    private suspend fun loadAndApplyWindowChoices(selection: SettingsNotificationAccountSelection) {
-        val (providerId, localAccountId) = when (selection) {
-            SettingsNotificationAccountSelection.FollowCurrent -> null to null
-            is SettingsNotificationAccountSelection.Account ->
-                selection.providerId to selection.localAccountId
-        }
+    private suspend fun loadAndApplyWindowChoices(selection: SettingsNotificationAccountSelection?) {
+        val providerId = selection?.providerId
+        val localAccountId = selection?.localAccountId
         val choices = notificationWindowChoicesLoader.windowChoices(providerId, localAccountId)
             .map { it.toSettingsNotificationWindowChoice() }
         var needsPersist = false
@@ -547,21 +536,18 @@ class SettingsViewModel(
                         .filterNot { it.status == AccountStatus.Deleted }
                         .map { account ->
                             SettingsNotificationAccountChoice(
-                                SettingsNotificationAccountSelection.Account(
+                                SettingsNotificationAccountSelection(
                                     providerId = account.providerId,
                                     localAccountId = account.localAccountId,
                                     displayName = account.displayName,
                                 ),
                             )
                         }
-                    val allChoices = listOf(
-                        SettingsNotificationAccountChoice(SettingsNotificationAccountSelection.FollowCurrent),
-                    ) + accountChoices
                     state.copy(
                         persistentNotification = state.persistentNotification.copy(
-                            accountChoices = allChoices,
+                            accountChoices = accountChoices,
                             accountSelection = state.persistentNotification.accountSelection
-                                .withDisplayNameFrom(allChoices),
+                                .withDisplayNameFrom(accountChoices),
                         ),
                     )
                 }
@@ -1049,35 +1035,35 @@ private fun NotificationWindowChoice.toSettingsNotificationWindowChoice(): Setti
         labelResId = quotaWindowLabelRes(windowId.value, limitWindowSeconds),
     )
 
-private fun SettingsNotificationAccountSelection.toNotificationAccountSelection(): NotificationAccountSelection? =
-    when (this) {
-        SettingsNotificationAccountSelection.FollowCurrent -> null
-        is SettingsNotificationAccountSelection.Account -> NotificationAccountSelection(
-            providerId = providerId,
-            localAccountId = localAccountId,
+private fun SettingsNotificationAccountSelection?.toNotificationAccountSelection(): NotificationAccountSelection? =
+    this?.let {
+        NotificationAccountSelection(
+            providerId = it.providerId,
+            localAccountId = it.localAccountId,
         )
     }
 
 private fun NotificationAccountSelection?.toSettingsNotificationAccountSelection(
     choices: List<SettingsNotificationAccountChoice>,
-): SettingsNotificationAccountSelection {
-    this ?: return SettingsNotificationAccountSelection.FollowCurrent
+): SettingsNotificationAccountSelection? {
+    this ?: return null
     return choices.map { it.selection }
-        .filterIsInstance<SettingsNotificationAccountSelection.Account>()
         .firstOrNull { it.providerId == providerId && it.localAccountId == localAccountId }
-        ?: SettingsNotificationAccountSelection.FollowCurrent
+        ?: SettingsNotificationAccountSelection(
+            providerId = providerId,
+            localAccountId = localAccountId,
+            displayName = localAccountId.value,
+        )
 }
 
-private fun SettingsNotificationAccountSelection.withDisplayNameFrom(
+private fun SettingsNotificationAccountSelection?.withDisplayNameFrom(
     choices: List<SettingsNotificationAccountChoice>,
-): SettingsNotificationAccountSelection =
-    when (this) {
-        SettingsNotificationAccountSelection.FollowCurrent -> this
-        is SettingsNotificationAccountSelection.Account ->
-            choices.map { it.selection }
-                .filterIsInstance<SettingsNotificationAccountSelection.Account>()
-                .firstOrNull { it.providerId == providerId && it.localAccountId == localAccountId }
-                ?: SettingsNotificationAccountSelection.FollowCurrent
+): SettingsNotificationAccountSelection? =
+    this?.let { selected ->
+        choices.map { it.selection }
+            .firstOrNull {
+                it.providerId == selected.providerId && it.localAccountId == selected.localAccountId
+            } ?: selected
     }
 
 private fun NotificationPreferences.toSettingsAlertsUi(): SettingsAlertsUi =

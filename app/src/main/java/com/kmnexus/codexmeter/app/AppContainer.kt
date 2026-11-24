@@ -32,7 +32,7 @@ import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.account.AccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.AccountSwitchUseCase
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.account.AccountSwitchRefreshRequester
 import com.kmnexus.codexmeter.domain.auth.ApiKeyLoginUseCase
 import com.kmnexus.codexmeter.domain.auth.SessionLoginUseCase
@@ -159,7 +159,7 @@ class AppContainer private constructor(
     val refreshCoordinator: RefreshCoordinator,
     val accountListUseCase: AccountListUseCase,
     val accountDeleteUseCase: AccountDeleteUseCase,
-    val accountSwitchUseCase: AccountSwitchUseCase,
+    val defaultAccountSelectUseCase: DefaultAccountSelectUseCase,
     val accountRenameUseCase: AccountRenameUseCase,
     val accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester,
     val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader,
@@ -764,7 +764,7 @@ class AppContainer private constructor(
             val accountMutationRepository = AccountMutationRepository(
                 providerAccountDao = database.providerAccountDao(),
                 currentAccountStore = currentAccountPreferences,
-                accountSwitchRefreshRequester = AccountSwitchRefreshRequester { account ->
+                accountSelectRefreshRequester = AccountSwitchRefreshRequester { account ->
                     try {
                         refreshCoordinator.refresh(
                             account = account,
@@ -831,7 +831,7 @@ class AppContainer private constructor(
                         localAccountId = localAccountId,
                     )
                 },
-                accountSwitchUseCase = accountMutationRepository,
+                defaultAccountSelectUseCase = accountMutationRepository,
                 accountRenameUseCase = accountMutationRepository,
                 accountQuotaAlertEvaluationRequester = AccountQuotaAlertEvaluationRequester { providerId, localAccountId, windowId ->
                     currentQuotaStatePublisher.publish(

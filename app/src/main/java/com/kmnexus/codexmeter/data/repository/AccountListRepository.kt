@@ -40,7 +40,7 @@ class AccountListRepository(
 
         return AccountListResult(
             accounts = accounts,
-            currentAccountId = currentSelection?.localAccountId,
+            defaultAccountId = currentSelection?.localAccountId,
             latestQuotaSnapshots = latestQuotaSnapshots,
         )
     }

@@ -4,9 +4,9 @@ import com.kmnexus.codexmeter.data.local.dao.ProviderAccountDao
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountStore
 import com.kmnexus.codexmeter.domain.account.AccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.AccountSwitchUseCase
 import com.kmnexus.codexmeter.domain.account.AccountSwitchRefreshRequester
 import com.kmnexus.codexmeter.domain.account.CurrentAccountStateRepublisher
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.account.NoopAccountSwitchRefreshRequester
 import com.kmnexus.codexmeter.domain.account.NoopCurrentAccountStateRepublisher
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
@@ -18,11 +18,18 @@ import kotlinx.coroutines.CancellationException
 class AccountMutationRepository(
     private val providerAccountDao: ProviderAccountDao,
     private val currentAccountStore: CurrentAccountStore,
-    private val accountSwitchRefreshRequester: AccountSwitchRefreshRequester = NoopAccountSwitchRefreshRequester,
+    private val accountSelectRefreshRequester: AccountSwitchRefreshRequester = NoopAccountSwitchRefreshRequester,
     private val currentAccountStateRepublisher: CurrentAccountStateRepublisher = NoopCurrentAccountStateRepublisher,
     private val clock: Clock,
-) : AccountSwitchUseCase, AccountRenameUseCase {
-    override suspend fun switchCurrentAccount(
+) : DefaultAccountSelectUseCase, AccountRenameUseCase {
+    /**
+     * Writes the Home selector's chosen account into the default-account slot — the single source
+     * every consumer (Home, cold start, background-refresh status, notification fallback, widget
+     * default) reads. Selecting a different account is a view change, not a full refresh trigger:
+     * the post-write refresh keeps the freshly selected account's quota usable when it has no
+     * recent snapshot.
+     */
+    override suspend fun selectDefaultAccount(
         providerId: ProviderId,
         localAccountId: LocalAccountId,
     ): Boolean {
@@ -38,7 +45,7 @@ class AccountMutationRepository(
             ),
         )
         runPostMutationEffect {
-            accountSwitchRefreshRequester.requestAccountSwitchRefresh(account)
+            accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
         }
         return true
     }

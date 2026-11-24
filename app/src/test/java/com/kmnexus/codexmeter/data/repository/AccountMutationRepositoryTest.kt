@@ -29,15 +29,15 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class AccountMutationRepositoryTest {
     @Test
-    fun `switching existing account persists current selection`() = runTest {
-        val refreshRequester = RecordingAccountSwitchRefreshRequester()
+    fun `selecting existing account persists default selection`() = runTest {
+        val refreshRequester = RecordingAccountSelectRefreshRequester()
         withRepository(
-            accountSwitchRefreshRequester = refreshRequester,
+            accountSelectRefreshRequester = refreshRequester,
         ) { db, currentAccountStore, repository ->
             db.providerAccountDao().upsert(account("local-1"))
             db.providerAccountDao().upsert(account("local-2"))
 
-            val switched = repository.switchCurrentAccount(ProviderId("codex"), LocalAccountId("local-2"))
+            val switched = repository.selectDefaultAccount(ProviderId("codex"), LocalAccountId("local-2"))
 
             assertTrue(switched)
             assertEquals(
@@ -52,20 +52,20 @@ class AccountMutationRepositoryTest {
                     currentAccountReader = currentAccountStore,
                 )
                     .loadAccounts()
-                    .currentAccountId,
+                    .defaultAccountId,
             )
             assertEquals(listOf(LocalAccountId("local-2")), refreshRequester.requestedAccountIds)
         }
     }
 
     @Test
-    fun `switching missing account does not mutate current selection`() = runTest {
+    fun `selecting missing account does not mutate default selection`() = runTest {
         withRepository { _, currentAccountStore, repository ->
             currentAccountStore.updateCurrentAccountSelection(
                 CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1")),
             )
 
-            val switched = repository.switchCurrentAccount(ProviderId("codex"), LocalAccountId("missing"))
+            val switched = repository.selectDefaultAccount(ProviderId("codex"), LocalAccountId("missing"))
 
             assertFalse(switched)
             assertEquals(
@@ -157,7 +157,7 @@ class AccountMutationRepositoryTest {
     }
 
     private suspend fun withRepository(
-        accountSwitchRefreshRequester: AccountSwitchRefreshRequester = RecordingAccountSwitchRefreshRequester(),
+        accountSelectRefreshRequester: AccountSwitchRefreshRequester = RecordingAccountSelectRefreshRequester(),
         currentAccountStateRepublisher: CurrentAccountStateRepublisher = RecordingCurrentAccountStateRepublisher(),
         block: suspend (CodexMeterDatabase, InMemoryCurrentAccountStore, AccountMutationRepository) -> Unit,
     ) {
@@ -169,7 +169,7 @@ class AccountMutationRepositoryTest {
         val repository = AccountMutationRepository(
             providerAccountDao = db.providerAccountDao(),
             currentAccountStore = currentAccountStore,
-            accountSwitchRefreshRequester = accountSwitchRefreshRequester,
+            accountSelectRefreshRequester = accountSelectRefreshRequester,
             currentAccountStateRepublisher = currentAccountStateRepublisher,
             clock = Clock.fixed(UPDATED_AT, ZoneOffset.UTC),
         )
@@ -181,7 +181,7 @@ class AccountMutationRepositoryTest {
         }
     }
 
-    private class RecordingAccountSwitchRefreshRequester : AccountSwitchRefreshRequester {
+    private class RecordingAccountSelectRefreshRequester : AccountSwitchRefreshRequester {
         val requestedAccounts = mutableListOf<ProviderAccount>()
         val requestedAccountIds: List<LocalAccountId>
             get() = requestedAccounts.map { it.localAccountId }

@@ -39,6 +39,8 @@ class NotificationPreferencesDataStore(
             } else {
                 dataStore.edit { it.migrateThresholdSemantics() }
             }
+        }.let { stored ->
+            migrateNotificationAccountSelection(stored)
         }
         val caution = preferences[Keys.CAUTION_THRESHOLD]
             ?.coerceIn(CAUTION_THRESHOLD_RANGE)
@@ -138,6 +140,29 @@ class NotificationPreferencesDataStore(
             ?.takeIf { it in WARNING_THRESHOLD_RANGE && it < safeCaution }
             ?: DEFAULT_WARNING_THRESHOLD.coerceAtMost(safeCaution - 1)
         return safeCaution to safeWarning
+    }
+
+    /**
+     * One-shot upgrade migration: the removed "follow current account" notification setting was
+     * stored as absent keys (null). Lock it to whichever default account the same DataStore pointed
+     * at when this build first reads preferences, so the notification target does not change. The
+     * two stores intentionally share this DataStore file, so the default selection is readable here
+     * without a dependency. Users who never configured a notification account but already had a
+     * default get it locked to that default; fresh installs (no default yet) materialize on first
+     * read after one is written — same outcome, since nothing can unset it afterwards.
+     */
+    private suspend fun migrateNotificationAccountSelection(stored: Preferences): Preferences {
+        if (stored[Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] != null) return stored
+        val defaultProviderId = stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID]
+            ?.takeIf { it.isNotBlank() }
+            ?: return stored
+        val defaultLocalAccountId = stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID]
+            ?.takeIf { it.isNotBlank() }
+            ?: return stored
+        return dataStore.edit {
+            it[Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] = defaultProviderId
+            it[Keys.PERSISTENT_NOTIFICATION_LOCAL_ACCOUNT_ID] = defaultLocalAccountId
+        }
     }
 
     private fun Preferences.toPersistentNotificationAccount(): NotificationAccountSelection? {

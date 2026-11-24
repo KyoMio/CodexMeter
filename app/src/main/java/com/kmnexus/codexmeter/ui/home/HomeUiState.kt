@@ -37,11 +37,23 @@ enum class HomeActionKind {
 }
 
 data class HomeAccountUi(
+    val localAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId? = null,
+    val providerId: com.kmnexus.codexmeter.domain.model.ProviderId? = null,
     val displayName: String,
     val avatarInitial: String,
     val avatarColorKey: String,
     val planType: String?,
     val credits: HomeCreditsUi,
+    @param:DrawableRes val providerIconResId: Int? = null,
+)
+
+/** One entry in the Home account selector (every local account, any provider). */
+data class HomeAccountChoiceUi(
+    val localAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId,
+    val providerId: com.kmnexus.codexmeter.domain.model.ProviderId,
+    val displayName: String,
+    val avatarInitial: String,
+    val avatarColorKey: String,
     @param:DrawableRes val providerIconResId: Int? = null,
 )
 
@@ -113,6 +125,8 @@ data class HomeUiState(
     @get:StringRes val statusDescriptionResId: Int,
     @get:StringRes val errorMessageResId: Int?,
     val account: HomeAccountUi?,
+    /** Every selectable account for the top selector; hidden when it has fewer than two entries. */
+    val accountChoices: List<HomeAccountChoiceUi> = emptyList(),
     val quotaCards: List<HomeQuotaCardUi> = emptyList(),
     val trend: HomeTrendUi,
     val loading: HomeLoadingUi?,

@@ -7,15 +7,9 @@ import org.junit.Test
 
 class AccountActionButtonPolicyTest {
     @Test
-    fun `account destructive and disabled actions keep visible outlines`() {
+    fun `account destructive actions keep visible outlines`() {
         val source = sourceFile("src/main/java/com/kmnexus/codexmeter/ui/account/AccountCards.kt").readText()
         val actions = source.functionBlock("private fun AccountActions")
-
-        val setCurrent = actions.buttonBlock("account_set_current")
-        assertTrue(
-            "Disabled 'set current' must keep an explicit outline instead of relying on a Material disabled border.",
-            setCurrent.contains("border = actionButtonBorder"),
-        )
 
         val delete = actions.buttonBlock("account_delete")
         assertTrue(

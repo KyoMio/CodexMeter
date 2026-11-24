@@ -135,11 +135,11 @@ class SettingsViewModelTest {
 
         val persistentNotification = viewModel.uiState.value.persistentNotification
         assertEquals(
-            listOf("follow_current", "local-1", "local-2"),
+            listOf("local-1", "local-2"),
             persistentNotification.accountChoices.map { it.stableId },
         )
         assertEquals(
-            SettingsNotificationAccountSelection.Account(
+            SettingsNotificationAccountSelection(
                 providerId = ProviderId("codex"),
                 localAccountId = LocalAccountId("local-2"),
                 displayName = "Personal",
@@ -219,7 +219,7 @@ class SettingsViewModelTest {
         runCurrent()
 
         viewModel.updatePersistentNotificationAccount(
-            SettingsNotificationAccountSelection.Account(
+            SettingsNotificationAccountSelection(
                 providerId = ProviderId("codex"),
                 localAccountId = LocalAccountId("local-2"),
                 displayName = "Personal",
@@ -818,7 +818,7 @@ class SettingsViewModelTest {
         private val accounts: List<ProviderAccount>,
     ) : AccountListUseCase {
         override suspend fun loadAccounts(): AccountListResult =
-            AccountListResult(accounts = accounts, currentAccountId = accounts.firstOrNull()?.localAccountId)
+            AccountListResult(accounts = accounts, defaultAccountId = accounts.firstOrNull()?.localAccountId)
     }
 
     private class DelayedAppUpdateCheckUseCase(

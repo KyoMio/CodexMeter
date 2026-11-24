@@ -30,13 +30,68 @@ class NotificationPreferencesTest {
     }
 
     @Test
-    fun `persistent notification account defaults to follow current and five hour window`() = runTest {
+    fun `persistent notification account defaults to unset and five hour window`() = runTest {
         val preferences = preferences("notification-persistent-default-test.preferences_pb")
 
         val stored = preferences.notificationPreferences()
 
         assertNull(stored.persistentNotificationAccount)
         assertEquals(QuotaWindowId("five_hour"), stored.persistentNotificationWindowId)
+    }
+
+    @Test
+    fun `unset notification account migrates to the stored default account selection`() = runTest {
+        val preferences = preferences("notification-migrate-account-test.preferences_pb")
+        preferences.dataStore.edit { stored ->
+            stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID] = "codex"
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID] = "local-1"
+        }
+
+        val stored = preferences.notificationPreferences()
+
+        assertEquals(
+            NotificationAccountSelection(
+                providerId = ProviderId("codex"),
+                localAccountId = LocalAccountId("local-1"),
+            ),
+            stored.persistentNotificationAccount,
+        )
+    }
+
+    @Test
+    fun `explicit notification account is not overwritten by the default account migration`() = runTest {
+        val preferences = preferences("notification-migrate-keeps-explicit-test.preferences_pb")
+        preferences.dataStore.edit { stored ->
+            stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID] = "codex"
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID] = "local-1"
+        }
+        preferences.updateNotificationPreferences(
+            NotificationPreferences(
+                persistentNotificationAccount = NotificationAccountSelection(
+                    providerId = ProviderId("codex"),
+                    localAccountId = LocalAccountId("local-2"),
+                ),
+            ),
+        )
+
+        val stored = preferences.notificationPreferences()
+
+        assertEquals(
+            NotificationAccountSelection(
+                providerId = ProviderId("codex"),
+                localAccountId = LocalAccountId("local-2"),
+            ),
+            stored.persistentNotificationAccount,
+        )
+    }
+
+    @Test
+    fun `unset notification account stays unset when no default account exists`() = runTest {
+        val preferences = preferences("notification-migrate-no-default-test.preferences_pb")
+
+        val stored = preferences.notificationPreferences()
+
+        assertNull(stored.persistentNotificationAccount)
     }
 
     @Test
