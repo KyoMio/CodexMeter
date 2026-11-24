@@ -26,6 +26,7 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -602,6 +603,49 @@ class HomeViewModelTest {
         assertEquals(failedAttempt().finishedAt, uiState.refresh.lastAttemptFinishedAt)
         assertTrue(uiState.isRefreshing)
         assertEquals(R.string.home_refreshing, uiState.refresh.buttonTextResId)
+    }
+
+    @Test
+    fun `selecting account renders the newly selected account while its refresh is still pending`() = runTest(dispatcher) {
+        val providerId = ProviderId("codex")
+        var storedSelection = "local-1"
+        val refreshStarted = CompletableDeferred<Unit>()
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
+                )
+            },
+            defaultAccountSelectUseCase = { _, id ->
+                storedSelection = id.value
+                refreshStarted.complete(Unit)
+                releaseRefresh.await()
+                true
+            },
+        )
+        viewModel.loadCurrentState()
+        advanceUntilIdle()
+        assertEquals(LocalAccountId("local-1"), viewModel.uiState.value.account?.localAccountId)
+
+        viewModel.selectAccount(providerId, LocalAccountId("local-2"))
+        advanceUntilIdle()
+        try {
+            assertTrue("Selection reached the provider refresh", refreshStarted.isCompleted)
+            assertEquals("local-2", storedSelection)
+            assertEquals(
+                "Home should render the cached account B while network refresh is pending",
+                LocalAccountId("local-2"),
+                viewModel.uiState.value.account?.localAccountId,
+            )
+        } finally {
+            releaseRefresh.complete(Unit)
+            advanceUntilIdle()
+        }
+        assertEquals(LocalAccountId("local-2"), viewModel.uiState.value.account?.localAccountId)
     }
 
     private fun currentState(

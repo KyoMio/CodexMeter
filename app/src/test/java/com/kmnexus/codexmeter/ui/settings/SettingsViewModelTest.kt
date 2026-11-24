@@ -605,7 +605,7 @@ class SettingsViewModelTest {
         assertTrue(text.contains("## WORKMANAGER"))
         assertTrue(text.contains("## CONFIG"))
         assertTrue(text.contains("## ACCOUNTS"))
-        assertTrue(text.contains("## CURRENT ACCOUNT"))
+        assertTrue(text.contains("## DEFAULT ACCOUNT"))
         assertFalse(text.trimStart().startsWith("{"))
         assertFalse(text.trimStart().startsWith("["))
     }

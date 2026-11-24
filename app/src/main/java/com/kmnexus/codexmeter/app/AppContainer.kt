@@ -151,6 +151,9 @@ import com.kmnexus.codexmeter.data.preferences.AppearancePreferences
 import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
 import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -536,6 +539,7 @@ class AppContainer private constructor(
                     secureSessionStore = sessionStore,
                     currentAccountStore = currentAccountPreferences,
                     deletedAccountStateCleaner = widgetDeletedAccountStateCleaner,
+                    notificationPreferenceStore = notificationPreferences,
                 ),
                 retentionCleanupRepository = RetentionCleanupRepository(database),
                 quotaHistoryClearRepository = QuotaHistoryClearRepository(
@@ -761,6 +765,7 @@ class AppContainer private constructor(
                 primaryQuotaWindowPreferenceReader = primaryQuotaWindowPreferences,
                 clock = clock,
             )
+            val postSelectionRefreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             val accountMutationRepository = AccountMutationRepository(
                 providerAccountDao = database.providerAccountDao(),
                 currentAccountStore = currentAccountPreferences,
@@ -778,6 +783,7 @@ class AppContainer private constructor(
                 },
                 currentAccountStateRepublisher = currentAccountStateRepublisher,
                 clock = clock,
+                refreshScope = postSelectionRefreshScope,
             )
             val homeRefreshUseCase = HomeRefreshCoordinatorUseCase(
                 currentAccountStore = currentQuotaRefreshAccountStore,

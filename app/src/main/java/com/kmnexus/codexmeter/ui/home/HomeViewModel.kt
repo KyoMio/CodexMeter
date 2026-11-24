@@ -30,10 +30,12 @@ import com.kmnexus.codexmeter.ui.providerPlanDisplayName
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 fun interface HomeCurrentQuotaStateLoader {
     suspend fun loadCurrentState(): CurrentQuotaState
@@ -141,20 +143,31 @@ class HomeViewModel(
     }
 
     /**
-     * The Home selector's only job: pick a different default account. Writes the same selection
-     * store every other consumer reads, then reloads so the quota cards and trend swap to it.
+     * The Home selector's only job: pick a different default account. The selection write runs in
+     * the background while Home immediately reloads the persisted snapshot — the use case may hold
+     * an in-flight network refresh open for the whole call, so awaiting it would keep showing the
+     * old account until that refresh finishes.
      */
     fun selectAccount(providerId: ProviderId, localAccountId: LocalAccountId) {
-        viewModelScope.launch {
-            val selected = try {
+        val persisted = viewModelScope.async {
+            try {
                 defaultAccountSelectUseCase.selectDefaultAccount(providerId, localAccountId)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (_: Exception) {
                 false
             }
-            if (!selected) return@launch
+        }
+        viewModelScope.launch {
+            // The write lands first inside the use case; give it a scheduling turn, then render
+            // whatever is persisted now. A no-op for an unchanged account is harmless.
+            yield()
+            currentStateLoadJob?.join()
             loadCurrentState()
+            if (persisted.await()) {
+                currentStateLoadJob?.join()
+                loadCurrentState()
+            }
         }
     }
 

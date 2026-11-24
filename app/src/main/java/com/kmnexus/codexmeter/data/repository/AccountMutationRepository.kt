@@ -14,6 +14,8 @@ import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import java.time.Clock
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 class AccountMutationRepository(
     private val providerAccountDao: ProviderAccountDao,
@@ -21,13 +23,14 @@ class AccountMutationRepository(
     private val accountSelectRefreshRequester: AccountSwitchRefreshRequester = NoopAccountSwitchRefreshRequester,
     private val currentAccountStateRepublisher: CurrentAccountStateRepublisher = NoopCurrentAccountStateRepublisher,
     private val clock: Clock,
+    private val refreshScope: CoroutineScope? = null,
 ) : DefaultAccountSelectUseCase, AccountRenameUseCase {
     /**
      * Writes the Home selector's chosen account into the default-account slot — the single source
      * every consumer (Home, cold start, background-refresh status, notification fallback, widget
-     * default) reads. Selecting a different account is a view change, not a full refresh trigger:
-     * the post-write refresh keeps the freshly selected account's quota usable when it has no
-     * recent snapshot.
+     * default) reads. Returns right after the write: the network refresh for the new account runs
+     * detached on [refreshScope], so the caller can immediately render the account's persisted
+     * snapshot instead of blocking Home on the network.
      */
     override suspend fun selectDefaultAccount(
         providerId: ProviderId,
@@ -44,8 +47,17 @@ class AccountMutationRepository(
                 localAccountId = account.localAccountId,
             ),
         )
-        runPostMutationEffect {
-            accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
+        val scope = refreshScope
+        if (scope != null) {
+            scope.launch {
+                runPostMutationEffect {
+                    accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
+                }
+            }
+        } else {
+            runPostMutationEffect {
+                accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
+            }
         }
         return true
     }

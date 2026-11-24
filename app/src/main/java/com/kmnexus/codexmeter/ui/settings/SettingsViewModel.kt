@@ -861,7 +861,7 @@ class SettingsViewModel(
                 )
             }
 
-            appendLine("## CURRENT ACCOUNT")
+            appendLine("## DEFAULT ACCOUNT")
             appendLine("providerId=${input.providerId}")
             appendLine("accountDiagnosticId=${input.accountDiagnosticId}")
             appendLine("currentAccountSelectionStatus=${input.currentAccountSelectionStatus}")
