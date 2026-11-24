@@ -29,8 +29,10 @@ import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.resetMain
@@ -646,6 +648,51 @@ class HomeViewModelTest {
             advanceUntilIdle()
         }
         assertEquals(LocalAccountId("local-2"), viewModel.uiState.value.account?.localAccountId)
+    }
+
+    @Test
+    fun `selecting account reloads the fresh snapshot once the detached refresh completes`() = runTest(dispatcher) {
+        var storedSelection = "local-1"
+        var selectedSnapshotAt = now.minus(Duration.ofMinutes(30))
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val refreshFinished = CompletableDeferred<Unit>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = selectedSnapshotAt, localAccountId = storedSelection),
+                )
+            },
+            // Mirrors the repository contract: the store write lands first, the call completes
+            // once the post-selection refresh has finished writing its snapshot.
+            defaultAccountSelectUseCase = { _, id ->
+                storedSelection = id.value
+                backgroundScope.launch {
+                    releaseRefresh.await()
+                    selectedSnapshotAt = now
+                    refreshFinished.complete(Unit)
+                }
+                releaseRefresh.await()
+                true
+            },
+        )
+        viewModel.loadCurrentState()
+        runCurrent()
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        runCurrent()
+        assertEquals(LocalAccountId("local-2"), viewModel.uiState.value.account?.localAccountId)
+        assertEquals(now.minus(Duration.ofMinutes(30)), viewModel.uiState.value.refresh.lastSuccessfulRefreshAt)
+
+        releaseRefresh.complete(Unit)
+        runCurrent()
+        assertTrue("Detached refresh completed and wrote the new snapshot", refreshFinished.isCompleted)
+        assertEquals(
+            "Home still open should take the latest snapshot once the selection refresh completes",
+            now,
+            viewModel.uiState.value.refresh.lastSuccessfulRefreshAt,
+        )
     }
 
     private fun currentState(

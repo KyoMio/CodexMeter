@@ -727,6 +727,46 @@ class SettingsViewModelTest {
         assertTrue(text.contains("deviceModel=Pixel"))
     }
 
+    @Test
+    fun `returning to settings after external notification rebind shows the new bound account`() = runTest {
+        val providerId = ProviderId("codex")
+        val accountA = account(localAccountId = "local-1", displayName = "Work")
+        val accountB = account(localAccountId = "local-2", displayName = "Personal")
+        var accounts = listOf(accountA, accountB)
+        val store = RecordingNotificationPreferenceStore(NotificationPreferences())
+        val settings = SettingsViewModel(
+            accountListUseCase = AccountListUseCase {
+                AccountListResult(accounts = accounts, defaultAccountId = accounts.first().localAccountId)
+            },
+            notificationPreferenceStore = store,
+        )
+        settings.loadSettings()
+        runCurrent()
+        settings.updatePersistentNotificationAccount(
+            SettingsNotificationAccountSelection(providerId, accountA.localAccountId, accountA.displayName),
+        )
+        runCurrent()
+        assertEquals(accountA.localAccountId, store.notificationPreferences().persistentNotificationAccount?.localAccountId)
+
+        // Simulate the account-deletion rebind done elsewhere in the same session.
+        accounts = listOf(accountB)
+        store.updateNotificationPreferences(
+            store.notificationPreferences().copy(
+                persistentNotificationAccount = NotificationAccountSelection(providerId, accountB.localAccountId),
+            ),
+        )
+        settings.loadSettings()
+        runCurrent()
+
+        assertEquals(listOf("local-2"), settings.uiState.value.persistentNotification.accountChoices.map { it.stableId })
+        assertEquals(accountB.localAccountId, store.notificationPreferences().persistentNotificationAccount?.localAccountId)
+        assertEquals(
+            "Settings should show the new persisted notification account",
+            accountB.localAccountId,
+            settings.uiState.value.persistentNotification.accountSelection?.localAccountId,
+        )
+    }
+
     private class RecordingCurrencyPreferenceStore(
         private var preferences: CurrencyPreferences,
     ) : CurrencyPreferenceStore {

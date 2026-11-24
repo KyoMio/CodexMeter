@@ -362,14 +362,21 @@ class SettingsViewModel(
         ),
     )
     private val notificationPreferenceWriteMutex = Mutex()
-    private var notificationPreferencesEditedLocally = false
+    /**
+     * Guards local edits only while a notification-preferences write is in flight or completed
+     * during a store read: a late-arriving read must not overwrite the edit the user just made,
+     * but once writes settle the next loadSettings applies the persisted values — including
+     * rebinding done elsewhere, such as the account-deletion notification fallback.
+     */
+    private var notificationPreferenceWritesInFlight = 0
+    private var notificationPreferenceWritesCommitted = 0
     private var latestNotificationPreferences = NotificationPreferences()
 
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     fun setStatusNotificationEnabled(enabled: Boolean) {
         val nextAlerts = _uiState.value.alerts.copy(statusNotificationEnabled = enabled)
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state ->
             state.copy(
                 alerts = nextAlerts,
@@ -377,52 +384,50 @@ class SettingsViewModel(
             )
         }
         viewModelScope.launch {
-            persistNotificationPreferences { it.copy(statusNotificationEnabled = enabled) }
+            persistNotificationPreferences(releasesLocalEdit = true) { it.copy(statusNotificationEnabled = enabled) }
         }
     }
 
     fun setAccountErrorsEnabled(enabled: Boolean) {
         val nextAlerts = _uiState.value.alerts.copy(accountErrorsEnabled = enabled)
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state ->
             state.copy(alerts = nextAlerts)
         }
         viewModelScope.launch {
-            persistNotificationPreferences { it.copy(accountErrorsEnabled = enabled) }
+            persistNotificationPreferences(releasesLocalEdit = true) { it.copy(accountErrorsEnabled = enabled) }
         }
     }
 
     fun updateAlertThresholds(caution: Int, warning: Int) {
         val nextAlerts = _uiState.value.alerts.copy(thresholds = normalizedThresholds(caution, warning))
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state ->
             state.copy(alerts = nextAlerts)
         }
         viewModelScope.launch {
-            persistNotificationPreferences {
-                it.copy(
-                    cautionThreshold = nextAlerts.thresholds.caution,
-                    warningThreshold = nextAlerts.thresholds.warning,
-                    limitThreshold = nextAlerts.thresholds.limit,
-                )
-            }
+            persistNotificationPreferences(releasesLocalEdit = true) {
+                    it.copy(
+                        cautionThreshold = nextAlerts.thresholds.caution,
+                        warningThreshold = nextAlerts.thresholds.warning,
+                        limitThreshold = nextAlerts.thresholds.limit,
+                    )
+                }
         }
     }
 
     fun updateBalanceThresholds(caution: Double, warning: Double) {
         val (safeCaution, safeWarning) = normalizedBalanceThresholds(caution, warning)
         val nextAlerts = _uiState.value.alerts.copy(balanceCaution = safeCaution, balanceWarning = safeWarning)
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state -> state.copy(alerts = nextAlerts) }
         viewModelScope.launch {
-            persistNotificationPreferences {
-                it.copy(balanceCautionThreshold = safeCaution, balanceWarningThreshold = safeWarning)
-            }
+            persistNotificationPreferences(releasesLocalEdit = true) { it.copy(balanceCautionThreshold = safeCaution, balanceWarningThreshold = safeWarning) }
         }
     }
 
     fun updatePersistentNotificationAccount(selection: SettingsNotificationAccountSelection) {
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state ->
             state.copy(
                 persistentNotification = state.persistentNotification.copy(accountSelection = selection),
@@ -430,15 +435,13 @@ class SettingsViewModel(
             )
         }
         viewModelScope.launch {
-            persistNotificationPreferences {
-                it.copy(persistentNotificationAccount = selection.toNotificationAccountSelection())
-            }
+            persistNotificationPreferences(releasesLocalEdit = true) { it.copy(persistentNotificationAccount = selection.toNotificationAccountSelection()) }
             loadAndApplyWindowChoices(selection)
         }
     }
 
     fun updatePersistentNotificationWindow(windowId: QuotaWindowId) {
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state ->
             state.copy(
                 persistentNotification = state.persistentNotification.copy(selectedWindowId = windowId),
@@ -446,7 +449,7 @@ class SettingsViewModel(
             )
         }
         viewModelScope.launch {
-            persistNotificationPreferences { it.copy(persistentNotificationWindowId = windowId) }
+            persistNotificationPreferences(releasesLocalEdit = true) { it.copy(persistentNotificationWindowId = windowId) }
         }
     }
 
@@ -488,7 +491,7 @@ class SettingsViewModel(
     }
 
     fun updateRefreshInterval(interval: SettingsRefreshInterval) {
-        notificationPreferencesEditedLocally = true
+        notificationPreferenceWritesInFlight += 1
         update { state ->
             state.copy(
                 refresh = state.refresh.copy(interval = interval),
@@ -497,7 +500,7 @@ class SettingsViewModel(
         }
         backgroundRefreshScheduler.applyIntervalMinutes(interval.minutes)
         viewModelScope.launch {
-            persistNotificationPreferences { it.copy(backgroundRefreshIntervalMinutes = interval.minutes) }
+            persistNotificationPreferences(releasesLocalEdit = true) { it.copy(backgroundRefreshIntervalMinutes = interval.minutes) }
         }
     }
 
@@ -577,11 +580,14 @@ class SettingsViewModel(
                     state.copy(appearance = state.appearance.copy(themeMode = themeMode))
                 }
             }
+            val writesCommittedBeforeRead = notificationPreferenceWritesCommitted
             runCatching {
                 notificationPreferenceStore.notificationPreferences()
             }.onSuccess { preferences ->
-                latestNotificationPreferences = preferences
-                if (!notificationPreferencesEditedLocally) {
+                if (notificationPreferenceWritesInFlight == 0 &&
+                    notificationPreferenceWritesCommitted == writesCommittedBeforeRead
+                ) {
+                    latestNotificationPreferences = preferences
                     update { state ->
                         val resolvedAccountSelection = preferences.persistentNotificationAccount
                             .toSettingsNotificationAccountSelection(
@@ -957,15 +963,28 @@ class SettingsViewModel(
         return safeCaution to safeWarning
     }
 
+    /**
+     * [releasesLocalEdit] must be true exactly for writes that incremented
+     * [notificationPreferenceWritesInFlight] at the call site — internal follow-up writes (like
+     * the window re-resolution persist) must not consume a user edit's guard slot.
+     */
     private suspend fun persistNotificationPreferences(
+        releasesLocalEdit: Boolean = false,
         transform: (NotificationPreferences) -> NotificationPreferences,
     ) {
         notificationPreferenceWriteMutex.withLock {
-            val nextPreferences = transform(latestNotificationPreferences)
-            runCatching {
-                notificationPreferenceStore.updateNotificationPreferences(nextPreferences)
-            }.onSuccess {
-                latestNotificationPreferences = nextPreferences
+            try {
+                val nextPreferences = transform(latestNotificationPreferences)
+                runCatching {
+                    notificationPreferenceStore.updateNotificationPreferences(nextPreferences)
+                }.onSuccess {
+                    latestNotificationPreferences = nextPreferences
+                    notificationPreferenceWritesCommitted += 1
+                }
+            } finally {
+                if (releasesLocalEdit && notificationPreferenceWritesInFlight > 0) {
+                    notificationPreferenceWritesInFlight -= 1
+                }
             }
         }
     }

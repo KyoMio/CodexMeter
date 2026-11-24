@@ -28,9 +28,9 @@ class AccountMutationRepository(
     /**
      * Writes the Home selector's chosen account into the default-account slot — the single source
      * every consumer (Home, cold start, background-refresh status, notification fallback, widget
-     * default) reads. Returns right after the write: the network refresh for the new account runs
-     * detached on [refreshScope], so the caller can immediately render the account's persisted
-     * snapshot instead of blocking Home on the network.
+     * default) reads. The store write lands first, so Home can render the account's persisted
+     * snapshot immediately by launching this concurrently instead of awaiting it; awaiting the
+     * return value waits for the refresh as well.
      */
     override suspend fun selectDefaultAccount(
         providerId: ProviderId,
@@ -49,11 +49,14 @@ class AccountMutationRepository(
         )
         val scope = refreshScope
         if (scope != null) {
+            // The refresh runs detached from the caller's snapshot flow, but callers still await
+            // this method to learn when it finished — so they can re-read the freshly persisted
+            // state once, instead of staying on the pre-refresh snapshot.
             scope.launch {
                 runPostMutationEffect {
                     accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
                 }
-            }
+            }.join()
         } else {
             runPostMutationEffect {
                 accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
