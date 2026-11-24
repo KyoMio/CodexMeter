@@ -60,7 +60,32 @@ internal fun retainAvailableWindowIds(current: List<String>, available: List<Str
 internal data class WidgetWindowOption(
     val windowId: String,
     @get:androidx.annotation.StringRes val labelResId: Int,
+    val depleted: Boolean = false,
 )
+
+/**
+ * Builds the quota-window checkbox options for one account. Depleted windows (remaining ≤ 0)
+ * stay listed and selectable — a saved widget config that names one should not lose it — but
+ * are flagged so the row can show an exhausted hint. Missing/unsupported windows are still
+ * hidden; only states a real quota can report as a usable-or-empty window stay visible.
+ */
+internal fun buildWidgetWindowOptions(windows: List<com.kmnexus.codexmeter.domain.quota.QuotaWindow>): List<WidgetWindowOption> =
+    windows
+        .filter {
+            it.availability == com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability.Available ||
+                it.availability == com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability.Depleted
+        }
+        .map {
+            WidgetWindowOption(
+                windowId = it.windowId.value,
+                labelResId = com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes(
+                    it.windowId.value,
+                    it.limitWindowSeconds,
+                ),
+                depleted = it.availability == com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability.Depleted,
+            )
+        }
+        .distinctBy { it.windowId }
 
 internal data class WidgetConfigurationScreenState(
     val accounts: List<ProviderAccount> = emptyList(),
@@ -233,7 +258,11 @@ private fun WidgetConfigurationScreen(
                     val checked = state.selectedWindowIds.contains(option.windowId)
                     val enabled = checked || state.selectedWindowIds.size < WIDGET_MAX_FIELDS
                     FieldOptionRow(
-                        label = stringResource(option.labelResId),
+                        label = if (option.depleted) {
+                            "${stringResource(option.labelResId)} · ${stringResource(R.string.home_quota_status_exhausted)}"
+                        } else {
+                            stringResource(option.labelResId)
+                        },
                         checked = checked,
                         enabled = enabled,
                         onClick = { onWindowToggled(option.windowId) },
