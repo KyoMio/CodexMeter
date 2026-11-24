@@ -1,6 +1,8 @@
 package com.kmnexus.codexmeter.ui.settings
 
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.app.NotificationWindowChoice
+import com.kmnexus.codexmeter.app.NotificationWindowChoicesLoader
 import com.kmnexus.codexmeter.domain.account.AccountListResult
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceStore
@@ -764,6 +766,68 @@ class SettingsViewModelTest {
             "Settings should show the new persisted notification account",
             accountB.localAccountId,
             settings.uiState.value.persistentNotification.accountSelection?.localAccountId,
+        )
+    }
+
+    @Test
+    fun `late window load from an earlier account does not overwrite the new notification choice`() = runTest {
+        val accountA = account(localAccountId = "local-1", displayName = "Work")
+        val accountB = account(localAccountId = "local-2", displayName = "Personal").copy(providerId = ProviderId("deepseek"))
+        val windowA = QuotaWindowId("five_hour")
+        val windowB = QuotaWindowId("balance")
+        val store = RecordingNotificationPreferenceStore(
+            NotificationPreferences(
+                persistentNotificationAccount = NotificationAccountSelection(accountA.providerId, accountA.localAccountId),
+                persistentNotificationWindowId = windowA,
+            ),
+        )
+        var deferOldAccountWindows = false
+        val oldLookupStarted = CompletableDeferred<Unit>()
+        val releaseOldLookup = CompletableDeferred<Unit>()
+        val settings = SettingsViewModel(
+            accountListUseCase = RecordingAccountListUseCase(listOf(accountA, accountB)),
+            notificationPreferenceStore = store,
+            notificationWindowChoicesLoader = NotificationWindowChoicesLoader { _, accountId ->
+                when (accountId) {
+                    accountA.localAccountId -> {
+                        if (deferOldAccountWindows) {
+                            oldLookupStarted.complete(Unit)
+                            releaseOldLookup.await()
+                        }
+                        listOf(NotificationWindowChoice(windowA))
+                    }
+                    accountB.localAccountId -> listOf(NotificationWindowChoice(windowB))
+                    else -> emptyList()
+                }
+            },
+        )
+        settings.loadSettings()
+        runCurrent()
+        settings.setAccountErrorsEnabled(false)
+        runCurrent()
+        deferOldAccountWindows = true
+        settings.loadSettings()
+        runCurrent()
+        assertTrue("Re-entering Settings started loading A's windows", oldLookupStarted.isCompleted)
+
+        settings.updatePersistentNotificationAccount(
+            SettingsNotificationAccountSelection(accountB.providerId, accountB.localAccountId, accountB.displayName),
+        )
+        runCurrent()
+        assertEquals(windowB, store.notificationPreferences().persistentNotificationWindowId)
+
+        releaseOldLookup.complete(Unit)
+        runCurrent()
+        val actualPreferences = store.notificationPreferences()
+        assertEquals(accountB.localAccountId, actualPreferences.persistentNotificationAccount?.localAccountId)
+        assertEquals(
+            "An earlier lookup for A must not replace the stored quota window for B",
+            windowB,
+            actualPreferences.persistentNotificationWindowId,
+        )
+        assertEquals(
+            listOf(windowB),
+            settings.uiState.value.persistentNotification.windowChoices.map { it.windowId },
         )
     }
 

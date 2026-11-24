@@ -372,6 +372,17 @@ class SettingsViewModel(
     private var notificationPreferenceWritesCommitted = 0
     private var latestNotificationPreferences = NotificationPreferences()
 
+    /**
+     * Same late-read protection for the other persisted settings: a loadSettings read started
+     * before a local write must not apply its stale result afterwards. Bumped by every writer of
+     * the corresponding store (user edits and internal writes alike); the read captures the
+     * counter before it starts and applies only if it still matches.
+     */
+    private var retentionStoreWriteVersion = 0
+    private var currencyStoreWriteVersion = 0
+    private var themeStoreWriteVersion = 0
+    private var updatePrefsStoreWriteVersion = 0
+
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     fun setStatusNotificationEnabled(enabled: Boolean) {
@@ -453,14 +464,24 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * Loads the quota windows valid for [selection]. The lookup may return after the user (or an
+     * external rebind) already moved the binding elsewhere — a late result must not apply the old
+     * account's windows nor persist them, so both the apply and the auto-persist re-check the
+     * binding and simply drop stale results.
+     */
     private suspend fun loadAndApplyWindowChoices(selection: SettingsNotificationAccountSelection?) {
         val providerId = selection?.providerId
         val localAccountId = selection?.localAccountId
         val choices = notificationWindowChoicesLoader.windowChoices(providerId, localAccountId)
             .map { it.toSettingsNotificationWindowChoice() }
+        if (!_uiState.value.persistentNotification.accountSelection.sameAccountAs(selection)) return
         var needsPersist = false
         var resolvedWindowId: QuotaWindowId? = null
         update { state ->
+            if (!state.persistentNotification.accountSelection.sameAccountAs(selection)) {
+                return@update state
+            }
             val currentId = state.persistentNotification.selectedWindowId
             val resolvedId = if (choices.isNotEmpty() && choices.none { it.windowId == currentId }) {
                 choices.first().windowId
@@ -480,7 +501,22 @@ class SettingsViewModel(
         }
         val finalWindowId = resolvedWindowId
         if (needsPersist && finalWindowId != null) {
-            persistNotificationPreferences { it.copy(persistentNotificationWindowId = finalWindowId) }
+            persistNotificationPreferences { stored ->
+                // Re-check the binding inside the write transform: it may have changed (again)
+                // between the UI check and this persist.
+                val bound = stored.persistentNotificationAccount
+                val stillBound = when {
+                    selection == null -> bound == null
+                    bound == null -> false
+                    else -> bound.providerId == selection.providerId &&
+                        bound.localAccountId == selection.localAccountId
+                }
+                if (stillBound) {
+                    stored.copy(persistentNotificationWindowId = finalWindowId)
+                } else {
+                    stored
+                }
+            }
         }
     }
 
@@ -505,6 +541,7 @@ class SettingsViewModel(
     }
 
     fun updateCurrencyTarget(currency: String) {
+        currencyStoreWriteVersion += 1
         update { it.copy(currency = it.currency.copy(targetCurrency = currency), pendingChoiceDialog = null) }
         viewModelScope.launch {
             currencyPreferenceStore.updateCurrencyPreferences(CurrencyPreferences(currency))
@@ -512,6 +549,7 @@ class SettingsViewModel(
     }
 
     fun updateThemeMode(mode: ThemeMode) {
+        themeStoreWriteVersion += 1
         update { it.copy(appearance = it.appearance.copy(themeMode = mode)) }
         viewModelScope.launch {
             appearancePreferenceStore.setThemeMode(mode)
@@ -520,15 +558,18 @@ class SettingsViewModel(
 
     fun loadSettings() {
         viewModelScope.launch {
+            val retentionVersionBeforeRead = retentionStoreWriteVersion
             runCatching {
                 retentionPreferenceStore.retentionPreference().toSettingsRetentionOption()
             }.onSuccess { retention ->
-                update { state ->
-                    state.copy(
-                        data = state.data.copy(
-                            retention = retention,
-                        ),
-                    )
+                if (retentionStoreWriteVersion == retentionVersionBeforeRead) {
+                    update { state ->
+                        state.copy(
+                            data = state.data.copy(
+                                retention = retention,
+                            ),
+                        )
+                    }
                 }
             }
             runCatching {
@@ -564,20 +605,26 @@ class SettingsViewModel(
                     )
                 }
             }
+            val currencyVersionBeforeRead = currencyStoreWriteVersion
             runCatching {
                 currencyPreferenceStore.currencyPreferences()
             }.onSuccess { currencyPreferences ->
-                update { state ->
-                    state.copy(
-                        currency = SettingsCurrencyUi(targetCurrency = currencyPreferences.targetCurrency),
-                    )
+                if (currencyStoreWriteVersion == currencyVersionBeforeRead) {
+                    update { state ->
+                        state.copy(
+                            currency = SettingsCurrencyUi(targetCurrency = currencyPreferences.targetCurrency),
+                        )
+                    }
                 }
             }
+            val themeVersionBeforeRead = themeStoreWriteVersion
             runCatching {
                 appearancePreferenceStore.themeMode.first()
             }.onSuccess { themeMode ->
-                update { state ->
-                    state.copy(appearance = state.appearance.copy(themeMode = themeMode))
+                if (themeStoreWriteVersion == themeVersionBeforeRead) {
+                    update { state ->
+                        state.copy(appearance = state.appearance.copy(themeMode = themeMode))
+                    }
                 }
             }
             val writesCommittedBeforeRead = notificationPreferenceWritesCommitted
@@ -612,29 +659,36 @@ class SettingsViewModel(
                     loadAndApplyWindowChoices(resolvedAccountSelection)
                 }
             }
+            val updatePrefsVersionBeforeRead = updatePrefsStoreWriteVersion
             runCatching {
                 updatePreferenceStore.preferences()
             }.onSuccess { prefs ->
-                val available = prefs.availableUpdate?.takeIf {
-                    AppVersionComparator.isRemoteVersionNewer(currentVersionName, it.versionName)
-                }
-                if (available == null && prefs.availableUpdate != null) {
-                    runCatching { updatePreferenceStore.setAvailableUpdate(null) }
-                }
-                update { state ->
-                    state.copy(
-                        update = state.update.copy(
-                            autoCheckEnabled = prefs.autoCheckEnabled,
-                            notifyOnUpdateEnabled = prefs.notifyOnUpdateEnabled,
-                            availableUpdate = available,
-                        ),
-                    )
+                if (updatePrefsStoreWriteVersion == updatePrefsVersionBeforeRead) {
+                    val available = prefs.availableUpdate?.takeIf {
+                        AppVersionComparator.isRemoteVersionNewer(currentVersionName, it.versionName)
+                    }
+                    if (available == null && prefs.availableUpdate != null) {
+                        runCatching {
+                            updatePrefsStoreWriteVersion += 1
+                            updatePreferenceStore.setAvailableUpdate(null)
+                        }
+                    }
+                    update { state ->
+                        state.copy(
+                            update = state.update.copy(
+                                autoCheckEnabled = prefs.autoCheckEnabled,
+                                notifyOnUpdateEnabled = prefs.notifyOnUpdateEnabled,
+                                availableUpdate = available,
+                            ),
+                        )
+                    }
                 }
             }
         }
     }
 
     fun updateRetention(retention: SettingsRetentionOption) {
+        retentionStoreWriteVersion += 1
         viewModelScope.launch {
             runCatching {
                 retentionPreferenceStore.updateRetentionPreference(retention.toRetentionPreference())
@@ -749,9 +803,15 @@ class SettingsViewModel(
             update { state -> state.copy(update = result.toSettingsUpdateUi(state.update)) }
             when (result) {
                 is AppUpdateCheckResult.UpdateAvailable ->
-                    runCatching { updatePreferenceStore.setAvailableUpdate(result.update) }
+                    runCatching {
+                        updatePrefsStoreWriteVersion += 1
+                        updatePreferenceStore.setAvailableUpdate(result.update)
+                    }
                 AppUpdateCheckResult.UpToDate ->
-                    runCatching { updatePreferenceStore.setAvailableUpdate(null) }
+                    runCatching {
+                        updatePrefsStoreWriteVersion += 1
+                        updatePreferenceStore.setAvailableUpdate(null)
+                    }
                 else -> Unit
             }
         }
@@ -764,6 +824,7 @@ class SettingsViewModel(
     }
 
     fun setAutoCheckUpdates(enabled: Boolean) {
+        updatePrefsStoreWriteVersion += 1
         update { state -> state.copy(update = state.update.copy(autoCheckEnabled = enabled)) }
         updateCheckScheduler.setAutoCheckEnabled(enabled)
         viewModelScope.launch {
@@ -772,6 +833,7 @@ class SettingsViewModel(
     }
 
     fun setNotifyOnUpdate(enabled: Boolean) {
+        updatePrefsStoreWriteVersion += 1
         update { state -> state.copy(update = state.update.copy(notifyOnUpdateEnabled = enabled)) }
         viewModelScope.launch {
             runCatching { updatePreferenceStore.setNotifyOnUpdateEnabled(enabled) }
@@ -1053,6 +1115,14 @@ private fun NotificationWindowChoice.toSettingsNotificationWindowChoice(): Setti
         windowId = windowId,
         labelResId = quotaWindowLabelRes(windowId.value, limitWindowSeconds),
     )
+
+private fun SettingsNotificationAccountSelection?.sameAccountAs(
+    other: SettingsNotificationAccountSelection?,
+): Boolean = when {
+    this == null -> other == null
+    other == null -> false
+    else -> providerId == other.providerId && localAccountId == other.localAccountId
+}
 
 private fun SettingsNotificationAccountSelection?.toNotificationAccountSelection(): NotificationAccountSelection? =
     this?.let {

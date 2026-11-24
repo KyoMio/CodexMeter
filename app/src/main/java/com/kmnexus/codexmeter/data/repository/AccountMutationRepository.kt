@@ -26,13 +26,13 @@ class AccountMutationRepository(
     private val refreshScope: CoroutineScope? = null,
 ) : DefaultAccountSelectUseCase, AccountRenameUseCase {
     /**
-     * Writes the Home selector's chosen account into the default-account slot — the single source
+     * Completes once the chosen account is durably in the default-account slot — the single source
      * every consumer (Home, cold start, background-refresh status, notification fallback, widget
-     * default) reads. The store write lands first, so Home can render the account's persisted
-     * snapshot immediately by launching this concurrently instead of awaiting it; awaiting the
-     * return value waits for the refresh as well.
+     * default) reads. This can take arbitrarily long (Room/DataStore may suspend), so callers that
+     * want "selection is saved" must await this — not [selectDefaultAccount], which additionally
+     * waits for the network refresh.
      */
-    override suspend fun selectDefaultAccount(
+    override suspend fun persistDefaultAccountSelection(
         providerId: ProviderId,
         localAccountId: LocalAccountId,
     ): Boolean {
@@ -47,11 +47,23 @@ class AccountMutationRepository(
                 localAccountId = account.localAccountId,
             ),
         )
+        return true
+    }
+
+    /**
+     * Post-selection refresh for the account. Runs on [refreshScope] (joined, so callers learn
+     * when the refreshed snapshot is persisted); without a scope it runs inline.
+     */
+    override suspend fun refreshSelectedAccount(
+        providerId: ProviderId,
+        localAccountId: LocalAccountId,
+    ) {
+        val account = providerAccountDao.getById(localAccountId.value)
+            ?.takeIf { it.providerId == providerId.value }
+            ?.toDomain()
+            ?: return
         val scope = refreshScope
         if (scope != null) {
-            // The refresh runs detached from the caller's snapshot flow, but callers still await
-            // this method to learn when it finished — so they can re-read the freshly persisted
-            // state once, instead of staying on the pre-refresh snapshot.
             scope.launch {
                 runPostMutationEffect {
                     accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
@@ -62,7 +74,6 @@ class AccountMutationRepository(
                 accountSelectRefreshRequester.requestAccountSwitchRefresh(account)
             }
         }
-        return true
     }
 
     override suspend fun renameAccount(

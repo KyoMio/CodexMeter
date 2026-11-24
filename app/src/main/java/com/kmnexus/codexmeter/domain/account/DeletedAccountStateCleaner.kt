@@ -32,13 +32,32 @@ object NoopAccountDeleteUseCase : AccountDeleteUseCase {
 /**
  * The only user-facing writer of the default-account selection: picking an account in the Home
  * selector. It supersedes the removed per-account "set current" entry.
+ *
+ * Two distinct signals, because callers need them at different times:
+ * - [persistDefaultAccountSelection] completes when the selection is durably written — Home can
+ *   then render the account's cached snapshot even while the store write itself was slow.
+ * - [refreshSelectedAccount] completes after the post-selection refresh finishes — Home reads once
+ *   more so the freshly persisted quota and trend replace the cached ones.
  */
-fun interface DefaultAccountSelectUseCase {
-    suspend fun selectDefaultAccount(providerId: ProviderId, localAccountId: LocalAccountId): Boolean
+interface DefaultAccountSelectUseCase {
+    suspend fun persistDefaultAccountSelection(providerId: ProviderId, localAccountId: LocalAccountId): Boolean
+    suspend fun refreshSelectedAccount(providerId: ProviderId, localAccountId: LocalAccountId)
+
+    /** Persist, then refresh: returns once the post-selection refresh has finished. */
+    suspend fun selectDefaultAccount(providerId: ProviderId, localAccountId: LocalAccountId): Boolean {
+        if (!persistDefaultAccountSelection(providerId, localAccountId)) return false
+        refreshSelectedAccount(providerId, localAccountId)
+        return true
+    }
 }
 
 object NoopDefaultAccountSelectUseCase : DefaultAccountSelectUseCase {
-    override suspend fun selectDefaultAccount(providerId: ProviderId, localAccountId: LocalAccountId): Boolean = false
+    override suspend fun persistDefaultAccountSelection(
+        providerId: ProviderId,
+        localAccountId: LocalAccountId,
+    ): Boolean = false
+
+    override suspend fun refreshSelectedAccount(providerId: ProviderId, localAccountId: LocalAccountId) = Unit
 }
 
 fun interface AccountRenameUseCase {

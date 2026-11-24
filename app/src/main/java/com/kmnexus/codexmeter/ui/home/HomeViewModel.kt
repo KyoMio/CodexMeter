@@ -143,15 +143,16 @@ class HomeViewModel(
     }
 
     /**
-     * The Home selector's only job: pick a different default account. The selection write runs in
-     * the background while Home immediately reloads the persisted snapshot — the use case may hold
-     * an in-flight network refresh open for the whole call, so awaiting it would keep showing the
-     * old account until that refresh finishes.
+     * The Home selector's only job: pick a different default account. Two reload moments:
+     * - when the selection write is durably saved → render the newly selected account's cached
+     *   snapshot and trend (store reads may themselves suspend, so no speculative earlier load);
+     * - when the post-selection refresh finishes → swap in the freshly persisted snapshot.
+     * Reading the stored selection each time keeps this correct when selections arrive back to back.
      */
     fun selectAccount(providerId: ProviderId, localAccountId: LocalAccountId) {
-        val persisted = viewModelScope.async {
+        val saved = viewModelScope.async {
             try {
-                defaultAccountSelectUseCase.selectDefaultAccount(providerId, localAccountId)
+                defaultAccountSelectUseCase.persistDefaultAccountSelection(providerId, localAccountId)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (_: Exception) {
@@ -159,15 +160,19 @@ class HomeViewModel(
             }
         }
         viewModelScope.launch {
-            // The write lands first inside the use case; give it a scheduling turn, then render
-            // whatever is persisted now. A no-op for an unchanged account is harmless.
-            yield()
-            currentStateLoadJob?.join()
-            loadCurrentState()
-            if (persisted.await()) {
+            if (saved.await()) {
                 currentStateLoadJob?.join()
                 loadCurrentState()
             }
+            try {
+                defaultAccountSelectUseCase.refreshSelectedAccount(providerId, localAccountId)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                return@launch
+            }
+            currentStateLoadJob?.join()
+            loadCurrentState()
         }
     }
 

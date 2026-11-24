@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.ui.home
 
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
@@ -622,11 +623,20 @@ class HomeViewModelTest {
                     snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
                 )
             },
-            defaultAccountSelectUseCase = { _, id ->
-                storedSelection = id.value
-                refreshStarted.complete(Unit)
-                releaseRefresh.await()
-                true
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    storedSelection = localAccountId.value
+                    refreshStarted.complete(Unit)
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) = releaseRefresh.await()
             },
         )
         viewModel.loadCurrentState()
@@ -665,17 +675,25 @@ class HomeViewModelTest {
                     snapshot = snapshot(fetchedAt = selectedSnapshotAt, localAccountId = storedSelection),
                 )
             },
-            // Mirrors the repository contract: the store write lands first, the call completes
-            // once the post-selection refresh has finished writing its snapshot.
-            defaultAccountSelectUseCase = { _, id ->
-                storedSelection = id.value
-                backgroundScope.launch {
+            // Mirrors the repository contract: persist lands the store write; refreshSelectedAccount
+            // completes once the post-selection refresh has finished writing its snapshot.
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    storedSelection = localAccountId.value
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) {
                     releaseRefresh.await()
                     selectedSnapshotAt = now
                     refreshFinished.complete(Unit)
                 }
-                releaseRefresh.await()
-                true
             },
         )
         viewModel.loadCurrentState()
@@ -693,6 +711,62 @@ class HomeViewModelTest {
             now,
             viewModel.uiState.value.refresh.lastSuccessfulRefreshAt,
         )
+    }
+
+    @Test
+    fun `selecting account shows the committed account even when the store write itself was slow`() = runTest(dispatcher) {
+        var storedSelection = "local-1"
+        val allowSelectionWrite = CompletableDeferred<Unit>()
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val refreshStarted = CompletableDeferred<Unit>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    // Room and DataStore may suspend before the selection is visible to readers.
+                    allowSelectionWrite.await()
+                    storedSelection = localAccountId.value
+                    refreshStarted.complete(Unit)
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) = releaseRefresh.await()
+            },
+        )
+        viewModel.loadCurrentState()
+        runCurrent()
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        runCurrent()
+        assertEquals("local-1", storedSelection)
+        assertEquals(LocalAccountId("local-1"), viewModel.uiState.value.account?.localAccountId)
+
+        allowSelectionWrite.complete(Unit)
+        runCurrent()
+        try {
+            assertTrue(refreshStarted.isCompleted)
+            assertEquals("local-2", storedSelection)
+            assertEquals(
+                "Home should show committed account B while its provider refresh is still pending",
+                LocalAccountId("local-2"),
+                viewModel.uiState.value.account?.localAccountId,
+            )
+        } finally {
+            releaseRefresh.complete(Unit)
+            runCurrent()
+        }
     }
 
     private fun currentState(
