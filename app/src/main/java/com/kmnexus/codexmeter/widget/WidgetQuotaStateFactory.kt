@@ -113,6 +113,7 @@ class WidgetQuotaStateFactory(
             // before mapping fields). Exhausted (<= 0) shares Danger with the warning band, matching
             // the quota path above where both severe bands read the same label.
             val amount = balanceAmount?.toDoubleOrNull()
+            if (availability == QuotaWindowAvailability.Depleted) return WidgetQuotaTone.Danger
             return when {
                 availability != QuotaWindowAvailability.Available || amount == null -> WidgetQuotaTone.Neutral
                 amount <= 0.0 -> WidgetQuotaTone.Danger
@@ -122,6 +123,7 @@ class WidgetQuotaStateFactory(
             }
         }
         val percent = displayPercent
+        if (availability == QuotaWindowAvailability.Depleted) return WidgetQuotaTone.Danger
         return when {
             availability != QuotaWindowAvailability.Available || percent == null -> WidgetQuotaTone.Neutral
             percent <= notificationPreferences.limitThreshold -> WidgetQuotaTone.Danger
@@ -131,12 +133,17 @@ class WidgetQuotaStateFactory(
         }
     }
 
+    // A Depleted window the user selected must still render (e.g. a 5h quota at 0%): the config
+    // screen keeps such windows selectable (mirroring Home/notification choices), so the widget
+    // field can only be dropped when there is no displayable value at all.
     private fun QuotaWindow.isDisplayable(): Boolean =
         when (displayKind) {
             QuotaWindowDisplayKind.Balance ->
-                availability == QuotaWindowAvailability.Available && !balanceAmount.isNullOrBlank()
+                (availability == QuotaWindowAvailability.Available ||
+                    availability == QuotaWindowAvailability.Depleted) && !balanceAmount.isNullOrBlank()
             else ->
-                availability == QuotaWindowAvailability.Available && displayPercent != null
+                (availability == QuotaWindowAvailability.Available ||
+                    availability == QuotaWindowAvailability.Depleted) && displayPercent != null
         }
 
     private companion object {
