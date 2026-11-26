@@ -66,4 +66,12 @@ class HomeBalanceStatusTest {
         // No rates -> no conversion -> native 7.2 CNY > caution(5.0) => Normal
         assertEquals(HomeQuotaStatus.Normal, viewModel.testQuotaStatusFor(balanceWindow("7.2", "CNY")))
     }
+
+    @Test
+    fun `depleted balance with zero amount maps to exhausted while unreadable depleted maps to unavailable`() {
+        val zeroDepleted = balanceWindow("0.00").copy(availability = QuotaWindowAvailability.Depleted)
+        val unreadableDepleted = balanceWindow("N/A").copy(availability = QuotaWindowAvailability.Depleted)
+        assertEquals(HomeQuotaStatus.Exhausted, vm().testQuotaStatusFor(zeroDepleted))
+        assertEquals(HomeQuotaStatus.Unavailable, vm().testQuotaStatusFor(unreadableDepleted))
+    }
 }

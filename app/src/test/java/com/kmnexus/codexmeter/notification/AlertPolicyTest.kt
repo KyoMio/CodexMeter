@@ -8,6 +8,7 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.model.SnapshotId
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaFreshness
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
+import com.kmnexus.codexmeter.domain.quota.CurrentQuotaStateFactory
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaStatus
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
@@ -196,6 +197,37 @@ class AlertPolicyTest {
         assertEquals(1, events.size)
         assertEquals(20.0, events.single().threshold, 0.0)
         assertEquals(dedupeKey(threshold = 20.0), events.single().key)
+    }
+
+    @Test
+    fun `depleted primary and secondary windows emit limit events end to end`() {
+        val primary = quotaWindow(
+            windowId = QuotaWindowId("five_hour"),
+            usedPercent = 100,
+            resetAt = resetAt,
+        ).copy(availability = QuotaWindowAvailability.Depleted)
+        val weeklyReset = Instant.parse("2026-05-25T00:00:00Z")
+        val secondary = quotaWindow(
+            windowId = QuotaWindowId("weekly"),
+            usedPercent = 100,
+            resetAt = weeklyReset,
+        ).copy(availability = QuotaWindowAvailability.Depleted)
+        val state = CurrentQuotaStateFactory().create(
+            account = account(),
+            latestSnapshot = quotaSnapshot(windows = listOf(primary, secondary)),
+            latestAttempt = null,
+            now = Instant.parse("2026-05-23T10:05:00Z"),
+            primaryWindowId = QuotaWindowId("five_hour"),
+        )
+
+        assertTrue(state.primaryWindowCanAlert)
+        val events = policy.evaluate(
+            state = state,
+            enabledWindowIds = setOf(QuotaWindowId("five_hour"), QuotaWindowId("weekly")),
+        )
+        assertEquals(listOf(QuotaWindowId("five_hour"), QuotaWindowId("weekly")), events.map { it.windowId })
+        assertEquals(listOf(AlertLevel.Limit, AlertLevel.Limit), events.map { it.level })
+        assertEquals(listOf("0%", "0%"), events.map { it.remainingText })
     }
 
     private fun dedupeKey(

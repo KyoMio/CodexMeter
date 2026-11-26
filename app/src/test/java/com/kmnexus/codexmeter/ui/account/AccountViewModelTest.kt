@@ -21,6 +21,7 @@ import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
+import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import java.time.Instant
@@ -260,6 +261,112 @@ class AccountViewModelTest {
         val account = viewModel.uiState.value.accounts.single()
         assertEquals(false, account.alertToggles.first { it.windowId == "five_hour" }.enabled)
         assertEquals(true, account.alertToggles.first { it.windowId == "weekly" }.enabled)
+    }
+
+    @Test
+    fun `depleted windows with displayable values stay in summaries and alert toggles while missing and valueless stay hidden`() = runTest {
+        val snapshot = QuotaSnapshot(
+            snapshotId = SnapshotId("snapshot-depleted"),
+            providerId = ProviderId("claude"),
+            localAccountId = localId("local-1"),
+            providerAccountId = ProviderAccountId("provider-local-1"),
+            fetchedAt = Instant.parse("2026-05-23T10:00:00Z"),
+            source = QuotaSnapshotSource.ManualRefresh,
+            planType = "pro",
+            windows = listOf(
+                QuotaWindow(
+                    windowId = QuotaWindowId("five_hour"),
+                    titleKey = "five_hour",
+                    usedPercent = 100,
+                    resetAt = Instant.parse("2026-05-23T12:00:00Z"),
+                    limitWindowSeconds = 18_000,
+                    isPrimaryCandidate = true,
+                    availability = QuotaWindowAvailability.Depleted,
+                    displayKind = QuotaWindowDisplayKind.Percent,
+                ),
+                QuotaWindow(
+                    windowId = QuotaWindowId("balance"),
+                    titleKey = "balance",
+                    usedPercent = null,
+                    resetAt = null,
+                    limitWindowSeconds = null,
+                    isPrimaryCandidate = false,
+                    availability = QuotaWindowAvailability.Depleted,
+                    displayKind = QuotaWindowDisplayKind.Balance,
+                    balanceAmount = "0.00",
+                    balanceCurrency = "CNY",
+                ),
+                QuotaWindow(
+                    windowId = QuotaWindowId("usage"),
+                    titleKey = "usage",
+                    usedPercent = null,
+                    resetAt = null,
+                    limitWindowSeconds = null,
+                    isPrimaryCandidate = false,
+                    availability = QuotaWindowAvailability.Depleted,
+                    displayKind = QuotaWindowDisplayKind.UsageCount,
+                    usedCount = 500,
+                    limitCount = 500,
+                ),
+                QuotaWindow(
+                    windowId = QuotaWindowId("antigravity_claude_window"),
+                    titleKey = "antigravity_claude_window",
+                    usedPercent = 100,
+                    resetAt = null,
+                    limitWindowSeconds = null,
+                    isPrimaryCandidate = false,
+                    availability = QuotaWindowAvailability.Depleted,
+                    displayKind = QuotaWindowDisplayKind.MultiModelFraction,
+                ),
+                QuotaWindow(
+                    windowId = QuotaWindowId("depleted_no_value"),
+                    titleKey = "depleted_no_value",
+                    usedPercent = null,
+                    resetAt = null,
+                    limitWindowSeconds = null,
+                    isPrimaryCandidate = false,
+                    availability = QuotaWindowAvailability.Depleted,
+                    displayKind = QuotaWindowDisplayKind.Percent,
+                ),
+                QuotaWindow(
+                    windowId = QuotaWindowId("missing_slot"),
+                    titleKey = "missing_slot",
+                    usedPercent = 100,
+                    resetAt = null,
+                    limitWindowSeconds = null,
+                    isPrimaryCandidate = false,
+                    availability = QuotaWindowAvailability.Missing,
+                    displayKind = QuotaWindowDisplayKind.Percent,
+                ),
+            ),
+            credits = null,
+            responseDigest = "safe-digest",
+        )
+        val viewModel = viewModel(
+            accountListUseCase = RecordingAccountListUseCase(
+                AccountListResult(
+                    accounts = listOf(account("local-1")),
+                    currentAccountId = localId("local-1"),
+                    latestQuotaSnapshots = mapOf(localId("local-1") to snapshot),
+                ),
+            ),
+        )
+
+        viewModel.loadAccounts()
+
+        val uiAccount = viewModel.uiState.value.accounts.single()
+        assertEquals(
+            listOf("five_hour", "balance", "usage", "antigravity_claude_window"),
+            uiAccount.quotaSummaries.map { it.windowId },
+        )
+        assertEquals(0, uiAccount.quotaSummaries[0].percent)
+        assertEquals("¥0.00", uiAccount.quotaSummaries[1].valueText)
+        assertEquals("500 / 500", uiAccount.quotaSummaries[2].valueText)
+        assertEquals(0, uiAccount.quotaSummaries[3].percent)
+        assertEquals(
+            listOf("five_hour", "balance", "usage", "antigravity_claude_window"),
+            uiAccount.alertToggles.map { it.windowId },
+        )
     }
 
     @Test

@@ -7,7 +7,6 @@ import com.kmnexus.codexmeter.data.repository.toDomain
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
-import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
 import com.kmnexus.codexmeter.ui.home.HomeTrendHistoryLoader
 import com.kmnexus.codexmeter.ui.home.HomeTrendPointUi
@@ -54,7 +53,7 @@ internal class HomeTrendHistoryRepository(
     ): List<HomeTrendPointUi> {
         val series = snapshots.mapNotNull { snapshot ->
             val window = snapshot.windows
-                .firstOrNull { it.windowId.value == windowId && it.availability == QuotaWindowAvailability.Available }
+                .firstOrNull { it.windowId.value == windowId && it.availability.isPresentable }
                 ?: return@mapNotNull null
             val value = window.cumulativeValue(displayKind) ?: return@mapNotNull null
             snapshot.fetchedAt to value
@@ -79,7 +78,7 @@ internal class HomeTrendHistoryRepository(
             // model-bucket-sum windows (e.g. Antigravity's per-family windows) so the chart
             // reflects total usage across every model family, not just the primary one.
             val usedByModel = snapshot.windows
-                .filter { it.usesModelBucketSum && it.availability == QuotaWindowAvailability.Available }
+                .filter { it.usesModelBucketSum && it.availability.isPresentable }
                 .flatMap { it.modelBuckets }
                 .associate { it.modelId to (1.0 - it.remainingFraction).coerceIn(0.0, 1.0) }
             if (usedByModel.isEmpty()) null else snapshot.fetchedAt to usedByModel

@@ -24,8 +24,8 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.quota.Credits
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
-import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
+import com.kmnexus.codexmeter.domain.quota.hasDisplayableValue
 import kotlin.math.roundToInt
 import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
@@ -596,10 +596,7 @@ class AccountViewModel(
         }
 
     private fun displayableWindows(snapshot: QuotaSnapshot?): List<QuotaWindow> =
-        snapshot?.windows.orEmpty().filter {
-            it.availability == QuotaWindowAvailability.Available &&
-                (it.displayPercent != null || it.balanceAmount != null || (it.usedCount != null && it.limitCount != null))
-        }
+        snapshot?.windows.orEmpty().filter { it.hasDisplayableValue() }
 
     private fun buildQuotaSummaries(snapshot: QuotaSnapshot?): List<AccountQuotaSummaryUi> =
         displayableWindows(snapshot).take(MAX_SUMMARY_WINDOWS).map { window ->

@@ -119,6 +119,28 @@ class NotificationPrimaryWindowResolutionTest {
     }
 
     @Test
+    fun `falls back to depleted isPrimaryCandidate window before missing primary candidate`() {
+        val missingCandidate = makeWindow("weekly", isPrimaryCandidate = true, availability = QuotaWindowAvailability.Missing)
+        val depletedCandidate = QuotaWindow(
+            windowId = QuotaWindowId("five_hour"),
+            titleKey = "key_five_hour",
+            usedPercent = 100,
+            resetAt = null,
+            limitWindowSeconds = null,
+            isPrimaryCandidate = true,
+            availability = QuotaWindowAvailability.Depleted,
+        )
+        val state = makeState(
+            primaryWindow = null,
+            snapshot = makeSnapshot(listOf(missingCandidate, depletedCandidate)),
+        )
+
+        val resolved = resolveNotificationPrimaryWindow(state)
+
+        assertEquals(depletedCandidate, resolved)
+    }
+
+    @Test
     fun `returns null when primaryWindow is null and snapshot has empty windows`() {
         val state = makeState(primaryWindow = null, snapshot = makeSnapshot(emptyList()))
 

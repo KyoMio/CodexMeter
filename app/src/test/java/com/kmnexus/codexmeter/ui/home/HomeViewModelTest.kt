@@ -334,6 +334,40 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `depleted percent window maps to exhausted danger while valueless depleted maps to unavailable`() {
+        val depletedWithValue = quotaWindow(
+            windowId = QuotaWindowId("five_hour"),
+            usedPercent = 100,
+            resetAt = Instant.parse("2026-05-23T12:00:00Z"),
+        ).copy(availability = QuotaWindowAvailability.Depleted)
+        val depletedNoValue = quotaWindow(
+            windowId = QuotaWindowId("weekly"),
+            usedPercent = null,
+            resetAt = null,
+        ).copy(availability = QuotaWindowAvailability.Depleted)
+
+        val uiState = viewModel.mapToUiState(
+            state = currentState(
+                status = CurrentQuotaStatus.Fresh,
+                freshness = CurrentQuotaFreshness.Fresh,
+                snapshot = snapshot(fetchedAt = now.minus(Duration.ofMinutes(5))).copy(
+                    windows = listOf(depletedWithValue, depletedNoValue),
+                ),
+                primaryWindow = depletedWithValue,
+            ),
+        )
+
+        val fiveHour = uiState.quotaCards.first { it.windowId == "five_hour" }
+        assertEquals(HomeQuotaStatus.Exhausted, fiveHour.status)
+        assertEquals(HomeStatusTone.Danger, fiveHour.tone)
+        assertEquals(R.string.home_quota_status_exhausted, fiveHour.statusLabelResId)
+
+        val weekly = uiState.quotaCards.first { it.windowId == "weekly" }
+        assertEquals(HomeQuotaStatus.Unavailable, weekly.status)
+        assertEquals(HomeStatusTone.Neutral, weekly.tone)
+    }
+
+    @Test
     fun `current quota update does not reuse previous account trend points`() = runTest {
         val trendLoader = RecordingHomeTrendHistoryLoader(
             pointsByAccountId = mapOf(

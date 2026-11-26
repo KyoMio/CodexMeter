@@ -146,7 +146,7 @@ internal fun resolveNotificationPrimaryWindow(state: CurrentQuotaState): QuotaWi
     val chosen = state.primaryWindow?.takeUnless { it.availability == QuotaWindowAvailability.Missing }
     if (chosen != null) return chosen
     val windows = state.snapshot?.windows.orEmpty()
-    return windows.firstOrNull { it.isPrimaryCandidate && it.availability == QuotaWindowAvailability.Available }
+    return windows.firstOrNull { it.isPrimaryCandidate && it.availability.isPresentable }
         ?: windows.firstOrNull { it.isPrimaryCandidate }
         ?: windows.firstOrNull()
 }
