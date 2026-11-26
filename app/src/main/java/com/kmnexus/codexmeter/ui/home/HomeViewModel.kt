@@ -30,12 +30,10 @@ import com.kmnexus.codexmeter.ui.providerPlanDisplayName
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
 
 fun interface HomeCurrentQuotaStateLoader {
     suspend fun loadCurrentState(): CurrentQuotaState
@@ -106,6 +104,7 @@ class HomeViewModel(
     private var currentStateLoadJob: Job? = null
     private var trendLoadJob: Job? = null
     private var accountListLoadJob: Job? = null
+    private var selectAccountJob: Job? = null
     private var manualRefreshSuccessCount = 0
 
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -150,20 +149,22 @@ class HomeViewModel(
      * Reading the stored selection each time keeps this correct when selections arrive back to back.
      */
     fun selectAccount(providerId: ProviderId, localAccountId: LocalAccountId) {
-        val saved = viewModelScope.async {
-            try {
+        val previousJob = selectAccountJob
+        previousJob?.cancel()
+        selectAccountJob = viewModelScope.launch {
+            previousJob?.join()
+            val saved = try {
                 defaultAccountSelectUseCase.persistDefaultAccountSelection(providerId, localAccountId)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (_: Exception) {
                 false
             }
-        }
-        viewModelScope.launch {
-            if (saved.await()) {
-                currentStateLoadJob?.join()
-                loadCurrentState()
+            if (!saved) {
+                return@launch
             }
+            currentStateLoadJob?.join()
+            loadCurrentState()
             try {
                 defaultAccountSelectUseCase.refreshSelectedAccount(providerId, localAccountId)
             } catch (exception: CancellationException) {

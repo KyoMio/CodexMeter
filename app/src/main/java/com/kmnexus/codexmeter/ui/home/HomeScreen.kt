@@ -154,7 +154,7 @@ fun HomeScreen(
             onRefreshClick = onRefreshClick,
         )
 
-        if (uiState.accountChoices.size > 1) {
+        if (uiState.contentStatus != HomeContentStatus.Unauthenticated && uiState.accountChoices.size > 1) {
             HomeAccountSelector(
                 uiState = uiState,
                 onAccountSelected = onAccountSelected,
@@ -282,6 +282,14 @@ private fun HomeAccountSelector(
                             horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            HomeAccountAvatarBadge(
+                                providerIconResId = choice.providerIconResId,
+                                avatarInitial = choice.avatarInitial,
+                                avatarColorKey = choice.avatarColorKey,
+                                size = 24.dp,
+                                iconSize = 14.dp,
+                                initialStyle = MaterialTheme.typography.labelSmall,
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = choice.displayName,
