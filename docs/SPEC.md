@@ -1006,6 +1006,7 @@ Rules:
 
 - Account avatar is circular solid color + initial.
 - Account list cards are collapsed by default; the header uses a chevron icon button, and the details drawer expands to reveal plan, credits, quota summaries, alert switches and management actions.
+- Quota summaries and alert switches list every displayable window of the account, never a truncated subset. Summary tiles wrap in two columns (a lone tail tile keeps half width); providers returning more windows than fit a fixed grid (e.g. Claude five-hour/weekly/extra-usage/Opus/Sonnet) must not lose the trailing entries.
 - Delete confirmation must state that session and local history are deleted.
 - Deleting current account must select another account if available, otherwise return to unauthenticated state.
 - Account screen is the only place for account management; Settings must not duplicate account cards.

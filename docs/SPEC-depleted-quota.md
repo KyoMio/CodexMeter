@@ -76,7 +76,7 @@ Related PR / Issue: PR #8 (`fix/widget-setup-show-depleted-window`, base `94bc94
 
 ### 3. Home / Account / AlertPolicy / Trend / Notification 全链路支持
 
-- **Account 页 (`AccountViewModel.kt`)**：`displayableWindows()` 改为 `it.hasDisplayableValue()`；0% / 耗尽窗口在账号卡片摘要和告警开关中保持可见且可切换。
+- **Account 页 (`AccountViewModel.kt`)**：`displayableWindows()` 改为 `it.hasDisplayableValue()`；0% / 耗尽窗口在账号卡片摘要和告警开关中保持可见且可切换。摘要与告警开关列表不截断（原四项上限已移除），摘要沿用两列换行——供应商返回更多窗口（如 Claude 5h/7d/extra-usage/Opus/Sonnet 五项）时靠后的条目（Sonnet 摘要与告警开关）不再被挤掉。
 - **Home 页 (`HomeViewModel.kt`)**：`toQuotaStatus()` 首行改为 `if (!availability.isPresentable) return HomeQuotaStatus.Unavailable`；当数值存在且 `availability == Depleted` 时返回 `HomeQuotaStatus.Exhausted`（`HomeStatusTone.Danger`）；若 `Depleted` 但无数值仍返回 `Unavailable`。
 - **告警策略 (`AlertPolicy.kt`)**：`evaluateWindow()` 第 87 行改为 `if (!window.availability.isPresentable) return null`，使 8 家产出 `Depleted` 的供应商在跌至 0%（或低于 warning 阈值）时正常产出 `AlertLevel.Limit` / `AlertLevel.Warning`。
 - **24h 趋势图 (`HomeTrendHistoryRepository.kt`)**：`scalarDiffPoints()` 和 `modelBucketSumPoints()` 均将 `it.availability == Available` 改为 `it.availability.isPresentable`，确保消耗到 0% 的增量点计入趋势，且 Antigravity 已耗尽 family 的 `modelBuckets` 不丢失。
