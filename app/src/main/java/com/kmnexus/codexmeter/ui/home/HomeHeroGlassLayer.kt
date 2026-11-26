@@ -79,7 +79,7 @@ internal fun HomeHeroGlassLayer(uiState: HomeUiState) {
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = stringResource(R.string.home_current_account),
+                            text = stringResource(R.string.home_viewing_account),
                             style = MaterialTheme.typography.labelSmall,
                             color = CodexMeterTheme.colors.secondary,
                             maxLines = 1,

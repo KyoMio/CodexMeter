@@ -18,6 +18,12 @@ import com.kmnexus.codexmeter.domain.currency.withConvertedBalance
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
+import com.kmnexus.codexmeter.domain.account.AccountListUseCase
+import com.kmnexus.codexmeter.domain.account.NoopAccountListUseCase
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
+import com.kmnexus.codexmeter.domain.account.NoopDefaultAccountSelectUseCase
+import com.kmnexus.codexmeter.domain.model.AccountStatus
+import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.ui.providerPlanDisplayName
@@ -85,6 +91,8 @@ class HomeViewModel(
     private val notificationPreferenceReader: NotificationPreferenceReader = DefaultHomeNotificationPreferenceReader,
     private val currencyPreferenceReader: CurrencyPreferenceReader = DefaultHomeCurrencyPreferenceReader,
     private val exchangeRateReader: ExchangeRateReader = DefaultHomeExchangeRateReader,
+    private val accountListUseCase: AccountListUseCase = NoopAccountListUseCase,
+    private val defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState.loading())
     private var currentTrendAccountId: LocalAccountId? = null
@@ -95,6 +103,8 @@ class HomeViewModel(
     private val trendPointsByAccount = mutableMapOf<LocalAccountId?, List<HomeTrendPointUi>>()
     private var currentStateLoadJob: Job? = null
     private var trendLoadJob: Job? = null
+    private var accountListLoadJob: Job? = null
+    private var selectAccountJob: Job? = null
     private var manualRefreshSuccessCount = 0
 
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -116,6 +126,7 @@ class HomeViewModel(
      * periodic background worker; this only reflects whatever those have already written.
      */
     fun loadCurrentState() {
+        loadAccountChoices()
         if (currentStateLoadJob?.isActive == true) {
             return
         }
@@ -127,6 +138,67 @@ class HomeViewModel(
             } else {
                 _uiState.value = _uiState.value.copy(isRefreshing = false)
             }
+        }
+    }
+
+    /**
+     * The Home selector's only job: pick a different default account. Two reload moments:
+     * - when the selection write is durably saved → render the newly selected account's cached
+     *   snapshot and trend (store reads may themselves suspend, so no speculative earlier load);
+     * - when the post-selection refresh finishes → swap in the freshly persisted snapshot.
+     * Reading the stored selection each time keeps this correct when selections arrive back to back.
+     */
+    fun selectAccount(providerId: ProviderId, localAccountId: LocalAccountId) {
+        val previousJob = selectAccountJob
+        previousJob?.cancel()
+        selectAccountJob = viewModelScope.launch {
+            previousJob?.join()
+            val saved = try {
+                defaultAccountSelectUseCase.persistDefaultAccountSelection(providerId, localAccountId)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                false
+            }
+            if (!saved) {
+                return@launch
+            }
+            currentStateLoadJob?.join()
+            loadCurrentState()
+            try {
+                defaultAccountSelectUseCase.refreshSelectedAccount(providerId, localAccountId)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                return@launch
+            }
+            currentStateLoadJob?.join()
+            loadCurrentState()
+        }
+    }
+
+    private fun loadAccountChoices() {
+        if (accountListLoadJob?.isActive == true) return
+        accountListLoadJob = viewModelScope.launch {
+            val choices = try {
+                accountListUseCase.loadAccounts().accounts
+                    .filterNot { it.status == AccountStatus.Deleted }
+                    .map { account ->
+                        HomeAccountChoiceUi(
+                            localAccountId = account.localAccountId,
+                            providerId = account.providerId,
+                            displayName = account.displayName,
+                            avatarInitial = account.avatarInitial,
+                            avatarColorKey = account.avatarColorKey,
+                            providerIconResId = ProviderRegistry.iconFor(account.providerId),
+                        )
+                    }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                emptyList()
+            }
+            _uiState.value = _uiState.value.copy(accountChoices = choices)
         }
     }
 
@@ -174,6 +246,7 @@ class HomeViewModel(
     ): HomeUiState {
         if (state.status == CurrentQuotaStatus.Unauthenticated) {
             return HomeUiState.unauthenticated(isRefreshing = isRefreshing)
+                .copy(accountChoices = _uiState.value.accountChoices)
         }
 
         val contentStatus = state.status.toHomeStatus()
@@ -195,6 +268,8 @@ class HomeViewModel(
             errorMessageResId = state.error?.safeMessageKey?.toErrorMessageResId(),
             account = state.account?.let {
                 HomeAccountUi(
+                    localAccountId = it.localAccountId,
+                    providerId = it.providerId,
                     displayName = it.displayName,
                     avatarInitial = it.avatarInitial,
                     avatarColorKey = it.avatarColorKey,
@@ -203,6 +278,7 @@ class HomeViewModel(
                     providerIconResId = ProviderRegistry.iconFor(it.providerId),
                 )
             },
+            accountChoices = _uiState.value.accountChoices,
             quotaCards = quotaCards,
             trend = HomeTrendUi(
                 metricLabelResId = state.trendWindow()?.displayKind.metricLabelResId(),
@@ -429,6 +505,8 @@ class HomeViewModel(
             notificationPreferenceReader: NotificationPreferenceReader = DefaultHomeNotificationPreferenceReader,
             currencyPreferenceReader: CurrencyPreferenceReader = DefaultHomeCurrencyPreferenceReader,
             exchangeRateReader: ExchangeRateReader = DefaultHomeExchangeRateReader,
+            accountListUseCase: AccountListUseCase = NoopAccountListUseCase,
+            defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -440,6 +518,8 @@ class HomeViewModel(
                         notificationPreferenceReader = notificationPreferenceReader,
                         currencyPreferenceReader = currencyPreferenceReader,
                         exchangeRateReader = exchangeRateReader,
+                        accountListUseCase = accountListUseCase,
+                        defaultAccountSelectUseCase = defaultAccountSelectUseCase,
                     ) as T
             }
 

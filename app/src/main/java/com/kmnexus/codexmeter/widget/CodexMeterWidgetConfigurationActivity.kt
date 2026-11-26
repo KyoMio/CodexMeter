@@ -87,7 +87,7 @@ class CodexMeterWidgetConfigurationActivity : ComponentActivity() {
             val selectedAccount = selectableAccounts.firstOrNull {
                 configuration.providerId == it.providerId.value &&
                     configuration.localAccountId == it.localAccountId.value
-            } ?: selectableAccounts.firstOrNull { it.localAccountId == accounts.currentAccountId }
+            } ?: selectableAccounts.firstOrNull { it.localAccountId == accounts.defaultAccountId }
                 ?: selectableAccounts.firstOrNull()
 
             val windowOptionsByAccount = selectableAccounts.associate { account ->
@@ -111,7 +111,7 @@ class CodexMeterWidgetConfigurationActivity : ComponentActivity() {
                 selectedLocalAccountId = selectedAccount?.localAccountId?.value,
                 selectedWindowIds = initialSelection,
                 defaultWindowId = defaultWindowId,
-                currentAccountId = accounts.currentAccountId?.value,
+                currentAccountId = accounts.defaultAccountId?.value,
                 windowOptionsByAccount = windowOptionsByAccount,
             )
         }

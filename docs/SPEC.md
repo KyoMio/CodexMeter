@@ -51,8 +51,8 @@ The MVP must support:
 - Hermes-aligned Codex device-code login through an external browser verification handoff, per `docs/CODEX_DEVICE_CODE_LOGIN_SPEC.md`.
 - No new user-facing `auth.json` file / full JSON import path; existing saved OAuth sessions continue to refresh normally.
 - Official usage API validation before saving a newly connected account.
-- Home dashboard with 5h quota, weekly quota, 24h trend, freshness and refresh state.
-- Account tab with current account, account switching, add account, rename and delete.
+- Home dashboard with compact default-account selector (when authenticated with multiple accounts), 5h quota, weekly quota, 24h trend, freshness and refresh state.
+- Account tab with default account badge, add account, rename and delete.
 - Settings tab with persistent notification configuration, thresholds, refresh, account-error notifications, retention, data management, diagnostics, and manual GitHub Releases APK update checks.
 - Settings tab includes an appearance preference (Light / Dark / Follow System, default Follow System) that persists independently of accounts and applies immediately to the app. The home-screen widget ALWAYS follows the system theme (independent of the app preference): its glass background is a `drawable`/`drawable-night` resource and its text uses Glance `ColorProvider(day, night)`, so the launcher re-resolves them instantly on a system night-mode change with no app process involvement.
 - Resizable home-screen widget driven by persisted widget state, with optional per-widget account and compact primary-window configuration.
@@ -563,7 +563,7 @@ Use DataStore for non-sensitive preferences:
 - current provider id
 - current local account id
 - legacy primary quota window for migration only; new default display behavior is owned by each surface
-- persistent notification account selection: default follow-current
+- persistent notification account selection: binds to a concrete saved account (lazy upgrade migration locks prior unset follow-current state to the stored default account)
 - persistent notification display window: default `five_hour`
 - per-account quota alert window toggles
 - threshold values are remaining-percent based: defaults `30`, `10`, `0`
@@ -976,7 +976,8 @@ Home states:
 Required visible content when authenticated:
 
 - Title `CodexMeter`.
-- Current account identity chip or compact account label.
+- Compact default-account selector pill when `contentStatus != Unauthenticated` and more than one local account exists (dropdown items show the provider icon with circular solid-color initial fallback to distinguish same-name accounts across providers).
+- Default account identity chip or compact account label.
 - 5h quota card.
 - Weekly quota card.
 - 24h compact trend.
@@ -986,6 +987,7 @@ Required visible content when authenticated:
 Rules:
 
 - Do not add ambiguous top-right action button.
+- Selecting an account in the Home account selector cancels any previous in-flight selection attempt, persists the default account selection, aborts immediately without refreshing if persistence fails, and on success renders the cached snapshot/trend then refreshes that selected account.
 - Quota cards are not clickable detail pages in MVP.
 - Status color must be paired with status text.
 - Percent text should use tabular/monospace digits.
@@ -995,22 +997,21 @@ Rules:
 
 Required content:
 
-- Current account card.
+- Default account summary and `Default` badge on the default account card.
 - Account list.
 - Add account action.
 - Rename account action.
 - Delete account action with confirmation.
-- Current-account switching through account cards in the Account tab.
 
 Rules:
 
-- Account avatar is circular solid color + initial.
-- Account list cards are collapsed by default; the header uses a chevron icon button, and the details drawer expands to reveal plan, credits, quota summaries, alert switches and management actions.
+- Account avatar prioritizes the provider icon (falling back to circular solid color + initial).
+- Account list cards are collapsed by default; the header uses a chevron icon button, and the details drawer expands to reveal plan, credits, quota summaries, alert switches and management actions (rename, re-login, delete; no `Set current` action).
 - Quota summaries and alert switches list every displayable window of the account, never a truncated subset. Summary tiles wrap in two columns (a lone tail tile keeps half width); providers returning more windows than fit a fixed grid (e.g. Claude five-hour/weekly/extra-usage/Opus/Sonnet) must not lose the trailing entries.
+- Account switching lives in the Home account selector, not on Account cards.
 - Delete confirmation must state that session and local history are deleted.
-- Deleting current account must select another account if available, otherwise return to unauthenticated state.
+- Deleting the default account selects another non-deleted account on the same provider first, otherwise falls back across providers to any non-deleted account, or returns to unauthenticated state when none remain.
 - Account screen is the only place for account management; Settings must not duplicate account cards.
-- `Set current` keeps a visible outline even when disabled for the active account.
 - `Delete` uses the same outlined button shape as the other account actions while keeping danger-colored text.
 
 ### 12.4 Settings screen
@@ -1018,7 +1019,7 @@ Rules:
 Required groups:
 
 - Appearance: a standalone card with a 3-option segmented pill control (Light / Dark / Follow System); default is Follow System; the selection applies immediately to the app only — the home-screen widget always follows the system theme regardless of this preference; the preference is persisted independently of accounts.
-- Persistent notification: status notification switch, notification account selection, notification display quota.
+- Persistent notification: status notification switch, concrete saved notification account selection (no follow-current option; lazy upgrade migration atomically locks prior unset state to the stored default account inside `dataStore.edit`), notification display quota.
 - Alerts: account/error notification switch and thresholds.
 - Refresh: background refresh switch and latest-result summary.
 - Refresh summary includes the latest current-account periodic background refresh result; the refresh card must not expose a separate `Check now` / `立即检测` button.
@@ -1095,7 +1096,7 @@ Configuration:
 
 - Launcher reconfiguration opens a configuration activity. Users select up to 4 quota windows (`selectedWindowIds` multi-select) and the account.
 - The widget renders the first `fieldCapacity` windows from the ordered selection.
-- If a widget has no explicit configuration, it follows the current account and uses the provider's default window order.
+- If a widget has no explicit configuration, it follows the default account and uses the provider's default window order.
 - Widget configuration is independent from persistent notification account/window settings.
 
 Behavior:
@@ -1214,13 +1215,15 @@ Deleting an account removes:
 - refresh attempts for that account
 - alert states for that account
 - widget state if it references the deleted account
-- current account preference if it references the deleted account
+- default account preference if it references the deleted account (falling back to another same-provider account first, then across providers to any non-deleted account, or clearing when none remain)
+- persistent notification account binding if it references the deleted account (rebinding to the post-delete fallback default account, or clearing when none remain)
 
 Rules:
 
 - Requires confirmation.
 - Must be transactional where possible.
 - Must not affect other accounts.
+- After deletion succeeds, republish `CurrentQuotaState` (ignoring non-cancellation errors) so the persistent notification and default widgets update immediately.
 
 ### 15.3 Clear history
 

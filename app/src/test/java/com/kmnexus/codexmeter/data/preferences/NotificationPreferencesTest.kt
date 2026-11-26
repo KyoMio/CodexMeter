@@ -1,5 +1,7 @@
 package com.kmnexus.codexmeter.data.preferences
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
@@ -7,6 +9,7 @@ import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.settings.NotificationAccountSelection
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,13 +33,68 @@ class NotificationPreferencesTest {
     }
 
     @Test
-    fun `persistent notification account defaults to follow current and five hour window`() = runTest {
+    fun `persistent notification account defaults to unset and five hour window`() = runTest {
         val preferences = preferences("notification-persistent-default-test.preferences_pb")
 
         val stored = preferences.notificationPreferences()
 
         assertNull(stored.persistentNotificationAccount)
         assertEquals(QuotaWindowId("five_hour"), stored.persistentNotificationWindowId)
+    }
+
+    @Test
+    fun `unset notification account migrates to the stored default account selection`() = runTest {
+        val preferences = preferences("notification-migrate-account-test.preferences_pb")
+        preferences.dataStore.edit { stored ->
+            stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID] = "codex"
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID] = "local-1"
+        }
+
+        val stored = preferences.notificationPreferences()
+
+        assertEquals(
+            NotificationAccountSelection(
+                providerId = ProviderId("codex"),
+                localAccountId = LocalAccountId("local-1"),
+            ),
+            stored.persistentNotificationAccount,
+        )
+    }
+
+    @Test
+    fun `explicit notification account is not overwritten by the default account migration`() = runTest {
+        val preferences = preferences("notification-migrate-keeps-explicit-test.preferences_pb")
+        preferences.dataStore.edit { stored ->
+            stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID] = "codex"
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID] = "local-1"
+        }
+        preferences.updateNotificationPreferences(
+            NotificationPreferences(
+                persistentNotificationAccount = NotificationAccountSelection(
+                    providerId = ProviderId("codex"),
+                    localAccountId = LocalAccountId("local-2"),
+                ),
+            ),
+        )
+
+        val stored = preferences.notificationPreferences()
+
+        assertEquals(
+            NotificationAccountSelection(
+                providerId = ProviderId("codex"),
+                localAccountId = LocalAccountId("local-2"),
+            ),
+            stored.persistentNotificationAccount,
+        )
+    }
+
+    @Test
+    fun `unset notification account stays unset when no default account exists`() = runTest {
+        val preferences = preferences("notification-migrate-no-default-test.preferences_pb")
+
+        val stored = preferences.notificationPreferences()
+
+        assertNull(stored.persistentNotificationAccount)
     }
 
     @Test
@@ -146,6 +204,67 @@ class NotificationPreferencesTest {
                 localAccountId = LocalAccountId("local-1"),
                 windowId = QuotaWindowId("weekly"),
             ),
+        )
+    }
+
+    @Test
+    fun `half-written persistent notification provider id migrates to default account`() = runTest {
+        val preferences = preferences("notification-migrate-half-written-test.preferences_pb")
+        preferences.dataStore.edit { stored ->
+            stored[NotificationPreferencesDataStore.Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] = "stale-provider"
+            stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID] = "codex"
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID] = "local-1"
+        }
+
+        val stored = preferences.notificationPreferences()
+
+        assertEquals(
+            NotificationAccountSelection(
+                providerId = ProviderId("codex"),
+                localAccountId = LocalAccountId("local-1"),
+            ),
+            stored.persistentNotificationAccount,
+        )
+    }
+
+    @Test
+    fun `concurrent explicit notification account write before migration edit is not overwritten`() = runTest {
+        val baseStore = preferences("notification-migrate-toctou-test.preferences_pb")
+        baseStore.dataStore.edit { stored ->
+            stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID] = "codex"
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID] = "local-1"
+        }
+        val racingDataStore = object : DataStore<Preferences> {
+            private var injectedConcurrentWrite = false
+            override val data: Flow<Preferences> = baseStore.dataStore.data
+
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+                baseStore.dataStore.updateData { current ->
+                    val preTransform = if (
+                        !injectedConcurrentWrite &&
+                        current[NotificationPreferencesDataStore.Keys.THRESHOLD_SEMANTICS_VERSION] != null
+                    ) {
+                        injectedConcurrentWrite = true
+                        current.toMutablePreferences().apply {
+                            this[NotificationPreferencesDataStore.Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] = "deepseek"
+                            this[NotificationPreferencesDataStore.Keys.PERSISTENT_NOTIFICATION_LOCAL_ACCOUNT_ID] = "explicit-9"
+                        }.toPreferences()
+                    } else {
+                        current
+                    }
+                    transform(preTransform)
+                }
+        }
+        val preferences = NotificationPreferencesDataStore(racingDataStore)
+
+        val stored = preferences.notificationPreferences()
+
+        assertEquals(
+            NotificationAccountSelection(
+                providerId = ProviderId("deepseek"),
+                localAccountId = LocalAccountId("explicit-9"),
+            ),
+            stored.persistentNotificationAccount,
         )
     }
 

@@ -21,18 +21,23 @@ internal class HomeTrendHistoryRepository(
     private val quotaSnapshotDao: QuotaSnapshotDao,
     private val clock: Clock,
 ) : HomeTrendHistoryLoader {
+    /**
+     * [accountId] is the account the Home selector is showing. Null keeps the old contract:
+     * trend follows the default account.
+     */
     override suspend fun loadTrend(accountId: LocalAccountId?, query: HomeTrendQuery): List<HomeTrendPointUi> {
-        val selection = currentAccountReader.currentAccountSelection() ?: return emptyList()
-        if (accountId != null && selection.localAccountId != accountId) return emptyList()
-        val account = providerAccountDao.getById(selection.localAccountId.value)
-            ?.takeIf { it.providerId == selection.providerId.value }
+        val resolvedAccountId = accountId
+            ?: currentAccountReader.currentAccountSelection()?.localAccountId
+            ?: return emptyList()
+        val account = providerAccountDao.getById(resolvedAccountId.value)
+            ?.toDomain()
             ?: return emptyList()
 
         val now = clock.instant()
         val windowStart = now.minus(TREND_WINDOW)
         val snapshots = quotaSnapshotDao.listForAccountSince(
-            providerId = account.providerId,
-            localAccountId = account.localAccountId,
+            providerId = account.providerId.value,
+            localAccountId = account.localAccountId.value,
             sinceMillis = windowStart.toEpochMilli(),
         ).mapNotNull { entity -> runCatching { entity.toDomain() }.getOrNull() }
             .sortedBy { it.fetchedAt }
