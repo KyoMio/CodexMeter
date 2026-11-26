@@ -54,6 +54,9 @@ CodexMeter refreshes quota in the background with WorkManager (default every ~15
 | Kimi | Cookie capture (in-app WebView) |
 | Kimi Code API | API key (Kimi Code console) |
 
+> [!WARNING]
+> **Google OAuth Risk Notice**: Based on recent Google risk-control enforcement and community reports, reading quota via OAuth (e.g., Antigravity) may violate applicable Terms of Service (ToS) and carry account-restriction risks. Please think carefully and weigh the risks before using it.
+
 ## Download & Install
 
 Grab the latest signed APK from the GitHub Releases page:

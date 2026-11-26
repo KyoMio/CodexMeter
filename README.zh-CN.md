@@ -52,6 +52,9 @@ CodexMeter 使用 WorkManager 在后台刷新额度（默认约 15 分钟一次�
 | Kimi | Cookie 采集（应用内 WebView） |
 | Kimi Code API | API Key（Kimi Code 控制台） |
 
+> [!WARNING]
+> **Google OAuth 风险提示**：根据近期 Google 的风控策略及社群消息，通过 OAuth 读取额度（如 Antigravity）的行为可能涉嫌违反相关服务条款（ToS），存在触发账号风控的风险。请在使用前再三斟酌，并自行评估风险。
+
 ## 下载与安装
 
 从 GitHub Releases 页面获取最新签名 APK：
