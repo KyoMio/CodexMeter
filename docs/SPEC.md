@@ -1007,6 +1007,7 @@ Rules:
 
 - Account avatar prioritizes the provider icon (falling back to circular solid color + initial).
 - Account list cards are collapsed by default; the header uses a chevron icon button, and the details drawer expands to reveal plan, credits, quota summaries, alert switches and management actions (rename, re-login, delete; no `Set current` action).
+- Quota summaries and alert switches list every displayable window of the account, never a truncated subset. Summary tiles wrap in two columns (a lone tail tile keeps half width); providers returning more windows than fit a fixed grid (e.g. Claude five-hour/weekly/extra-usage/Opus/Sonnet) must not lose the trailing entries.
 - Account switching lives in the Home account selector, not on Account cards.
 - Delete confirmation must state that session and local history are deleted.
 - Deleting the default account selects another non-deleted account on the same provider first, otherwise falls back across providers to any non-deleted account, or returns to unauthenticated state when none remain.

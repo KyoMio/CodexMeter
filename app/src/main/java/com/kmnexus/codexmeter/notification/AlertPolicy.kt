@@ -5,7 +5,6 @@ import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
-import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
 import java.time.Instant
@@ -84,7 +83,7 @@ class AlertPolicy {
     ): QuotaAlertEvent? {
         val account = state.account ?: return null
         if (window.windowId !in enabledWindowIds) return null
-        if (window.availability != QuotaWindowAvailability.Available) return null
+        if (!window.availability.isPresentable) return null
         if (window.windowId == state.primaryWindow?.windowId && !state.primaryWindowCanAlert) return null
 
         return when (window.displayKind) {

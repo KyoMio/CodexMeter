@@ -22,12 +22,21 @@ data class AntigravityQuotaSummaryDto(
         response ?: summary ?: SummaryPayload(description = description, groups = groups)
 
     /**
-     * True when some non-disabled bucket reports a remaining fraction at all. Without it the
-     * summary carries no usable quota and callers fall back to the per-model endpoints.
+     * True when some non-disabled bucket reports a remaining fraction or carries a quota lane/reset
+     * identity (proto3 JSON omits default `0.0`, so an all-depleted summary leaves `remainingFraction`
+     * absent on every bucket). Empty groups/buckets, disabled buckets, and blank `{}` objects stay false.
      */
     fun hasKnownQuotaSummary(): Boolean =
         payload().groups.any { group ->
-            group.buckets.any { bucket -> bucket.disabled != true && bucket.remainingFractionOrNull() != null }
+            group.buckets.any { bucket ->
+                bucket.disabled != true && (
+                    bucket.remainingFractionOrNull() != null ||
+                        !bucket.resetTime.isNullOrBlank() ||
+                        !bucket.window.isNullOrBlank() ||
+                        !bucket.bucketId.isNullOrBlank() ||
+                        !bucket.id.isNullOrBlank()
+                    )
+            }
         }
 
     @Serializable

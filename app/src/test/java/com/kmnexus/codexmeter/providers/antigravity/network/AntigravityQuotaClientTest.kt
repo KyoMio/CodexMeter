@@ -172,6 +172,59 @@ class AntigravityQuotaClientTest {
         assertEquals(2, server.requestCount)
     }
 
+    @Test
+    fun `returns summary without fallback when all non-disabled buckets omit remainingFraction due to depletion`() = runTest {
+        server.enqueue(codeAssistResponse(project = "proj-1"))
+        server.enqueue(
+            MockResponse.Builder()
+                .code(200)
+                .body(
+                    """{"groups":[{"displayName":"Gemini","buckets":[""" +
+                        """{"bucketId":"5h","displayName":"Gemini Pro","resetTime":"2026-06-01T05:00:00Z"},""" +
+                        """{"bucketId":"weekly","displayName":"Gemini Pro"}]}]}""",
+                )
+                .build(),
+        )
+
+        val result = newClient().fetchQuota("fake-access-token")
+
+        assertTrue(result is AntigravityQuotaClient.Result.Success)
+        val success = result as AntigravityQuotaClient.Result.Success
+        assertTrue(success.summary != null)
+        assertTrue(success.models.isEmpty())
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `mergeModels maps omitted remainingFraction on depleted buckets to zero instead of placeholder or dropping`() = runTest {
+        server.enqueue(codeAssistResponse(project = "proj-1"))
+        server.enqueue(MockResponse.Builder().code(404).body("""{"error":"missing"}""").build())
+        server.enqueue(allFullAvailableModelsResponse())
+        server.enqueue(
+            MockResponse.Builder()
+                .code(200)
+                .body(
+                    """{"buckets":[""" +
+                        """{"modelId":"gemini-4-argon","remainingFraction":0.5,"resetTime":"2026-06-01T12:00:00Z"},""" +
+                        """{"modelId":"gemini-2.5-flash","resetTime":"2026-06-01T12:00:00Z"},""" +
+                        """{"modelId":"claude-sonnet-4","resetTime":"2026-06-01T12:00:00Z"}]}""",
+                )
+                .build(),
+        )
+
+        val result = newClient().fetchQuota("fake-access-token")
+
+        assertTrue(result is AntigravityQuotaClient.Result.Success)
+        val success = result as AntigravityQuotaClient.Result.Success
+        val byModel = success.models.associateBy { it.modelId }
+        assertEquals(setOf("gemini-4-argon", "gemini-2.5-flash", "claude-sonnet-4"), byModel.keys)
+        assertEquals(0.5, byModel.getValue("gemini-4-argon").remainingFraction!!, 0.0)
+        // Existing placeholder model whose bucket omitted remainingFraction must become 0.0, not 1.0.
+        assertEquals(0.0, byModel.getValue("gemini-2.5-flash").remainingFraction!!, 0.0)
+        // Bucket-only model whose bucket omitted remainingFraction must be kept at 0.0, not dropped.
+        assertEquals(0.0, byModel.getValue("claude-sonnet-4").remainingFraction!!, 0.0)
+    }
+
     private fun newClient(): AntigravityQuotaClient {
         val rootUrl = server.url("/").toString().trimEnd('/')
         return AntigravityQuotaClient(

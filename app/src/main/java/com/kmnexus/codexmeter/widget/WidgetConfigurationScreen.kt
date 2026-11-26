@@ -35,6 +35,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
+import com.kmnexus.codexmeter.domain.quota.QuotaWindow
+import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
+import com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
@@ -60,7 +63,29 @@ internal fun retainAvailableWindowIds(current: List<String>, available: List<Str
 internal data class WidgetWindowOption(
     val windowId: String,
     @get:androidx.annotation.StringRes val labelResId: Int,
+    val depleted: Boolean = false,
 )
+
+/**
+ * Builds the quota-window checkbox options for one account. Depleted windows (remaining ≤ 0)
+ * stay listed and selectable — a saved widget config that names one should not lose it — but
+ * are flagged so the row can show an exhausted hint. Missing/unsupported windows are still
+ * hidden; only states a real quota can report as a usable-or-empty window stay visible.
+ */
+internal fun buildWidgetWindowOptions(windows: List<QuotaWindow>): List<WidgetWindowOption> =
+    windows
+        .filter { it.isWidgetDisplayable() }
+        .map {
+            WidgetWindowOption(
+                windowId = it.windowId.value,
+                labelResId = quotaWindowLabelRes(
+                    it.windowId.value,
+                    it.limitWindowSeconds,
+                ),
+                depleted = it.availability == QuotaWindowAvailability.Depleted,
+            )
+        }
+        .distinctBy { it.windowId }
 
 internal data class WidgetConfigurationScreenState(
     val accounts: List<ProviderAccount> = emptyList(),
@@ -233,7 +258,11 @@ private fun WidgetConfigurationScreen(
                     val checked = state.selectedWindowIds.contains(option.windowId)
                     val enabled = checked || state.selectedWindowIds.size < WIDGET_MAX_FIELDS
                     FieldOptionRow(
-                        label = stringResource(option.labelResId),
+                        label = if (option.depleted) {
+                            "${stringResource(option.labelResId)} · ${stringResource(R.string.home_quota_status_exhausted)}"
+                        } else {
+                            stringResource(option.labelResId)
+                        },
                         checked = checked,
                         enabled = enabled,
                         onClick = { onWindowToggled(option.windowId) },

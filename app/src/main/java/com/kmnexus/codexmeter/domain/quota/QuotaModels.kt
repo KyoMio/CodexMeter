@@ -7,7 +7,17 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.model.SnapshotId
 import java.time.Instant
 
-enum class QuotaWindowAvailability { Available, Depleted, Missing, DecodeFailed, Unsupported }
+enum class QuotaWindowAvailability {
+    Available,
+    Depleted,
+    Missing,
+    DecodeFailed,
+    Unsupported,
+    ;
+
+    val isPresentable: Boolean
+        get() = this == Available || this == Depleted
+}
 
 enum class QuotaSnapshotSource {
     DeviceCodeLogin,
@@ -86,8 +96,17 @@ data class Credits(
     val balance: Double?,
 )
 
+fun QuotaWindow.hasDisplayableValue(): Boolean =
+    availability.isPresentable && when (displayKind) {
+        QuotaWindowDisplayKind.Balance -> !balanceAmount.isNullOrBlank()
+        QuotaWindowDisplayKind.UsageCount ->
+            displayPercent != null || (usedCount != null && limitCount != null)
+        QuotaWindowDisplayKind.Percent,
+        QuotaWindowDisplayKind.MultiModelFraction, -> displayPercent != null
+    }
+
 internal fun QuotaWindow.canAlert(): Boolean = when {
-    availability != QuotaWindowAvailability.Available -> false
+    !availability.isPresentable -> false
     displayKind == QuotaWindowDisplayKind.Balance -> {
         val amount = balanceAmount?.toDoubleOrNull() ?: 0.0
         amount > 0.0

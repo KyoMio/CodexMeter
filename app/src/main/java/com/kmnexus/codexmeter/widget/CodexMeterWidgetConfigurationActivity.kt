@@ -16,8 +16,6 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import com.kmnexus.codexmeter.CodexMeterApp
 import com.kmnexus.codexmeter.domain.model.AccountStatus
-import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
-import com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -94,14 +92,7 @@ class CodexMeterWidgetConfigurationActivity : ComponentActivity() {
 
             val windowOptionsByAccount = selectableAccounts.associate { account ->
                 val options = accounts.latestQuotaSnapshots[account.localAccountId]?.windows
-                    ?.filter { it.availability == QuotaWindowAvailability.Available }
-                    ?.map {
-                        WidgetWindowOption(
-                            it.windowId.value,
-                            quotaWindowLabelRes(it.windowId.value, it.limitWindowSeconds),
-                        )
-                    }
-                    ?.distinctBy { it.windowId }
+                    ?.let(::buildWidgetWindowOptions)
                     .orEmpty()
                 account.localAccountId.value to options
             }

@@ -175,6 +175,50 @@ class HomeTrendHistoryRepositoryTest {
         }
     }
 
+    @Test
+    fun `scalar window retains depleted snapshot to record final consumption delta`() = runTest {
+        withRepository { db, reader, repository ->
+            db.providerAccountDao().upsert(account())
+            reader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
+            db.quotaSnapshotDao().insert(percentSnapshot("a", Instant.parse("2026-05-24T10:00:00Z"), used = 80))
+            db.quotaSnapshotDao().insert(
+                percentSnapshot("b", Instant.parse("2026-05-24T11:00:00Z"), used = 100, availability = "Depleted"),
+            )
+
+            val points = repository.loadTrend(LocalAccountId("local-1"), percentQuery)
+
+            assertEquals(listOf(20.0), points.map { it.usageValue })
+        }
+    }
+
+    @Test
+    fun `model bucket sum retains depleted family window to record final remaining drop`() = runTest {
+        withRepository { db, reader, repository ->
+            db.providerAccountDao().upsert(account(provider = "antigravity"))
+            reader.selection = CurrentAccountSelection(ProviderId("antigravity"), LocalAccountId("local-1"))
+            db.quotaSnapshotDao().insert(
+                multiWindowBucketSnapshot("a", Instant.parse("2026-05-24T10:00:00Z"), claudeRemaining = 0.5, geminiRemaining = 0.3),
+            )
+            db.quotaSnapshotDao().insert(
+                multiWindowBucketSnapshot(
+                    id = "b",
+                    fetchedAt = Instant.parse("2026-05-24T11:00:00Z"),
+                    claudeRemaining = 0.5,
+                    geminiRemaining = 0.0,
+                    geminiAvailability = "Depleted",
+                ),
+            )
+
+            val points = repository.loadTrend(
+                LocalAccountId("local-1"),
+                HomeTrendQuery("antigravity_claude_window", QuotaWindowDisplayKind.MultiModelFraction, useModelBucketSum = true),
+            )
+
+            assertEquals(1, points.size)
+            assertEquals(0.3, points.single().usageValue, 1e-9)
+        }
+    }
+
     private suspend fun withRepository(
         block: suspend (CodexMeterDatabase, InMemoryCurrentAccountReader, HomeTrendHistoryRepository) -> Unit,
     ) {
@@ -228,9 +272,9 @@ class HomeTrendHistoryRepositoryTest {
             responseDigest = "safe-digest",
         )
 
-    private fun percentSnapshot(id: String, fetchedAt: Instant, used: Int) = entity(
+    private fun percentSnapshot(id: String, fetchedAt: Instant, used: Int, availability: String = "Available") = entity(
         id, "codex", fetchedAt,
-        """[{"windowId":"five_hour","titleKey":"k","usedPercent":$used,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"Available"}]""",
+        """[{"windowId":"five_hour","titleKey":"k","usedPercent":$used,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"$availability"}]""",
     )
 
     private fun balanceSnapshot(id: String, fetchedAt: Instant, balance: String) = entity(
@@ -247,11 +291,17 @@ class HomeTrendHistoryRepositoryTest {
      * Two distinct model-family windows in a single snapshot, each with usesModelBucketSum=true.
      * Mirrors real Antigravity snapshots where each family is a separate window object.
      */
-    private fun multiWindowBucketSnapshot(id: String, fetchedAt: Instant, claudeRemaining: Double, geminiRemaining: Double) = entity(
+    private fun multiWindowBucketSnapshot(
+        id: String,
+        fetchedAt: Instant,
+        claudeRemaining: Double,
+        geminiRemaining: Double,
+        geminiAvailability: String = "Available",
+    ) = entity(
         id, "antigravity", fetchedAt,
         """[""" +
             """{"windowId":"antigravity_claude_window","titleKey":"k","usedPercent":10,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Available","displayKind":"MultiModelFraction","usesModelBucketSum":true,"modelBuckets":[{"modelId":"claude","displayName":"Claude","remainingFraction":$claudeRemaining}]},""" +
-            """{"windowId":"antigravity_gemini_pro_window","titleKey":"k","usedPercent":10,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":false,"availability":"Available","displayKind":"MultiModelFraction","usesModelBucketSum":true,"modelBuckets":[{"modelId":"gemini","displayName":"Gemini","remainingFraction":$geminiRemaining}]}""" +
+            """{"windowId":"antigravity_gemini_pro_window","titleKey":"k","usedPercent":10,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":false,"availability":"$geminiAvailability","displayKind":"MultiModelFraction","usesModelBucketSum":true,"modelBuckets":[{"modelId":"gemini","displayName":"Gemini","remainingFraction":$geminiRemaining}]}""" +
             """]""",
     )
 }

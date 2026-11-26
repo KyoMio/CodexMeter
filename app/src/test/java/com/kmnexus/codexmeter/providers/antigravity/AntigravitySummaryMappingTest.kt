@@ -414,4 +414,48 @@ class AntigravitySummaryMappingTest {
 
         assertEquals(setOf("antigravity_claude_gpt_5h_window"), byId.keys)
     }
+
+    @Test
+    fun `all non-disabled buckets omitting remainingFraction still produce depleted 5h and weekly windows`() {
+        val body = """
+            {
+              "groups": [
+                {"displayName": "Gemini", "buckets": [
+                  {"bucketId": "5h", "displayName": "Gemini Pro", "resetTime": "2026-06-01T05:00:00Z"},
+                  {"bucketId": "weekly", "displayName": "Gemini Pro"}
+                ]},
+                {"displayName": "Claude/GPT", "buckets": [
+                  {"window": "5h", "displayName": "Claude"},
+                  {"id": "weekly", "displayName": "GPT-OSS"}
+                ]}
+              ]
+            }
+        """.trimIndent()
+
+        val snapshot = mapSummary(body)
+        val byId = snapshot.windows.associateBy { it.windowId.value }
+
+        assertEquals(
+            setOf(
+                "antigravity_gemini_5h_window",
+                "antigravity_gemini_weekly_window",
+                "antigravity_claude_gpt_5h_window",
+                "antigravity_claude_gpt_weekly_window",
+            ),
+            byId.keys,
+        )
+        byId.values.forEach { window ->
+            assertEquals(100, window.usedPercent)
+            assertEquals(QuotaWindowAvailability.Depleted, window.availability)
+        }
+    }
+
+    @Test
+    fun `empty bucket objects produce empty windows`() {
+        val body = """{"groups":[{"displayName":"Gemini","buckets":[{},{}]}]}"""
+
+        val snapshot = mapSummary(body)
+
+        assertTrue(snapshot.windows.isEmpty())
+    }
 }

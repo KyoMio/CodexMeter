@@ -440,10 +440,11 @@ class HomeViewModel(
     }
 
     private fun QuotaWindow.toQuotaStatus(): HomeQuotaStatus {
-        if (availability != QuotaWindowAvailability.Available) return HomeQuotaStatus.Unavailable
+        if (!availability.isPresentable) return HomeQuotaStatus.Unavailable
         if (displayKind == QuotaWindowDisplayKind.Balance) {
             val amount = balanceAmount?.toDoubleOrNull() ?: return HomeQuotaStatus.Unavailable
             return when {
+                availability == QuotaWindowAvailability.Depleted -> HomeQuotaStatus.Exhausted
                 amount <= 0.0 -> HomeQuotaStatus.Exhausted
                 amount <= notificationPreferences.balanceWarningThreshold -> HomeQuotaStatus.Warning
                 amount <= notificationPreferences.balanceCautionThreshold -> HomeQuotaStatus.Caution
@@ -452,6 +453,7 @@ class HomeViewModel(
         }
         val percent = displayPercent ?: return HomeQuotaStatus.Unavailable
         return when {
+            availability == QuotaWindowAvailability.Depleted -> HomeQuotaStatus.Exhausted
             percent <= notificationPreferences.limitThreshold -> HomeQuotaStatus.Exhausted
             percent <= notificationPreferences.warningThreshold -> HomeQuotaStatus.Warning
             percent <= notificationPreferences.cautionThreshold -> HomeQuotaStatus.Caution

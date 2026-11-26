@@ -2,6 +2,7 @@ package com.kmnexus.codexmeter.domain.quota
 
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -100,7 +101,108 @@ class QuotaModelsTest {
         assertEquals("OAuthPkceLogin", oauth.name)
     }
 
-    private fun quotaWindow(usedPercent: Int?): QuotaWindow =
+    @Test
+    fun `availability isPresentable is true only for Available and Depleted`() {
+        assertTrue(QuotaWindowAvailability.Available.isPresentable)
+        assertTrue(QuotaWindowAvailability.Depleted.isPresentable)
+        assertFalse(QuotaWindowAvailability.Missing.isPresentable)
+        assertFalse(QuotaWindowAvailability.DecodeFailed.isPresentable)
+        assertFalse(QuotaWindowAvailability.Unsupported.isPresentable)
+    }
+
+    @Test
+    fun `hasDisplayableValue checks presentability and kind-specific values`() {
+        assertTrue(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.Available).hasDisplayableValue())
+        assertTrue(quotaWindow(usedPercent = 100, availability = QuotaWindowAvailability.Depleted).hasDisplayableValue())
+        assertFalse(quotaWindow(usedPercent = null, availability = QuotaWindowAvailability.Depleted).hasDisplayableValue())
+        assertFalse(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.Missing).hasDisplayableValue())
+        assertFalse(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.DecodeFailed).hasDisplayableValue())
+        assertFalse(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.Unsupported).hasDisplayableValue())
+
+        val depletedMultiModel = quotaWindow(usedPercent = 100, availability = QuotaWindowAvailability.Depleted)
+            .copy(displayKind = QuotaWindowDisplayKind.MultiModelFraction)
+        assertTrue(depletedMultiModel.hasDisplayableValue())
+        assertFalse(depletedMultiModel.copy(usedPercent = null).hasDisplayableValue())
+
+        val depletedBalance = QuotaWindow(
+            windowId = QuotaWindowId("balance"),
+            titleKey = "balance",
+            usedPercent = null,
+            resetAt = null,
+            limitWindowSeconds = null,
+            isPrimaryCandidate = true,
+            availability = QuotaWindowAvailability.Depleted,
+            displayKind = QuotaWindowDisplayKind.Balance,
+            balanceAmount = "0.00",
+        )
+        assertTrue(depletedBalance.hasDisplayableValue())
+        assertFalse(depletedBalance.copy(balanceAmount = null).hasDisplayableValue())
+        assertFalse(depletedBalance.copy(balanceAmount = "   ").hasDisplayableValue())
+        assertFalse(depletedBalance.copy(availability = QuotaWindowAvailability.Missing).hasDisplayableValue())
+
+        val usageCount = QuotaWindow(
+            windowId = QuotaWindowId("usage"),
+            titleKey = "usage",
+            usedPercent = null,
+            resetAt = null,
+            limitWindowSeconds = null,
+            isPrimaryCandidate = true,
+            availability = QuotaWindowAvailability.Depleted,
+            displayKind = QuotaWindowDisplayKind.UsageCount,
+            usedCount = 500,
+            limitCount = 500,
+        )
+        assertTrue(usageCount.hasDisplayableValue())
+        assertTrue(usageCount.copy(usedPercent = 100, usedCount = null, limitCount = null).hasDisplayableValue())
+        assertFalse(usageCount.copy(usedCount = null).hasDisplayableValue())
+        assertFalse(usageCount.copy(limitCount = null).hasDisplayableValue())
+        assertFalse(usageCount.copy(availability = QuotaWindowAvailability.Missing).hasDisplayableValue())
+    }
+
+    @Test
+    fun `canAlert allows depleted percent, multi-model, and usage count windows while preserving zero balance contract`() {
+        val depletedPercent = quotaWindow(usedPercent = 100, availability = QuotaWindowAvailability.Depleted)
+        assertTrue(depletedPercent.canAlert())
+        assertFalse(depletedPercent.copy(resetAt = null).canAlert())
+
+        val depletedMultiModel = depletedPercent.copy(displayKind = QuotaWindowDisplayKind.MultiModelFraction)
+        assertTrue(depletedMultiModel.canAlert())
+
+        val depletedUsageCount = QuotaWindow(
+            windowId = QuotaWindowId("usage"),
+            titleKey = "usage",
+            usedPercent = null,
+            resetAt = null,
+            limitWindowSeconds = null,
+            isPrimaryCandidate = true,
+            availability = QuotaWindowAvailability.Depleted,
+            displayKind = QuotaWindowDisplayKind.UsageCount,
+            usedCount = 500,
+            limitCount = 500,
+        )
+        assertTrue(depletedUsageCount.canAlert())
+        assertFalse(depletedUsageCount.copy(usedCount = 0).canAlert())
+
+        val zeroDepletedBalance = QuotaWindow(
+            windowId = QuotaWindowId("balance"),
+            titleKey = "balance",
+            usedPercent = null,
+            resetAt = null,
+            limitWindowSeconds = null,
+            isPrimaryCandidate = true,
+            availability = QuotaWindowAvailability.Depleted,
+            displayKind = QuotaWindowDisplayKind.Balance,
+            balanceAmount = "0.00",
+        )
+        assertFalse(zeroDepletedBalance.canAlert())
+        assertTrue(zeroDepletedBalance.copy(balanceAmount = "1.50").canAlert())
+        assertFalse(depletedPercent.copy(availability = QuotaWindowAvailability.Missing).canAlert())
+    }
+
+    private fun quotaWindow(
+        usedPercent: Int?,
+        availability: QuotaWindowAvailability = QuotaWindowAvailability.Available,
+    ): QuotaWindow =
         QuotaWindow(
             windowId = QuotaWindowId("five_hour"),
             titleKey = "quota_window_five_hour",
@@ -108,6 +210,6 @@ class QuotaModelsTest {
             resetAt = Instant.parse("2026-05-22T05:00:00Z"),
             limitWindowSeconds = 18_000,
             isPrimaryCandidate = true,
-            availability = QuotaWindowAvailability.Available,
+            availability = availability,
         )
 }
