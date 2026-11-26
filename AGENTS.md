@@ -156,7 +156,7 @@ Important UI rules:
 - Settings must not duplicate account-management cards.
 - Home must not contain an ambiguous top-right action button.
 - Account avatars use circular solid-color initials.
-- Account switching lives in the Account tab; Home only shows the current-account summary.
+- Account switching lives in a compact Home account selector (shown when authenticated with multiple accounts) that writes the default account; the Account tab manages accounts and displays the default badge.
 - Last scrollable content must be able to scroll above the bottom tab bar.
 
 ## 8. Testing policy

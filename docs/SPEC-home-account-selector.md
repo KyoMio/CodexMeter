@@ -1,6 +1,6 @@
 # Spec Delta: 首页账号选择器（V2）遗留问题修复与规范同步
 
-Status: proposed
+Status: implemented
 
 Source spec: [docs/SPEC.md](./SPEC.md)（§12.2 Home screen、§12.3 Account screen、§12.4 Settings screen、§15.2 Delete account）、[DESIGN.md](../DESIGN.md)、[AGENTS.md](../AGENTS.md)、[CLAUDE.md](../CLAUDE.md)
 
