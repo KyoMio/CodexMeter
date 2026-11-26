@@ -13,8 +13,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,21 +33,34 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.ui.components.GlassPullToRefreshIndicator
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.data.currency.ExchangeRateReader
+import com.kmnexus.codexmeter.domain.account.AccountListUseCase
+import com.kmnexus.codexmeter.domain.account.NoopAccountListUseCase
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
+import com.kmnexus.codexmeter.domain.account.NoopDefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.currency.CurrencyPreferenceReader
+import com.kmnexus.codexmeter.domain.model.LocalAccountId
+import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
+import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTypography
@@ -55,6 +74,8 @@ fun HomeRoute(
     notificationPreferenceReader: NotificationPreferenceReader,
     currencyPreferenceReader: CurrencyPreferenceReader,
     exchangeRateReader: ExchangeRateReader,
+    accountListUseCase: AccountListUseCase = NoopAccountListUseCase,
+    defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase,
     viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.factory(
             currentQuotaStateLoader = currentQuotaStateLoader,
@@ -63,6 +84,8 @@ fun HomeRoute(
             notificationPreferenceReader = notificationPreferenceReader,
             currencyPreferenceReader = currencyPreferenceReader,
             exchangeRateReader = exchangeRateReader,
+            accountListUseCase = accountListUseCase,
+            defaultAccountSelectUseCase = defaultAccountSelectUseCase,
         ),
     ),
     onLoginClick: () -> Unit = {},
@@ -91,6 +114,7 @@ fun HomeRoute(
         modifier = modifier,
         onRefreshClick = viewModel::refreshNow,
         onLoginClick = onLoginClick,
+        onAccountSelected = viewModel::selectAccount,
     )
 }
 
@@ -101,8 +125,9 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onRefreshClick: () -> Unit = {},
     onLoginClick: () -> Unit = {},
+    onAccountSelected: (ProviderId, LocalAccountId) -> Unit = { _, _ -> },
 ) {
-    // Pull-to-refresh refreshes only the current account (vs the Account screen which refreshes all).
+    // Pull-to-refresh refreshes only the selected (default) account — the Account screen refreshes all.
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
@@ -128,6 +153,13 @@ fun HomeScreen(
             uiState = uiState,
             onRefreshClick = onRefreshClick,
         )
+
+        if (uiState.contentStatus != HomeContentStatus.Unauthenticated && uiState.accountChoices.size > 1) {
+            HomeAccountSelector(
+                uiState = uiState,
+                onAccountSelected = onAccountSelected,
+            )
+        }
 
         if (uiState.contentStatus == HomeContentStatus.Unauthenticated) {
             HomeActionCard(
@@ -191,6 +223,97 @@ private fun HomeHeader(
                 HomeRefreshIconButton(
                     isRefreshing = uiState.isRefreshing,
                     onRefreshClick = onRefreshClick,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Compact default-account switcher: a pill showing the viewed account that expands into a
+ * dropdown of every local account. Picking one is the single "default account" write — quota
+ * cards, trend and pull-to-refresh all follow it.
+ */
+@Composable
+private fun HomeAccountSelector(
+    uiState: HomeUiState,
+    onAccountSelected: (ProviderId, LocalAccountId) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedId = uiState.account?.localAccountId
+    androidx.compose.foundation.layout.Box {
+        Row(
+            modifier = Modifier
+                .clip(CodexMeterShapes.pill)
+                .background(CodexMeterTheme.colors.surface)
+                .clickable { expanded = true }
+                .padding(
+                    horizontal = CodexMeterSpacing.md,
+                    vertical = CodexMeterSpacing.sm,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = uiState.account?.displayName
+                    ?: stringResource(R.string.home_account_selector_placeholder),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 160.dp),
+            )
+            Icon(
+                painter = painterResource(R.drawable.ic_chevron_down),
+                contentDescription = stringResource(R.string.home_account_selector),
+                tint = CodexMeterTheme.colors.accent,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            uiState.accountChoices.forEach { choice ->
+                val selected = choice.localAccountId == selectedId
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(CodexMeterSpacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            HomeAccountAvatarBadge(
+                                providerIconResId = choice.providerIconResId,
+                                avatarInitial = choice.avatarInitial,
+                                avatarColorKey = choice.avatarColorKey,
+                                size = 24.dp,
+                                iconSize = 14.dp,
+                                initialStyle = MaterialTheme.typography.labelSmall,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = choice.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (selected) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_action_done),
+                                    contentDescription = null,
+                                    tint = CodexMeterTheme.colors.accent,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    },
+                    onClick = {
+                        expanded = false
+                        if (!selected) {
+                            onAccountSelected(choice.providerId, choice.localAccountId)
+                        }
+                    },
                 )
             }
         }

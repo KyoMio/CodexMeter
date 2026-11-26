@@ -1,5 +1,7 @@
 package com.kmnexus.codexmeter.ui.settings
 
+import com.kmnexus.codexmeter.domain.model.LocalAccountId
+import com.kmnexus.codexmeter.domain.model.ProviderId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -46,7 +48,11 @@ class SettingsNotificationAccountDialogTest {
 
         // Perform the selection — this should close the dialog.
         viewModel.updatePersistentNotificationAccount(
-            SettingsNotificationAccountSelection.FollowCurrent,
+            SettingsNotificationAccountSelection(
+                providerId = ProviderId("codex"),
+                localAccountId = LocalAccountId("local-1"),
+                displayName = "Work",
+            ),
         )
 
         // The dialog must be dismissed.

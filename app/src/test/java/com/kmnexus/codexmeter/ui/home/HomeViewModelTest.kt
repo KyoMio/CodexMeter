@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.ui.home
 
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
@@ -26,10 +27,13 @@ import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.resetMain
@@ -602,6 +606,366 @@ class HomeViewModelTest {
         assertEquals(failedAttempt().finishedAt, uiState.refresh.lastAttemptFinishedAt)
         assertTrue(uiState.isRefreshing)
         assertEquals(R.string.home_refreshing, uiState.refresh.buttonTextResId)
+    }
+
+    @Test
+    fun `selecting account renders the newly selected account while its refresh is still pending`() = runTest(dispatcher) {
+        val providerId = ProviderId("codex")
+        var storedSelection = "local-1"
+        val refreshStarted = CompletableDeferred<Unit>()
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    storedSelection = localAccountId.value
+                    refreshStarted.complete(Unit)
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) = releaseRefresh.await()
+            },
+        )
+        viewModel.loadCurrentState()
+        advanceUntilIdle()
+        assertEquals(LocalAccountId("local-1"), viewModel.uiState.value.account?.localAccountId)
+
+        viewModel.selectAccount(providerId, LocalAccountId("local-2"))
+        advanceUntilIdle()
+        try {
+            assertTrue("Selection reached the provider refresh", refreshStarted.isCompleted)
+            assertEquals("local-2", storedSelection)
+            assertEquals(
+                "Home should render the cached account B while network refresh is pending",
+                LocalAccountId("local-2"),
+                viewModel.uiState.value.account?.localAccountId,
+            )
+        } finally {
+            releaseRefresh.complete(Unit)
+            advanceUntilIdle()
+        }
+        assertEquals(LocalAccountId("local-2"), viewModel.uiState.value.account?.localAccountId)
+    }
+
+    @Test
+    fun `selecting account reloads the fresh snapshot once the detached refresh completes`() = runTest(dispatcher) {
+        var storedSelection = "local-1"
+        var selectedSnapshotAt = now.minus(Duration.ofMinutes(30))
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val refreshFinished = CompletableDeferred<Unit>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = selectedSnapshotAt, localAccountId = storedSelection),
+                )
+            },
+            // Mirrors the repository contract: persist lands the store write; refreshSelectedAccount
+            // completes once the post-selection refresh has finished writing its snapshot.
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    storedSelection = localAccountId.value
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) {
+                    releaseRefresh.await()
+                    selectedSnapshotAt = now
+                    refreshFinished.complete(Unit)
+                }
+            },
+        )
+        viewModel.loadCurrentState()
+        runCurrent()
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        runCurrent()
+        assertEquals(LocalAccountId("local-2"), viewModel.uiState.value.account?.localAccountId)
+        assertEquals(now.minus(Duration.ofMinutes(30)), viewModel.uiState.value.refresh.lastSuccessfulRefreshAt)
+
+        releaseRefresh.complete(Unit)
+        runCurrent()
+        assertTrue("Detached refresh completed and wrote the new snapshot", refreshFinished.isCompleted)
+        assertEquals(
+            "Home still open should take the latest snapshot once the selection refresh completes",
+            now,
+            viewModel.uiState.value.refresh.lastSuccessfulRefreshAt,
+        )
+    }
+
+    @Test
+    fun `selecting account shows the committed account even when the store write itself was slow`() = runTest(dispatcher) {
+        var storedSelection = "local-1"
+        val allowSelectionWrite = CompletableDeferred<Unit>()
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val refreshStarted = CompletableDeferred<Unit>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    // Room and DataStore may suspend before the selection is visible to readers.
+                    allowSelectionWrite.await()
+                    storedSelection = localAccountId.value
+                    refreshStarted.complete(Unit)
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) = releaseRefresh.await()
+            },
+        )
+        viewModel.loadCurrentState()
+        runCurrent()
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        runCurrent()
+        assertEquals("local-1", storedSelection)
+        assertEquals(LocalAccountId("local-1"), viewModel.uiState.value.account?.localAccountId)
+
+        allowSelectionWrite.complete(Unit)
+        runCurrent()
+        try {
+            assertTrue(refreshStarted.isCompleted)
+            assertEquals("local-2", storedSelection)
+            assertEquals(
+                "Home should show committed account B while its provider refresh is still pending",
+                LocalAccountId("local-2"),
+                viewModel.uiState.value.account?.localAccountId,
+            )
+        } finally {
+            releaseRefresh.complete(Unit)
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `selecting account does not refresh or reload when persist returns false`() = runTest(dispatcher) {
+        var loadCount = 0
+        var refreshCount = 0
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                loadCount += 1
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = "local-1"),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = "local-1"),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean = false
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) {
+                    refreshCount += 1
+                }
+            },
+        )
+        viewModel.loadCurrentState()
+        advanceUntilIdle()
+        assertEquals(1, loadCount)
+
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        advanceUntilIdle()
+
+        assertEquals(0, refreshCount)
+        assertEquals(1, loadCount)
+        assertEquals(LocalAccountId("local-1"), viewModel.uiState.value.account?.localAccountId)
+    }
+
+    @Test
+    fun `selecting account does not refresh or reload when persist throws`() = runTest(dispatcher) {
+        var loadCount = 0
+        var refreshCount = 0
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                loadCount += 1
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = "local-1"),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = "local-1"),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    throw IllegalStateException("persist failed")
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) {
+                    refreshCount += 1
+                }
+            },
+        )
+        viewModel.loadCurrentState()
+        advanceUntilIdle()
+        assertEquals(1, loadCount)
+
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        advanceUntilIdle()
+
+        assertEquals(0, refreshCount)
+        assertEquals(1, loadCount)
+    }
+
+    @Test
+    fun `rapidly switching accounts cancels prior selection and prevents stale refresh or overwrite`() = runTest(dispatcher) {
+        var storedSelection = "local-1"
+        val allowBPersist = CompletableDeferred<Unit>()
+        val bPersistStarted = CompletableDeferred<Unit>()
+        val refreshedAccounts = mutableListOf<String>()
+        var bCancelled = false
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    if (localAccountId.value == "local-2") {
+                        bPersistStarted.complete(Unit)
+                        try {
+                            allowBPersist.await()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            bCancelled = true
+                            throw e
+                        }
+                    }
+                    storedSelection = localAccountId.value
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) {
+                    refreshedAccounts.add(localAccountId.value)
+                }
+            },
+        )
+        viewModel.loadCurrentState()
+        runCurrent()
+
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        runCurrent()
+        assertTrue(bPersistStarted.isCompleted)
+
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-3"))
+        allowBPersist.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue("Previous selection B should be cancelled when C starts", bCancelled)
+        assertEquals("local-3", storedSelection)
+        assertEquals(LocalAccountId("local-3"), viewModel.uiState.value.account?.localAccountId)
+        assertEquals(listOf("local-3"), refreshedAccounts)
+    }
+
+    @Test
+    fun `switching accounts cancels pending refresh of previous selection`() = runTest(dispatcher) {
+        var storedSelection = "local-1"
+        val bRefreshStarted = CompletableDeferred<Unit>()
+        val allowBRefresh = CompletableDeferred<Unit>()
+        var bRefreshCancelled = false
+        val refreshedAccounts = mutableListOf<String>()
+        val viewModel = HomeViewModel(
+            currentQuotaStateLoader = HomeCurrentQuotaStateLoader {
+                currentState(
+                    status = CurrentQuotaStatus.Fresh,
+                    freshness = CurrentQuotaFreshness.Fresh,
+                    account = account(localAccountId = storedSelection),
+                    snapshot = snapshot(fetchedAt = now, localAccountId = storedSelection),
+                )
+            },
+            defaultAccountSelectUseCase = object : DefaultAccountSelectUseCase {
+                override suspend fun persistDefaultAccountSelection(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ): Boolean {
+                    storedSelection = localAccountId.value
+                    return true
+                }
+
+                override suspend fun refreshSelectedAccount(
+                    providerId: ProviderId,
+                    localAccountId: LocalAccountId,
+                ) {
+                    refreshedAccounts.add(localAccountId.value)
+                    if (localAccountId.value == "local-2") {
+                        bRefreshStarted.complete(Unit)
+                        try {
+                            allowBRefresh.await()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            bRefreshCancelled = true
+                            throw e
+                        }
+                    }
+                }
+            },
+        )
+        viewModel.loadCurrentState()
+        runCurrent()
+
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-2"))
+        runCurrent()
+        assertTrue(bRefreshStarted.isCompleted)
+
+        viewModel.selectAccount(ProviderId("codex"), LocalAccountId("local-3"))
+        allowBRefresh.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue("In-flight refresh for B should be cancelled when C is selected", bRefreshCancelled)
+        assertEquals("local-3", storedSelection)
+        assertEquals(LocalAccountId("local-3"), viewModel.uiState.value.account?.localAccountId)
+        assertEquals(listOf("local-2", "local-3"), refreshedAccounts)
     }
 
     private fun currentState(

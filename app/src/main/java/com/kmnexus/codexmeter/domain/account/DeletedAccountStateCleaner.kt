@@ -7,7 +7,8 @@ import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 
 data class AccountListResult(
     val accounts: List<ProviderAccount>,
-    val currentAccountId: LocalAccountId?,
+    /** The account the Home selector last viewed — the single "default account" source. */
+    val defaultAccountId: LocalAccountId?,
     val latestQuotaSnapshots: Map<LocalAccountId, QuotaSnapshot> = emptyMap(),
 )
 
@@ -17,7 +18,7 @@ fun interface AccountListUseCase {
 
 object NoopAccountListUseCase : AccountListUseCase {
     override suspend fun loadAccounts(): AccountListResult =
-        AccountListResult(accounts = emptyList(), currentAccountId = null)
+        AccountListResult(accounts = emptyList(), defaultAccountId = null)
 }
 
 fun interface AccountDeleteUseCase {
@@ -28,12 +29,35 @@ object NoopAccountDeleteUseCase : AccountDeleteUseCase {
     override suspend fun deleteAccount(providerId: ProviderId, localAccountId: LocalAccountId) = Unit
 }
 
-fun interface AccountSwitchUseCase {
-    suspend fun switchCurrentAccount(providerId: ProviderId, localAccountId: LocalAccountId): Boolean
+/**
+ * The only user-facing writer of the default-account selection: picking an account in the Home
+ * selector. It supersedes the removed per-account "set current" entry.
+ *
+ * Two distinct signals, because callers need them at different times:
+ * - [persistDefaultAccountSelection] completes when the selection is durably written — Home can
+ *   then render the account's cached snapshot even while the store write itself was slow.
+ * - [refreshSelectedAccount] completes after the post-selection refresh finishes — Home reads once
+ *   more so the freshly persisted quota and trend replace the cached ones.
+ */
+interface DefaultAccountSelectUseCase {
+    suspend fun persistDefaultAccountSelection(providerId: ProviderId, localAccountId: LocalAccountId): Boolean
+    suspend fun refreshSelectedAccount(providerId: ProviderId, localAccountId: LocalAccountId)
+
+    /** Persist, then refresh: returns once the post-selection refresh has finished. */
+    suspend fun selectDefaultAccount(providerId: ProviderId, localAccountId: LocalAccountId): Boolean {
+        if (!persistDefaultAccountSelection(providerId, localAccountId)) return false
+        refreshSelectedAccount(providerId, localAccountId)
+        return true
+    }
 }
 
-object NoopAccountSwitchUseCase : AccountSwitchUseCase {
-    override suspend fun switchCurrentAccount(providerId: ProviderId, localAccountId: LocalAccountId): Boolean = false
+object NoopDefaultAccountSelectUseCase : DefaultAccountSelectUseCase {
+    override suspend fun persistDefaultAccountSelection(
+        providerId: ProviderId,
+        localAccountId: LocalAccountId,
+    ): Boolean = false
+
+    override suspend fun refreshSelectedAccount(providerId: ProviderId, localAccountId: LocalAccountId) = Unit
 }
 
 fun interface AccountRenameUseCase {

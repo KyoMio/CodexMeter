@@ -32,7 +32,7 @@ import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.account.AccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.AccountSwitchUseCase
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.account.AccountSwitchRefreshRequester
 import com.kmnexus.codexmeter.domain.auth.ApiKeyLoginUseCase
 import com.kmnexus.codexmeter.domain.auth.SessionLoginUseCase
@@ -151,6 +151,9 @@ import com.kmnexus.codexmeter.data.preferences.AppearancePreferences
 import com.kmnexus.codexmeter.domain.theme.AppearancePreferenceStore
 import com.kmnexus.codexmeter.domain.theme.ThemeMode
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -159,7 +162,7 @@ class AppContainer private constructor(
     val refreshCoordinator: RefreshCoordinator,
     val accountListUseCase: AccountListUseCase,
     val accountDeleteUseCase: AccountDeleteUseCase,
-    val accountSwitchUseCase: AccountSwitchUseCase,
+    val defaultAccountSelectUseCase: DefaultAccountSelectUseCase,
     val accountRenameUseCase: AccountRenameUseCase,
     val accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester,
     val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader,
@@ -536,6 +539,7 @@ class AppContainer private constructor(
                     secureSessionStore = sessionStore,
                     currentAccountStore = currentAccountPreferences,
                     deletedAccountStateCleaner = widgetDeletedAccountStateCleaner,
+                    notificationPreferenceStore = notificationPreferences,
                 ),
                 retentionCleanupRepository = RetentionCleanupRepository(database),
                 quotaHistoryClearRepository = QuotaHistoryClearRepository(
@@ -761,10 +765,11 @@ class AppContainer private constructor(
                 primaryQuotaWindowPreferenceReader = primaryQuotaWindowPreferences,
                 clock = clock,
             )
+            val postSelectionRefreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             val accountMutationRepository = AccountMutationRepository(
                 providerAccountDao = database.providerAccountDao(),
                 currentAccountStore = currentAccountPreferences,
-                accountSwitchRefreshRequester = AccountSwitchRefreshRequester { account ->
+                accountSelectRefreshRequester = AccountSwitchRefreshRequester { account ->
                     try {
                         refreshCoordinator.refresh(
                             account = account,
@@ -778,6 +783,7 @@ class AppContainer private constructor(
                 },
                 currentAccountStateRepublisher = currentAccountStateRepublisher,
                 clock = clock,
+                refreshScope = postSelectionRefreshScope,
             )
             val homeRefreshUseCase = HomeRefreshCoordinatorUseCase(
                 currentAccountStore = currentQuotaRefreshAccountStore,
@@ -825,13 +831,17 @@ class AppContainer private constructor(
             return AppContainer(
                 refreshCoordinator = refreshCoordinator,
                 accountListUseCase = accountListRepository,
-                accountDeleteUseCase = AccountDeleteUseCase { providerId, localAccountId ->
-                    accountDeletionRepository.deleteAccount(
-                        providerId = providerId,
-                        localAccountId = localAccountId,
-                    )
-                },
-                accountSwitchUseCase = accountMutationRepository,
+                accountDeleteUseCase = RepublishingAccountDeleteUseCase(
+                    delegate = AccountDeleteUseCase { providerId, localAccountId ->
+                        accountDeletionRepository.deleteAccount(
+                            providerId = providerId,
+                            localAccountId = localAccountId,
+                        )
+                    },
+                    currentQuotaStateLoader = currentQuotaStateRepository,
+                    currentQuotaStatePublisher = currentQuotaStatePublisher,
+                ),
+                defaultAccountSelectUseCase = accountMutationRepository,
                 accountRenameUseCase = accountMutationRepository,
                 accountQuotaAlertEvaluationRequester = AccountQuotaAlertEvaluationRequester { providerId, localAccountId, windowId ->
                     currentQuotaStatePublisher.publish(

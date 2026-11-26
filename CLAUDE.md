@@ -103,7 +103,7 @@ Important confirmed choices:
 - Settings must not duplicate account-management cards.
 - Home has no ambiguous top-right settings button.
 - Account avatars are circular solid-color initials.
-- Account switching lives in the Account tab; Home only shows the current-account summary.
+- Account switching lives in a compact Home account selector (shown when authenticated with multiple accounts) that writes the default account; the Account tab manages accounts and displays the default badge.
 - Scrollable content must not be hidden behind the bottom tab bar.
 
 ## TDD and validation

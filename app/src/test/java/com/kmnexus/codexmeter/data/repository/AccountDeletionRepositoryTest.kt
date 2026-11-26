@@ -16,6 +16,9 @@ import com.kmnexus.codexmeter.domain.account.DeletedAccountStateCleaner
 import com.kmnexus.codexmeter.domain.account.NoopDeletedAccountStateCleaner
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderId
+import com.kmnexus.codexmeter.domain.settings.NotificationAccountSelection
+import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
+import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -68,6 +71,118 @@ class AccountDeletionRepositoryTest {
             repository.deleteAccount(providerId = ProviderId("codex"), localAccountId = LocalAccountId("target"))
 
             assertEquals(selection(localAccountId = "other"), currentAccountStore.currentAccountSelection())
+        }
+    }
+
+    @Test
+    fun `deleting default falls back to another provider's account when same-provider candidates are gone`() = runTest {
+        withRepository { db, _, repository ->
+            seedAccountGraph(db, localAccountId = "target")
+            db.providerAccountDao().upsert(providerAccount("remaining").copy(providerId = "deepseek"))
+            val currentAccountStore = repository.currentAccountStore
+            currentAccountStore.updateCurrentAccountSelection(selection(localAccountId = "target"))
+
+            repository.deleteAccount(providerId = ProviderId("codex"), localAccountId = LocalAccountId("target"))
+
+            assertNotNull(db.providerAccountDao().getById("remaining"))
+            assertEquals(
+                CurrentAccountSelection(ProviderId("deepseek"), LocalAccountId("remaining")),
+                currentAccountStore.currentAccountSelection(),
+            )
+        }
+    }
+
+    @Test
+    fun `deleting same-provider default still prefers another account on that provider`() = runTest {
+        withRepository { db, _, repository ->
+            seedAccountGraph(db, localAccountId = "target")
+            seedAccountGraph(db, localAccountId = "codex-other")
+            db.providerAccountDao().upsert(
+                providerAccount("deepseek-other").copy(providerId = "deepseek"),
+            )
+            val currentAccountStore = repository.currentAccountStore
+            currentAccountStore.updateCurrentAccountSelection(selection(localAccountId = "target"))
+
+            repository.deleteAccount(providerId = ProviderId("codex"), localAccountId = LocalAccountId("target"))
+
+            assertEquals(
+                selection(localAccountId = "codex-other"),
+                currentAccountStore.currentAccountSelection(),
+            )
+        }
+    }
+
+    @Test
+    fun `deleting notification-bound account rebinds notification to the fallback default`() = runTest {
+        val notificationStore = InMemoryNotificationPreferenceStore(
+            NotificationPreferences(
+                persistentNotificationAccount = NotificationAccountSelection(
+                    providerId = ProviderId("codex"),
+                    localAccountId = LocalAccountId("target"),
+                ),
+            ),
+        )
+        withRepository(notificationPreferenceStore = notificationStore) { db, _, repository ->
+            seedAccountGraph(db, localAccountId = "target")
+            db.providerAccountDao().upsert(providerAccount("remaining").copy(providerId = "deepseek"))
+            repository.currentAccountStore.updateCurrentAccountSelection(selection(localAccountId = "target"))
+
+            repository.deleteAccount(providerId = ProviderId("codex"), localAccountId = LocalAccountId("target"))
+
+            assertEquals(
+                NotificationAccountSelection(
+                    providerId = ProviderId("deepseek"),
+                    localAccountId = LocalAccountId("remaining"),
+                ),
+                notificationStore.stored.persistentNotificationAccount,
+            )
+        }
+    }
+
+    @Test
+    fun `deleting notification-bound account clears binding when no account remains`() = runTest {
+        val notificationStore = InMemoryNotificationPreferenceStore(
+            NotificationPreferences(
+                persistentNotificationAccount = NotificationAccountSelection(
+                    providerId = ProviderId("codex"),
+                    localAccountId = LocalAccountId("target"),
+                ),
+            ),
+        )
+        withRepository(notificationPreferenceStore = notificationStore) { db, _, repository ->
+            seedAccountGraph(db, localAccountId = "target")
+            repository.currentAccountStore.updateCurrentAccountSelection(selection(localAccountId = "target"))
+
+            repository.deleteAccount(providerId = ProviderId("codex"), localAccountId = LocalAccountId("target"))
+
+            assertNull(notificationStore.stored.persistentNotificationAccount)
+        }
+    }
+
+    @Test
+    fun `deleting non-bound account leaves notification binding alone`() = runTest {
+        val notificationStore = InMemoryNotificationPreferenceStore(
+            NotificationPreferences(
+                persistentNotificationAccount = NotificationAccountSelection(
+                    providerId = ProviderId("codex"),
+                    localAccountId = LocalAccountId("other"),
+                ),
+            ),
+        )
+        withRepository(notificationPreferenceStore = notificationStore) { db, _, repository ->
+            seedAccountGraph(db, localAccountId = "target")
+            seedAccountGraph(db, localAccountId = "other")
+            repository.currentAccountStore.updateCurrentAccountSelection(selection(localAccountId = "other"))
+
+            repository.deleteAccount(providerId = ProviderId("codex"), localAccountId = LocalAccountId("target"))
+
+            assertEquals(
+                NotificationAccountSelection(
+                    providerId = ProviderId("codex"),
+                    localAccountId = LocalAccountId("other"),
+                ),
+                notificationStore.stored.persistentNotificationAccount,
+            )
         }
     }
 
@@ -190,6 +305,7 @@ class AccountDeletionRepositoryTest {
         currentAccountStore: CurrentAccountStore = InMemoryCurrentAccountStore(),
         deletedAccountStateCleaner: DeletedAccountStateCleaner = NoopDeletedAccountStateCleaner,
         localDataDeleter: AccountLocalDataDeleter? = null,
+        notificationPreferenceStore: NotificationPreferenceStore? = null,
         block: suspend (CodexMeterDatabase, SecureSessionStore, RepositoryHarness) -> Unit,
     ) {
         val db = Room.inMemoryDatabaseBuilder(
@@ -202,6 +318,7 @@ class AccountDeletionRepositoryTest {
             currentAccountStore = currentAccountStore,
             deletedAccountStateCleaner = deletedAccountStateCleaner,
             localDataDeleter = localDataDeleter ?: RoomAccountLocalDataDeleter(db),
+            notificationPreferenceStore = notificationPreferenceStore,
         )
 
         try {
@@ -326,6 +443,19 @@ class AccountDeletionRepositoryTest {
 
         override suspend fun updateCurrentAccountSelection(selection: CurrentAccountSelection?) {
             this.selection = selection
+        }
+    }
+
+    private class InMemoryNotificationPreferenceStore(
+        initial: NotificationPreferences,
+    ) : NotificationPreferenceStore {
+        var stored: NotificationPreferences = initial
+            private set
+
+        override suspend fun notificationPreferences(): NotificationPreferences = stored
+
+        override suspend fun updateNotificationPreferences(preferences: NotificationPreferences) {
+            stored = preferences
         }
     }
 

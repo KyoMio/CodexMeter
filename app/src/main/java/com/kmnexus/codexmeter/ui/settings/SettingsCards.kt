@@ -175,7 +175,8 @@ internal fun PersistentNotificationCard(
             ChoiceSummaryTextRow(
                 titleResId = R.string.settings_notification_account_title,
                 descriptionResId = null,
-                valueText = persistentNotification.accountSelection.displayLabel(),
+                valueText = persistentNotification.accountSelection?.displayName
+                    ?: stringResource(R.string.settings_value_placeholder),
                 onClick = onAccountClick,
             )
             ChoiceSummaryTextRow(
@@ -471,14 +472,6 @@ internal fun ThresholdSlider(
         )
     }
 }
-
-@Composable
-internal fun SettingsNotificationAccountSelection.displayLabel(): String =
-    when (this) {
-        SettingsNotificationAccountSelection.FollowCurrent ->
-            stringResource(R.string.settings_notification_account_follow_current)
-        is SettingsNotificationAccountSelection.Account -> displayName
-    }
 
 @Composable
 private fun AppleThresholdThumb(color: Color) {

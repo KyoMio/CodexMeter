@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                     deviceCodeLoginNotifier = codexMeterApp.deviceCodeLoginNotifier,
                     accountListUseCase = codexMeterApp.accountListUseCase,
                     accountDeleteUseCase = codexMeterApp.accountDeleteUseCase,
-                    accountSwitchUseCase = codexMeterApp.accountSwitchUseCase,
+                    defaultAccountSelectUseCase = codexMeterApp.defaultAccountSelectUseCase,
                     accountRenameUseCase = codexMeterApp.accountRenameUseCase,
                     accountQuotaAlertEvaluationRequester = codexMeterApp.accountQuotaAlertEvaluationRequester,
                     accountRefreshAllUseCase = codexMeterApp.accountRefreshAllUseCase,

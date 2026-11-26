@@ -11,7 +11,8 @@ internal class HomeRefreshCoordinatorUseCase(
     private val currentQuotaStateLoader: CurrentQuotaStateRepository,
 ) : HomeRefreshUseCase {
     // Manual pull-to-refresh only. Opening Home no longer triggers a network refresh (it just reloads
-    // the persisted snapshot), so there is no separate app-open path here.
+    // the persisted snapshot), so there is no separate app-open path here. Only the Home selector's
+    // chosen (default) account is refreshed — currentAccount() resolves the stored selection.
     override suspend fun refreshCurrentState(): CurrentQuotaState {
         val account = currentAccountStore.currentAccount()
         if (account != null) {

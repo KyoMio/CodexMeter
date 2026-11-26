@@ -68,9 +68,9 @@ import com.kmnexus.codexmeter.domain.auth.SessionLoginUseCase
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.account.AccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.AccountSwitchUseCase
+import com.kmnexus.codexmeter.domain.account.DefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.account.NoopAccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.NoopAccountSwitchUseCase
+import com.kmnexus.codexmeter.domain.account.NoopDefaultAccountSelectUseCase
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.NoopQuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
@@ -135,7 +135,7 @@ fun CodexMeterNavHost(
     deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier,
     accountListUseCase: AccountListUseCase,
     accountDeleteUseCase: AccountDeleteUseCase,
-    accountSwitchUseCase: AccountSwitchUseCase = NoopAccountSwitchUseCase,
+    defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase,
     accountRenameUseCase: AccountRenameUseCase = NoopAccountRenameUseCase,
     accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester =
         NoopAccountQuotaAlertEvaluationRequester,
@@ -563,6 +563,8 @@ fun CodexMeterNavHost(
                         notificationPreferenceReader = notificationPreferenceStore,
                         currencyPreferenceReader = currencyPreferenceReader,
                         exchangeRateReader = exchangeRateReader,
+                        accountListUseCase = accountListUseCase,
+                        defaultAccountSelectUseCase = defaultAccountSelectUseCase,
                         onLoginClick = { navigateToProviderSelection() },
                     )
                 }
@@ -575,7 +577,6 @@ fun CodexMeterNavHost(
                     AccountRoute(
                         accountListUseCase = accountListUseCase,
                         accountDeleteUseCase = accountDeleteUseCase,
-                        accountSwitchUseCase = accountSwitchUseCase,
                         accountRenameUseCase = accountRenameUseCase,
                         notificationPreferenceStore = notificationPreferenceStore,
                         quotaAlertEvaluationRequester = accountQuotaAlertEvaluationRequester,

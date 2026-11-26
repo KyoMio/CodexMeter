@@ -42,7 +42,6 @@ import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
 import com.kmnexus.codexmeter.domain.account.AccountListUseCase
 import com.kmnexus.codexmeter.domain.account.AccountRenameUseCase
-import com.kmnexus.codexmeter.domain.account.AccountSwitchUseCase
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
@@ -58,7 +57,6 @@ import kotlinx.coroutines.launch
 fun AccountRoute(
     accountListUseCase: AccountListUseCase,
     accountDeleteUseCase: AccountDeleteUseCase,
-    accountSwitchUseCase: AccountSwitchUseCase,
     accountRenameUseCase: AccountRenameUseCase,
     notificationPreferenceStore: NotificationPreferenceStore = AccountInMemoryNotificationPreferenceStore(),
     quotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester =
@@ -71,7 +69,6 @@ fun AccountRoute(
         factory = AccountViewModel.factory(
             deleteUseCase = accountDeleteUseCase,
             accountListUseCase = accountListUseCase,
-            switchUseCase = accountSwitchUseCase,
             renameUseCase = accountRenameUseCase,
             notificationPreferenceStore = notificationPreferenceStore,
             quotaAlertEvaluationRequester = quotaAlertEvaluationRequester,
@@ -104,11 +101,6 @@ fun AccountRoute(
             onLoginToCodexClick()
         },
         onAddAccountDismiss = viewModel::dismissAddAccount,
-        onSetCurrentClick = { id ->
-            coroutineScope.launch {
-                viewModel.switchCurrentAccount(id)
-            }
-        },
         onRenameClick = viewModel::requestRenameAccount,
         onRenameConfirm = { id, name ->
             coroutineScope.launch {
@@ -142,7 +134,6 @@ fun AccountScreen(
     onAddAccountClick: () -> Unit = {},
     onLoginToCodexClick: () -> Unit = {},
     onAddAccountDismiss: () -> Unit = {},
-    onSetCurrentClick: (LocalAccountId) -> Unit = {},
     onRenameClick: (LocalAccountId) -> Unit = {},
     onRenameConfirm: (LocalAccountId, String) -> Unit = { _, _ -> },
     onRenameDismiss: () -> Unit = {},
@@ -176,9 +167,9 @@ fun AccountScreen(
     ) {
         AccountHeader(onAddAccountClick = onAddAccountClick)
 
-        uiState.currentAccount?.let {
-            SectionLabel(R.string.account_current_section)
-            CurrentAccountCard(account = it)
+        uiState.defaultAccount?.let {
+            SectionLabel(R.string.account_default_section)
+            DefaultAccountCard(account = it)
         }
 
         SectionLabel(R.string.account_saved_section)
@@ -188,7 +179,6 @@ fun AccountScreen(
             uiState.accounts.forEach { account ->
                 AccountCard(
                     account = account,
-                    onSetCurrentClick = onSetCurrentClick,
                     onRenameClick = onRenameClick,
                     onReloginClick = onReloginClick,
                     onQuotaAlertToggle = onQuotaAlertToggle,

@@ -544,7 +544,7 @@ private fun SettingsChoiceDialogContent(
                     SettingsChoiceDialog.NotificationAccount ->
                         uiState.persistentNotification.accountChoices.forEach { choice ->
                             OptionTextButton(
-                                label = choice.selection.displayLabel(),
+                                label = choice.selection.displayName,
                                 selected = uiState.persistentNotification.accountSelection == choice.selection,
                             ) {
                                 onPersistentNotificationAccountSelected(choice.selection)
