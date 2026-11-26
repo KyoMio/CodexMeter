@@ -197,18 +197,17 @@ class AntigravityQuotaClient(
         val merged = models.map { model ->
             val bucket = bucketByModel[model.modelId] ?: return@map model
             model.copy(
-                remainingFraction = bucket.remainingFraction ?: model.remainingFraction,
+                remainingFraction = bucket.remainingFraction ?: 0.0,
                 resetTime = bucket.resetTime ?: model.resetTime,
             )
         }.toMutableList()
         val modelIds = models.mapTo(HashSet()) { it.modelId }
         for ((modelId, bucket) in bucketByModel) {
             if (modelId in modelIds) continue
-            val fraction = bucket.remainingFraction ?: continue
             merged += AntigravityModelQuota(
                 modelId = modelId,
                 label = modelId,
-                remainingFraction = fraction,
+                remainingFraction = bucket.remainingFraction ?: 0.0,
                 resetTime = bucket.resetTime,
             )
         }

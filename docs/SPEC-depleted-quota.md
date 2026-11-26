@@ -1,6 +1,6 @@
 # Spec Delta: 全链路 0% / Depleted 额度窗口一致处理
 
-Status: proposed
+Status: implemented
 
 Source spec: [docs/SPEC.md](./SPEC.md)（§6.4 Quota window、§10.3 Current state factory、§11.1 Alert policy、§12.2 Home screen、§12.3 Account screen、§13.1 MVP widget）
 
