@@ -218,7 +218,6 @@
     <string name="settings_status_notification_description">在通知栏显示低打扰的额度状态。</string>
     <string name="settings_notification_account_title">通知账号</string>
     <string name="settings_notification_account_description">选择常驻通知显示的账号。</string>
-    <string name="settings_notification_account_description_text">常驻通知始终展示所选账号。</string>
     <string name="settings_notification_display_quota_title">通知显示额度</string>
     <string name="settings_notification_display_quota_description">选择常驻通知显示的额度窗口。</string>
     <string name="settings_value_placeholder">—</string>

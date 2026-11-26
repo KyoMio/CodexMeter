@@ -218,7 +218,6 @@
     <string name="settings_status_notification_description">A low-noise quota status in the notification shade.</string>
     <string name="settings_notification_account_title">Notification account</string>
     <string name="settings_notification_account_description">Choose which account the persistent notification displays.</string>
-    <string name="settings_notification_account_description_text">The notification always shows the chosen account.</string>
     <string name="settings_notification_display_quota_title">Notification display quota</string>
     <string name="settings_notification_display_quota_description">Choose the quota window shown in the persistent notification.</string>
     <string name="settings_value_placeholder">—</string>

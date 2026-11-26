@@ -831,12 +831,16 @@ class AppContainer private constructor(
             return AppContainer(
                 refreshCoordinator = refreshCoordinator,
                 accountListUseCase = accountListRepository,
-                accountDeleteUseCase = AccountDeleteUseCase { providerId, localAccountId ->
-                    accountDeletionRepository.deleteAccount(
-                        providerId = providerId,
-                        localAccountId = localAccountId,
-                    )
-                },
+                accountDeleteUseCase = RepublishingAccountDeleteUseCase(
+                    delegate = AccountDeleteUseCase { providerId, localAccountId ->
+                        accountDeletionRepository.deleteAccount(
+                            providerId = providerId,
+                            localAccountId = localAccountId,
+                        )
+                    },
+                    currentQuotaStateLoader = currentQuotaStateRepository,
+                    currentQuotaStatePublisher = currentQuotaStatePublisher,
+                ),
                 defaultAccountSelectUseCase = accountMutationRepository,
                 accountRenameUseCase = accountMutationRepository,
                 accountQuotaAlertEvaluationRequester = AccountQuotaAlertEvaluationRequester { providerId, localAccountId, windowId ->

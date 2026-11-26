@@ -152,16 +152,22 @@ class NotificationPreferencesDataStore(
      * read after one is written — same outcome, since nothing can unset it afterwards.
      */
     private suspend fun migrateNotificationAccountSelection(stored: Preferences): Preferences {
-        if (stored[Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] != null) return stored
-        val defaultProviderId = stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID]
-            ?.takeIf { it.isNotBlank() }
-            ?: return stored
-        val defaultLocalAccountId = stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID]
-            ?.takeIf { it.isNotBlank() }
-            ?: return stored
-        return dataStore.edit {
-            it[Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] = defaultProviderId
-            it[Keys.PERSISTENT_NOTIFICATION_LOCAL_ACCOUNT_ID] = defaultLocalAccountId
+        if (stored.toPersistentNotificationAccount() != null) return stored
+        val hasDefaultSelection = stored[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID]
+            ?.isNotBlank() == true &&
+            stored[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID]
+                ?.isNotBlank() == true
+        if (!hasDefaultSelection) return stored
+        return dataStore.edit { mutable ->
+            if (mutable.toPersistentNotificationAccount() != null) return@edit
+            val defaultProviderId = mutable[CurrentAccountPreferences.Keys.CURRENT_PROVIDER_ID]
+                ?.takeIf { it.isNotBlank() }
+                ?: return@edit
+            val defaultLocalAccountId = mutable[CurrentAccountPreferences.Keys.CURRENT_LOCAL_ACCOUNT_ID]
+                ?.takeIf { it.isNotBlank() }
+                ?: return@edit
+            mutable[Keys.PERSISTENT_NOTIFICATION_PROVIDER_ID] = defaultProviderId
+            mutable[Keys.PERSISTENT_NOTIFICATION_LOCAL_ACCOUNT_ID] = defaultLocalAccountId
         }
     }
 
