@@ -5,6 +5,7 @@ import com.kmnexus.codexmeter.domain.quota.CurrentQuotaStatus
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowDisplayKind
+import com.kmnexus.codexmeter.domain.quota.hasDisplayableValue
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.providers.ProviderRegistry
 
@@ -66,7 +67,7 @@ class WidgetQuotaStateFactory(
             windows.filter { selectedWindowIds.contains(it.windowId.value) }
         }
         return selected
-            .filter { it.isDisplayable() }
+            .filter { it.isWidgetDisplayable() }
             .take(WIDGET_MAX_FIELDS)
             .map { window ->
                 val isBalance = window.displayKind == QuotaWindowDisplayKind.Balance
@@ -113,9 +114,9 @@ class WidgetQuotaStateFactory(
             // before mapping fields). Exhausted (<= 0) shares Danger with the warning band, matching
             // the quota path above where both severe bands read the same label.
             val amount = balanceAmount?.toDoubleOrNull()
-            if (availability == QuotaWindowAvailability.Depleted) return WidgetQuotaTone.Danger
             return when {
-                availability != QuotaWindowAvailability.Available || amount == null -> WidgetQuotaTone.Neutral
+                !availability.isPresentable || amount == null -> WidgetQuotaTone.Neutral
+                availability == QuotaWindowAvailability.Depleted -> WidgetQuotaTone.Danger
                 amount <= 0.0 -> WidgetQuotaTone.Danger
                 amount <= notificationPreferences.balanceWarningThreshold -> WidgetQuotaTone.Danger
                 amount <= notificationPreferences.balanceCautionThreshold -> WidgetQuotaTone.Warning
@@ -123,9 +124,9 @@ class WidgetQuotaStateFactory(
             }
         }
         val percent = displayPercent
-        if (availability == QuotaWindowAvailability.Depleted) return WidgetQuotaTone.Danger
         return when {
-            availability != QuotaWindowAvailability.Available || percent == null -> WidgetQuotaTone.Neutral
+            !availability.isPresentable || percent == null -> WidgetQuotaTone.Neutral
+            availability == QuotaWindowAvailability.Depleted -> WidgetQuotaTone.Danger
             percent <= notificationPreferences.limitThreshold -> WidgetQuotaTone.Danger
             percent <= notificationPreferences.warningThreshold -> WidgetQuotaTone.Danger
             percent <= notificationPreferences.cautionThreshold -> WidgetQuotaTone.Warning
@@ -133,22 +134,16 @@ class WidgetQuotaStateFactory(
         }
     }
 
-    // A Depleted window the user selected must still render (e.g. a 5h quota at 0%): the config
-    // screen keeps such windows selectable (mirroring Home/notification choices), so the widget
-    // field can only be dropped when there is no displayable value at all.
-    private fun QuotaWindow.isDisplayable(): Boolean =
-        when (displayKind) {
-            QuotaWindowDisplayKind.Balance ->
-                (availability == QuotaWindowAvailability.Available ||
-                    availability == QuotaWindowAvailability.Depleted) && !balanceAmount.isNullOrBlank()
-            else ->
-                (availability == QuotaWindowAvailability.Available ||
-                    availability == QuotaWindowAvailability.Depleted) && displayPercent != null
-        }
-
     private companion object {
         // Header shown on the unconfigured/no-account widget: app branding, not a single provider,
         // since CodexMeter now supports multiple AI providers.
         const val UNCONFIGURED_HEADER = "CodexMeter"
     }
 }
+
+// A Depleted window the user selected must still render (e.g. a 5h quota at 0%): the config
+// screen keeps such windows selectable via the same predicate, so widget setup and rendering
+// never disagree when a window has no displayable percent or balance amount.
+internal fun QuotaWindow.isWidgetDisplayable(): Boolean =
+    hasDisplayableValue() &&
+        (displayKind == QuotaWindowDisplayKind.Balance || displayPercent != null)

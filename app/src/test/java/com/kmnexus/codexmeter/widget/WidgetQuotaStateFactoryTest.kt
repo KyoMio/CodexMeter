@@ -91,6 +91,31 @@ class WidgetQuotaStateFactoryTest {
     }
 
     @Test
+    fun `depleted balance window with unreadable amount stays neutral instead of danger`() {
+        val state = freshState(
+            windows = listOf(
+                balanceWindow("balance", amount = "N/A", currency = "USD")
+                    .copy(availability = QuotaWindowAvailability.Depleted),
+            ),
+        )
+        val result = factory.create(state, selectedWindowIds = listOf("balance"))
+        assertEquals(WidgetQuotaTone.Neutral, result.fields.single().tone)
+    }
+
+    @Test
+    fun `depleted balance window with blank amount is excluded`() {
+        val state = freshState(
+            windows = listOf(
+                balanceWindow("balance", amount = "   ", currency = "USD")
+                    .copy(availability = QuotaWindowAvailability.Depleted),
+                percentWindow("five_hour", usedPercent = 10),
+            ),
+        )
+        val result = factory.create(state, selectedWindowIds = listOf("balance", "five_hour"))
+        assertEquals(listOf("five_hour"), result.fields.map { it.windowId })
+    }
+
+    @Test
     fun `usage count window renders as percent not count`() {
         val state = freshState(
             windows = listOf(usageCountWindow("calls", usedPercent = 40, usedCount = 40, limitCount = 100)),

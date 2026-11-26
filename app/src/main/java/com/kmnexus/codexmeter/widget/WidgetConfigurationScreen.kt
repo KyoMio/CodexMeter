@@ -35,6 +35,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
+import com.kmnexus.codexmeter.domain.quota.QuotaWindow
+import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
+import com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterShapes
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 
@@ -69,20 +72,17 @@ internal data class WidgetWindowOption(
  * are flagged so the row can show an exhausted hint. Missing/unsupported windows are still
  * hidden; only states a real quota can report as a usable-or-empty window stay visible.
  */
-internal fun buildWidgetWindowOptions(windows: List<com.kmnexus.codexmeter.domain.quota.QuotaWindow>): List<WidgetWindowOption> =
+internal fun buildWidgetWindowOptions(windows: List<QuotaWindow>): List<WidgetWindowOption> =
     windows
-        .filter {
-            it.availability == com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability.Available ||
-                it.availability == com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability.Depleted
-        }
+        .filter { it.isWidgetDisplayable() }
         .map {
             WidgetWindowOption(
                 windowId = it.windowId.value,
-                labelResId = com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes(
+                labelResId = quotaWindowLabelRes(
                     it.windowId.value,
                     it.limitWindowSeconds,
                 ),
-                depleted = it.availability == com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability.Depleted,
+                depleted = it.availability == QuotaWindowAvailability.Depleted,
             )
         }
         .distinctBy { it.windowId }
