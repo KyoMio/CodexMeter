@@ -370,6 +370,60 @@ class AccountViewModelTest {
     }
 
     @Test
+    fun `claude five-window snapshot keeps sonnet summary and alert toggle when five hour window is depleted`() = runTest {
+        val snapshot = QuotaSnapshot(
+            snapshotId = SnapshotId("snapshot-claude-five"),
+            providerId = ProviderId("claude"),
+            localAccountId = localId("local-1"),
+            providerAccountId = ProviderAccountId("provider-local-1"),
+            fetchedAt = Instant.parse("2026-05-23T10:00:00Z"),
+            source = QuotaSnapshotSource.ManualRefresh,
+            planType = "pro",
+            windows = listOf(
+                // Claude window order mirrors ClaudeUsageMapper: a depleted 5-hour window must not
+                // crowd the still-available Sonnet summary or its alert toggle out of the card.
+                claudeWindow("claude_5h_window", usedPercent = 100, limitWindowSeconds = 18_000, subLabel = "5 hours"),
+                claudeWindow("claude_7d_window", usedPercent = 25, limitWindowSeconds = 604_800, subLabel = "7 days"),
+                claudeWindow("claude_extra_usage", usedPercent = 90, limitWindowSeconds = null, subLabel = "$90.00 / $100.00"),
+                claudeWindow("claude_7d_opus_window", usedPercent = 40, limitWindowSeconds = 604_800, subLabel = "7 days · Opus"),
+                claudeWindow("claude_7d_sonnet_window", usedPercent = 50, limitWindowSeconds = 604_800, subLabel = "7 days · Sonnet"),
+            ),
+            credits = null,
+            responseDigest = "safe-digest",
+        )
+        val viewModel = viewModel(
+            accountListUseCase = RecordingAccountListUseCase(
+                AccountListResult(
+                    accounts = listOf(account("local-1")),
+                    currentAccountId = localId("local-1"),
+                    latestQuotaSnapshots = mapOf(localId("local-1") to snapshot),
+                ),
+            ),
+        )
+
+        viewModel.loadAccounts()
+
+        val uiAccount = viewModel.uiState.value.accounts.single()
+        val expectedWindows = listOf(
+            "claude_5h_window",
+            "claude_7d_window",
+            "claude_extra_usage",
+            "claude_7d_opus_window",
+            "claude_7d_sonnet_window",
+        )
+        assertEquals(expectedWindows, uiAccount.quotaSummaries.map { it.windowId })
+        assertEquals(expectedWindows, uiAccount.alertToggles.map { it.windowId })
+        val sonnetSummary = uiAccount.quotaSummaries.single { it.windowId == "claude_7d_sonnet_window" }
+        assertEquals(R.string.window_label_7d_sonnet, sonnetSummary.labelResId)
+        assertEquals(50, sonnetSummary.percent)
+        assertEquals(0, uiAccount.quotaSummaries.first { it.windowId == "claude_5h_window" }.percent)
+        // Presence is the regression surface: a non-default alert window starts off unless the
+        // user enables it, but the row itself must survive so it can be toggled.
+        val sonnetToggle = uiAccount.alertToggles.single { it.windowId == "claude_7d_sonnet_window" }
+        assertEquals(R.string.window_label_7d_sonnet, sonnetToggle.labelResId)
+    }
+
+    @Test
     fun `toggling five hour and weekly alerts persists account window preference`() = runTest {
         val store = RecordingNotificationPreferenceStore(NotificationPreferences())
         val viewModel = viewModel(notificationPreferenceStore = store)
@@ -680,6 +734,28 @@ class AccountViewModelTest {
             limitWindowSeconds = limitWindowSeconds,
             isPrimaryCandidate = true,
             availability = QuotaWindowAvailability.Available,
+        )
+
+    private fun claudeWindow(
+        windowId: String,
+        usedPercent: Int,
+        limitWindowSeconds: Int?,
+        subLabel: String,
+    ): QuotaWindow =
+        QuotaWindow(
+            windowId = QuotaWindowId(windowId),
+            titleKey = windowId,
+            usedPercent = usedPercent,
+            resetAt = Instant.parse("2026-05-23T12:00:00Z"),
+            limitWindowSeconds = limitWindowSeconds,
+            isPrimaryCandidate = windowId == "claude_5h_window",
+            availability = if (usedPercent >= 100) {
+                QuotaWindowAvailability.Depleted
+            } else {
+                QuotaWindowAvailability.Available
+            },
+            displayKind = QuotaWindowDisplayKind.Percent,
+            subLabel = subLabel,
         )
 
     private fun localId(id: String): LocalAccountId = LocalAccountId(id)

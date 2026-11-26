@@ -439,10 +439,6 @@ class AccountViewModel(
     }
 
     companion object {
-        // Up to four windows so the 2×2 account summary grid shows every surface (Antigravity
-        // family × lane, Claude 5h/7d/extra-usage, z.ai 5h/weekly/MCP) in the expanded view.
-        private const val MAX_SUMMARY_WINDOWS = 4
-
         fun factory(
             deleteUseCase: AccountDeleteUseCase,
             accountListUseCase: AccountListUseCase,
@@ -599,7 +595,7 @@ class AccountViewModel(
         snapshot?.windows.orEmpty().filter { it.hasDisplayableValue() }
 
     private fun buildQuotaSummaries(snapshot: QuotaSnapshot?): List<AccountQuotaSummaryUi> =
-        displayableWindows(snapshot).take(MAX_SUMMARY_WINDOWS).map { window ->
+        displayableWindows(snapshot).map { window ->
             val converted = window.withConvertedBalance(targetCurrency, exchangeRates)
             val nativeCurrency = converted.originalBalanceCurrency ?: converted.balanceCurrency
             AccountQuotaSummaryUi(
@@ -617,7 +613,7 @@ class AccountViewModel(
         snapshot: QuotaSnapshot?,
         notificationPreferences: NotificationPreferences,
     ): List<AccountAlertToggleUi> =
-        displayableWindows(snapshot).take(MAX_SUMMARY_WINDOWS).map { window ->
+        displayableWindows(snapshot).map { window ->
             AccountAlertToggleUi(
                 windowId = window.windowId.value,
                 labelResId = quotaWindowLabelRes(window.windowId.value, window.limitWindowSeconds),
