@@ -197,6 +197,14 @@ class AppContainer private constructor(
     val exchangeRateRefresher: ExchangeRateRefresher,
     val notificationWindowChoicesLoader: NotificationWindowChoicesLoader,
 ) {
+    /**
+     * Debug-only injection seam (see DebugFixtureBridge's KDoc): a scenario-agnostic bundle of
+     * raw storage handles consumed exclusively by fixture tooling in `app/src/debug/`. Assigned
+     * once during construction; main code never reads it.
+     */
+    internal var debugFixtureBridge: DebugFixtureBridge? = null
+        private set
+
     suspend fun activeQuotaRefreshAccounts(): List<ProviderAccount> =
         currentAccountStore.activeAccounts()
 
@@ -929,7 +937,16 @@ class AppContainer private constructor(
                     currentAccountReader = currentAccountReader,
                     quotaSnapshotDao = database.quotaSnapshotDao(),
                 ),
-            )
+            ).apply {
+                // Debug-only seam handoff: fixture tooling (debug source set only) reads these
+                // handles to seed sanitized fake data. No scenario knowledge crosses this line.
+                debugFixtureBridge = DebugFixtureBridge(
+                    database = database,
+                    sessionStore = sessionStore,
+                    currentAccountStore = currentAccountPreferences,
+                    clock = clock,
+                )
+            }
         }
 
         private const val PREFERENCES_FILE_NAME = "codexmeter.preferences_pb"

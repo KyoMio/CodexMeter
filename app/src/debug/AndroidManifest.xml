@@ -15,5 +15,15 @@
             android:exported="true"
             android:label="Widget Preview"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Debug-only fixture injection. Not exported: the adb shell user can still reach it
+             (standard adb-driven debug pattern), other apps cannot. Never present in release. -->
+        <receiver
+            android:name=".debug.DebugFixtureReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.kmnexus.codexmeter.debug.SEED_FIXTURE" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

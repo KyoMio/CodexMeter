@@ -167,6 +167,10 @@ class CodexMeterApp :
     val initialThemeMode: ThemeMode
         get() = appContainer.initialThemeMode
 
+    /** Debug-only seam handoff; consumed solely by fixture tooling in the debug source set. */
+    internal val debugFixtureBridge: com.kmnexus.codexmeter.app.DebugFixtureBridge?
+        get() = appContainer.debugFixtureBridge
+
     override fun onCreate() {
         super.onCreate()
         AppLocaleController.ensureFollowsSystemLocale(this)
