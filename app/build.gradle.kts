@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.roborazzi)
 }
 
 // App version is derived from the latest git tag (e.g. `v0.1.1`), never hardcoded.
@@ -184,6 +185,10 @@ dependencies {
     testImplementation(libs.mockwebserver)
     testImplementation(libs.robolectric)
     testImplementation(libs.turbine)
+    // Roborazzi golden screenshots: test-only, never enters the release graph.
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.rule)
+    testImplementation(libs.compose.ui.test.junit4)
 
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
