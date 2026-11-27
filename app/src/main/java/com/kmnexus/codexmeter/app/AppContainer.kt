@@ -5,6 +5,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.kmnexus.codexmeter.BuildConfig
 import com.kmnexus.codexmeter.R
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.core.network.ProviderHttpClient
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountPreferences
@@ -133,6 +134,7 @@ import com.kmnexus.codexmeter.refresh.CurrentQuotaStatePublisher
 import com.kmnexus.codexmeter.refresh.ExchangeRateRefresher
 import com.kmnexus.codexmeter.refresh.MultiAccountRefreshRunner
 import com.kmnexus.codexmeter.refresh.RefreshCoordinator
+import com.kmnexus.codexmeter.refresh.SelectedAccountReader
 import com.kmnexus.codexmeter.ui.account.AccountRefreshAllUseCase
 import com.kmnexus.codexmeter.refresh.RefreshProvider
 import com.kmnexus.codexmeter.ui.account.AccountQuotaAlertEvaluationRequester
@@ -456,8 +458,10 @@ class AppContainer private constructor(
                 clock = clock,
             )
 
+            val sharedStateGuard = VersionedStateGuard()
             return fromDatabase(
                 appContext = appContext,
+                sharedStateGuard = sharedStateGuard,
                 database = database,
                 currentAccountReader = currentAccountPreferences,
                 currentAccountPreferences = currentAccountPreferences,
@@ -540,6 +544,9 @@ class AppContainer private constructor(
                     currentAccountStore = currentAccountPreferences,
                     deletedAccountStateCleaner = widgetDeletedAccountStateCleaner,
                     notificationPreferenceStore = notificationPreferences,
+                    // Shared across coordinator/mutation/deletion/republisher: one generation
+                    // timeline for every async write-back defense decision.
+                    stateGuard = sharedStateGuard,
                 ),
                 retentionCleanupRepository = RetentionCleanupRepository(database),
                 quotaHistoryClearRepository = QuotaHistoryClearRepository(
@@ -563,6 +570,7 @@ class AppContainer private constructor(
 
         private fun fromDatabase(
             appContext: Context,
+            sharedStateGuard: VersionedStateGuard,
             database: CodexMeterDatabase,
             currentAccountReader: CurrentAccountReader,
             currentAccountPreferences: CurrentAccountPreferences,
@@ -754,6 +762,10 @@ class AppContainer private constructor(
                 currentQuotaStatePublisher = currentQuotaStatePublisher,
                 primaryQuotaWindowPreferenceReader = primaryQuotaWindowPreferences,
                 clock = clock,
+                stateGuard = sharedStateGuard,
+                selectedAccountReader = SelectedAccountReader {
+                    currentAccountPreferences.currentAccountSelection()?.localAccountId
+                },
             )
             val currentAccountStateRepublisher = CurrentAccountQuotaStateRepublisher(
                 currentAccountReader = currentAccountPreferences,
@@ -764,6 +776,7 @@ class AppContainer private constructor(
                 currentQuotaStateFactory = currentQuotaStateFactory,
                 primaryQuotaWindowPreferenceReader = primaryQuotaWindowPreferences,
                 clock = clock,
+                stateGuard = sharedStateGuard,
             )
             val postSelectionRefreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             val accountMutationRepository = AccountMutationRepository(
@@ -784,6 +797,7 @@ class AppContainer private constructor(
                 currentAccountStateRepublisher = currentAccountStateRepublisher,
                 clock = clock,
                 refreshScope = postSelectionRefreshScope,
+                stateGuard = sharedStateGuard,
             )
             val homeRefreshUseCase = HomeRefreshCoordinatorUseCase(
                 currentAccountStore = currentQuotaRefreshAccountStore,

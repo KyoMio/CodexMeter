@@ -17,6 +17,9 @@ complexity:
   LargeClass:
     active: true
     threshold: 350
+  LongParameterList:
+    active: true
+    ignoreDefaultParameters: true
 style:
   active: true
   MagicNumber:

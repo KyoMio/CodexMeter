@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.data.repository
 
 import androidx.room.withTransaction
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountStore
@@ -19,8 +20,23 @@ class AccountDeletionRepository(
     private val deletedAccountStateCleaner: DeletedAccountStateCleaner,
     private val localDataDeleter: AccountLocalDataDeleter = RoomAccountLocalDataDeleter(database),
     private val notificationPreferenceStore: NotificationPreferenceStore? = null,
+    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
 ) {
     suspend fun deleteAccount(
+        providerId: ProviderId,
+        localAccountId: LocalAccountId,
+    ) {
+        // Deletion is the strongest local edit: any in-flight refresh for this account (or any
+        // other, since the selection may move) must not write back over the post-delete state.
+        stateGuard.beginEdit()
+        try {
+            deleteAccountGuarded(providerId = providerId, localAccountId = localAccountId)
+        } finally {
+            stateGuard.endEdit()
+        }
+    }
+
+    private suspend fun deleteAccountGuarded(
         providerId: ProviderId,
         localAccountId: LocalAccountId,
     ) {

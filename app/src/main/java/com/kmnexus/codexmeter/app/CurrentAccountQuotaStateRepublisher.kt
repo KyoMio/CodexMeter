@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.app
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.dao.ProviderAccountDao
 import com.kmnexus.codexmeter.data.local.dao.QuotaSnapshotDao
 import com.kmnexus.codexmeter.data.local.dao.RefreshAttemptDao
@@ -23,8 +24,13 @@ internal class CurrentAccountQuotaStateRepublisher(
     private val primaryQuotaWindowPreferenceReader: PrimaryQuotaWindowPreferenceReader =
         DefaultPrimaryQuotaWindowPreferenceReader,
     private val clock: Clock,
+    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
 ) : CurrentAccountStateRepublisher {
     override suspend fun republishCurrentAccountState(account: ProviderAccount) {
+        // Capture the epoch before the durable reads below. If another local edit or an account
+        // switch interleaves with those suspending reads, the rebuilt state is stale before it is
+        // even assembled, and commitIfFresh drops it instead of flickering old data onto surfaces.
+        val epoch = stateGuard.captureReadToken(account.localAccountId)
         val currentSelection = currentAccountReader.currentAccountSelection() ?: return
         if (currentSelection.providerId != account.providerId ||
             currentSelection.localAccountId != account.localAccountId
@@ -45,14 +51,20 @@ internal class CurrentAccountQuotaStateRepublisher(
             localAccountId = persistedAccount.localAccountId.value,
         )?.toDomain()
 
-        currentQuotaStatePublisher.publish(
-            currentQuotaStateFactory.create(
-                account = persistedAccount,
-                latestSnapshot = latestSnapshot,
-                latestAttempt = latestAttempt,
-                now = clock.instant(),
-                primaryWindowId = primaryQuotaWindowPreferenceReader.primaryQuotaWindowId(),
-            ),
-        )
+        val commitSelection = currentAccountReader.currentAccountSelection()
+        stateGuard.commitIfFresh(
+            epoch = epoch,
+            selectedAccountId = commitSelection?.localAccountId,
+        ) {
+            currentQuotaStatePublisher.publish(
+                currentQuotaStateFactory.create(
+                    account = persistedAccount,
+                    latestSnapshot = latestSnapshot,
+                    latestAttempt = latestAttempt,
+                    now = clock.instant(),
+                    primaryWindowId = primaryQuotaWindowPreferenceReader.primaryQuotaWindowId(),
+                ),
+            )
+        }
     }
 }

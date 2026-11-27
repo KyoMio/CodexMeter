@@ -47,7 +47,9 @@ class ArchitectureGuardrailsTest {
     @Test
     fun `ui layer never imports persistence networking keystore or provider internals`() {
         val forbiddenImport = Regex(
-            "^import\\s+(androidx\\.room|androidx\\.datastore|okhttp3|java\\.security\\.KeyStore|android\\.security\\.keystore|com\\.kmnexus\\.codexmeter\\.providers\\.)",
+            "^import\\s+(androidx\\.room|androidx\\.datastore|okhttp3|" +
+                "java\\.security\\.KeyStore|android\\.security\\.keystore|" +
+                "com\\.kmnexus\\.codexmeter\\.providers\\.)",
         )
         // ProviderRegistry is the single, reviewed metadata seam the UI is
         // allowed to read (display names, auth kind). Any deeper providers.*
@@ -104,7 +106,10 @@ class ArchitectureGuardrailsTest {
         val decryptionUsage = mutableListOf<String>()
         kotlinFilesUnder(packageDir("widget")).forEach { file ->
             val text = file.readText()
-            listOf("SessionCipher", "decryptSession", "decryptedSession", "AndroidKeyStore", "keystoreDecrypt").forEach { needle ->
+            val decryptionNeedles = listOf(
+                "SessionCipher", "decryptSession", "decryptedSession", "AndroidKeyStore", "keystoreDecrypt",
+            )
+            decryptionNeedles.forEach { needle ->
                 if (text.contains(needle)) {
                     decryptionUsage += "${file.relativeTo(moduleDir)} references `$needle`"
                 }
@@ -165,7 +170,9 @@ class ArchitectureGuardrailsTest {
     @Test
     fun `no new Manager Helper or Utils classes beyond the shrinking whitelist`() {
         val declaration = Regex(
-            "^\\s*(internal\\s+|private\\s+|public\\s+)?(abstract\\s+|open\\s+|sealed\\s+|final\\s+)?(class|object)\\s+([A-Za-z0-9_]*(?:Manager|Helper|Utils))\\b",
+            "^\\s*(internal\\s+|private\\s+|public\\s+)?" +
+                "(abstract\\s+|open\\s+|sealed\\s+|final\\s+)?" +
+                "(class|object)\\s+([A-Za-z0-9_]*(?:Manager|Helper|Utils))\\b",
         )
         // Existing offenders, grandfathered. This list may ONLY shrink:
         // remove entries as classes get renamed or deleted, never add new ones.
@@ -215,7 +222,8 @@ class ArchitectureGuardrailsTest {
         val violations = mutableListOf<String>()
         gradleFiles.filter { it.isFile }.forEach { file ->
             file.readLines().forEachIndexed { index, line ->
-                if (banned.containsMatchIn(line) && !line.trimStart().startsWith("//") && !line.trimStart().startsWith("#")) {
+                val isComment = line.trimStart().startsWith("//") || line.trimStart().startsWith("#")
+                if (banned.containsMatchIn(line) && !isComment) {
                     violations += "${file.relativeTo(repoRoot)}:${index + 1}: ${line.trim()}"
                 }
             }
@@ -252,28 +260,7 @@ class ArchitectureGuardrailsTest {
             val relative = file.relativeTo(moduleDir).toString()
 
             // 1) Log.x(...) statements must not mention credential fields.
-            var searchFrom = 0
-            while (true) {
-                val logStart = Regex("Log\\.(d|e|i|w|v)\\s*\\(").find(text, searchFrom) ?: break
-                val openParen = text.indexOf('(', logStart.range.first)
-                var depth = 0
-                var i = openParen
-                while (i < text.length) {
-                    when (text[i]) {
-                        '(' -> depth++
-                        ')' -> {
-                            depth--
-                            if (depth == 0) break
-                        }
-                    }
-                    i++
-                }
-                val statement = text.substring(logStart.range.first, minOf(i + 1, text.length))
-                if (sensitiveTokens.containsMatchIn(statement)) {
-                    violations += "$relative passes a credential field into Log.* near offset ${logStart.range.first}"
-                }
-                searchFrom = i + 1
-            }
+            violations += credentialLeaksInLogStatements(text, relative, sensitiveTokens)
 
             // 2) Diagnostics builders must never read credential fields at all —
             //    DiagnosticsRedactor is the single sanctioned exception because
@@ -352,15 +339,57 @@ class ArchitectureGuardrailsTest {
 
     // endregion
 
+    /**
+     * Extracts every `Log.x(...)` statement (balanced parentheses) and reports the ones whose
+     * content mentions a credential field. Statement extraction is parenthesis-aware so multi-line
+     * string concatenation inside one call cannot hide a leak.
+     */
+    private fun credentialLeaksInLogStatements(
+        text: String,
+        relative: String,
+        sensitiveTokens: Regex,
+    ): List<String> {
+        val leaks = mutableListOf<String>()
+        var searchFrom = 0
+        while (true) {
+            val logStart = Regex("Log\\.(d|e|i|w|v)\\s*\\(").find(text, searchFrom) ?: break
+            val statementEnd = balancedStatementEnd(text, logStart.range.first)
+            val statement = text.substring(logStart.range.first, statementEnd)
+            if (sensitiveTokens.containsMatchIn(statement)) {
+                leaks += "$relative passes a credential field into Log.* near offset ${logStart.range.first}"
+            }
+            searchFrom = statementEnd
+        }
+        return leaks
+    }
+
+    /** End offset (exclusive) of the parenthesised expression starting at or after [fromIndex]. */
+    private fun balancedStatementEnd(text: String, fromIndex: Int): Int {
+        val openParen = text.indexOf('(', fromIndex)
+        var depth = 0
+        var i = openParen
+        while (i < text.length) {
+            when (text[i]) {
+                '(' -> depth++
+                ')' -> {
+                    depth--
+                    if (depth == 0) return i + 1
+                }
+            }
+            i++
+        }
+        return text.length
+    }
+
     // region shared import-scanning helper
 
     private fun scanImports(dir: File, check: (relativeFile: String, import: String) -> String?): List<String> {
         val violations = mutableListOf<String>()
         kotlinFilesUnder(dir).forEach { file ->
             file.readLines().forEach { line ->
-                if (line.startsWith("import ")) {
-                    check(file.relativeTo(moduleDir).toString(), line)?.let { violations += it }
-                }
+                if (!line.startsWith("import ")) return@forEach
+                val violation = check(file.relativeTo(moduleDir).toString(), line) ?: return@forEach
+                violations += violation
             }
         }
         return violations
