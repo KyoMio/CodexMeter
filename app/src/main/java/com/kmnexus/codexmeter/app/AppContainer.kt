@@ -864,13 +864,19 @@ class AppContainer private constructor(
                 defaultAccountSelectUseCase = accountMutationRepository,
                 accountRenameUseCase = accountMutationRepository,
                 accountQuotaAlertEvaluationRequester = AccountQuotaAlertEvaluationRequester { providerId, localAccountId, windowId ->
-                    currentQuotaStatePublisher.publish(
-                        currentQuotaStateRepository.loadAccountState(
-                            providerId = providerId,
-                            localAccountId = localAccountId,
-                            primaryWindowId = windowId,
-                        ),
+                    // Toggling an alert on an already-low account must notify immediately
+                    // (docs/SPEC.md), so this evaluates through the per-account channel — it is
+                    // the explicit user-triggered evaluation for THIS account, not a stale
+                    // write-back. The current-state publish below keeps the status notification
+                    // in sync and stays on the guarded channel.
+                    val state = currentQuotaStateRepository.loadAccountState(
+                        providerId = providerId,
+                        localAccountId = localAccountId,
+                        primaryWindowId = windowId,
                     )
+                    (currentQuotaStatePublisher as? PerAccountQuotaEffectPublisher)
+                        ?.publishAccountEffects(state)
+                    currentQuotaStatePublisher.publish(state)
                 },
                 homeCurrentQuotaStateLoader = currentQuotaStateRepository,
                 homeRefreshUseCase = homeRefreshUseCase,
@@ -889,6 +895,8 @@ class AppContainer private constructor(
                     delegate = notificationPreferences,
                     currentQuotaStateLoader = currentQuotaStateRepository,
                     currentQuotaStatePublisher = currentQuotaStatePublisher,
+                    perAccountEffectsPublisher = currentQuotaStatePublisher as? PerAccountQuotaEffectPublisher
+                        ?: PerAccountQuotaEffectPublisher { },
                 ),
                 primaryQuotaWindowPreferences = primaryQuotaWindowPreferences,
                 quotaHistoryClearUseCase = RepublishingQuotaHistoryClearUseCase(
