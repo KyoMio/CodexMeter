@@ -34,15 +34,19 @@ class DebugFixtureReceiver : BroadcastReceiver() {
         val mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_SEED
         val scenarioName = intent.getStringExtra(EXTRA_SCENARIO)
             ?: if (mode == MODE_CLEAN) MODE_CLEAN else ""
+        // Echo a caller-supplied nonce so the CLI can confirm THIS execution instead of
+        // matching a stale marker left in the ring buffer by an earlier run.
+        val nonce = intent.getStringExtra(EXTRA_NONCE).orEmpty()
+        val nonceSuffix = if (nonce.isEmpty()) "" else " nonce=$nonce"
         val pendingResult = goAsync()
         Thread {
             runBlocking {
                 try {
                     execute(context.applicationContext, scenarioName, mode)
-                    Log.i(TAG, "$MARKER_OK scenario=$scenarioName mode=$mode")
+                    Log.i(TAG, "$MARKER_OK scenario=$scenarioName mode=$mode$nonceSuffix")
                     pendingResult.setResultCode(RESULT_OK)
                 } catch (error: Throwable) {
-                    Log.e(TAG, "$MARKER_ERR scenario=$scenarioName error=${error.message}", error)
+                    Log.e(TAG, "$MARKER_ERR scenario=$scenarioName error=${error.message}$nonceSuffix", error)
                     pendingResult.setResultCode(RESULT_ERR)
                 } finally {
                     pendingResult.finish()
@@ -74,6 +78,7 @@ class DebugFixtureReceiver : BroadcastReceiver() {
         const val ACTION_SEED_FIXTURE = "com.kmnexus.codexmeter.debug.SEED_FIXTURE"
         const val EXTRA_SCENARIO = "scenario"
         const val EXTRA_MODE = "mode"
+        const val EXTRA_NONCE = "nonce"
         const val MODE_SEED = "seed"
         const val MODE_CLEAN = "clean"
 

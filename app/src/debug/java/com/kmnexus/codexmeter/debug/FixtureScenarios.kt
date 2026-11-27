@@ -55,7 +55,14 @@ object FixtureScenarios {
     const val KIMI_ACTIVE = "kimi_active"
     const val MULTI_ACCOUNT_RACE = "multi_account_race"
 
-    /** Marker prefix for every fixture display name; the clean mode keys deletion on it. */
+    /**
+     * Identity prefix every fixture account carries in its immutable localAccountId.
+     * Cleanup keys on this (not on the display name) so renamed fixtures are still
+     * collected and ordinary accounts that happen to be named "Fixture ..." survive.
+     */
+    const val FIXTURE_ID_PREFIX = "fixture-"
+
+    /** Display-name prefix for human readability only — ownership never keys on this. */
     const val DISPLAY_NAME_PREFIX = "Fixture"
 
     val ALL: List<String> = listOf(
@@ -205,6 +212,11 @@ object FixtureScenarios {
     ): ProviderAccount {
         require(displayName.startsWith(DISPLAY_NAME_PREFIX)) {
             "Fixture display names must stay sanitized: $displayName"
+        }
+        // Ownership invariant: every fixture account MUST carry the id prefix cleanup keys on.
+        // A fixture built without it would turn immortal — clean could never collect it.
+        require(localAccountId.startsWith(FIXTURE_ID_PREFIX)) {
+            "Fixture localAccountId must start with '$FIXTURE_ID_PREFIX' so cleanup owns it: $localAccountId"
         }
         return ProviderAccount(
             localAccountId = LocalAccountId(localAccountId),

@@ -153,12 +153,19 @@ function requireDevice(args) {
   return list[0];
 }
 
-function waitForFixtureMarker(args, scenario, timeoutMs = 15000) {
+function waitForFixtureMarker(args, scenario, nonce, timeoutMs = 20000) {
   const started = Date.now();
+  // The receiver echoes the nonce we passed; requiring it in the marker means we confirm
+  // THIS execution and can never green-light on a stale marker from an earlier run.
+  const okNeedle = nonce ? `CMFIXTURE_OK scenario=${scenario}` : `CMFIXTURE_OK scenario=${scenario}`;
+  const nonceNeedle = nonce ? ` nonce=${nonce}` : '';
   while (Date.now() - started < timeoutMs) {
-    const log = adb(args, ['logcat', '-d', '-s', 'CMFixture:*', '-t', '200'], { timeout: 10000 });
-    if (log.includes(`CMFIXTURE_OK scenario=${scenario}`)) return { ok: true };
-    const errLine = log.split('\n').find((l) => l.includes(`CMFIXTURE_ERR scenario=${scenario}`));
+    // Tag must match the receiver's Log tag (DebugFixtureReceiver) — the receiver's
+    // Kotlin TAG constant is the single source of truth; keep these in sync.
+    const log = adb(args, ['logcat', '-d', '-s', 'DebugFixtureReceiver:*', '-t', '200'], { timeout: 10000 });
+    const okLine = log.split('\n').find((l) => l.includes(okNeedle) && (!nonce || l.includes(nonceNeedle)));
+    if (okLine) return { ok: true };
+    const errLine = log.split('\n').find((l) => l.includes(`CMFIXTURE_ERR scenario=${scenario}`) && (!nonce || l.includes(nonceNeedle)));
     if (errLine) return { ok: false, error: errLine.trim() };
     spawnSync('sleep', ['1']);
   }
@@ -175,7 +182,10 @@ const REDACTION_PATTERNS = [
   [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g, '[REDACTED-JWT]'],
   [/(Bearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, '$1[REDACTED]'],
   [/((?:(?:access|refresh|id)[_-])?token["'\s:=]+)[A-Za-z0-9._~+/=-]{12,}/gi, '$1[REDACTED]'],
-  [/(cookie["'\s:=]+)[^;\s\n]{8,}/gi, '$1[REDACTED]'],
+  // Cookie/Set-Cookie: redact EVERY key=value pair in the header run, not just the first —
+  // `Cookie: a=1; b=2` must not leak b. The kv sequence stops at the first token without
+  // an `=`, so trailing normal log text survives.
+  [/((?:set-)?cookie["'\s:=]+)((?:[\w-]+=[^;\s]+[;\s]*)+)/gi, (m, head, kvs) => head + kvs.replace(/[\w-]+=[^;\s]+/g, '[REDACTED]')],
   [/(auth(?:orization)?["'\s:=]+)[A-Za-z0-9._~+/=-]{16,}/gi, '$1[REDACTED]'],
   [/sk-[A-Za-z0-9_-]{16,}/g, '[REDACTED-KEY]'],
   [/sess-[A-Za-z0-9_-]{16,}/g, '[REDACTED-SESSION]'],
@@ -194,11 +204,20 @@ function redact(text) {
 // format is flat <node .../> elements, so a small tokenizer is enough and keeps
 // this script dependency-free.
 // ---------------------------------------------------------------------------
+function decodeXmlEntities(s) {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&'); // amp must be last: it introduces the others
+}
+
 function parseAttrs(tag) {
   const attrs = {};
   const re = /([\w-]+)="([^"]*)"/g;
   let m;
-  while ((m = re.exec(tag)) !== null) attrs[m[1]] = m[2];
+  while ((m = re.exec(tag)) !== null) attrs[m[1]] = decodeXmlEntities(m[2]);
   return attrs;
 }
 
@@ -234,9 +253,15 @@ function xmlToTree(xml) {
     else nodes.push(node);
     if (!tag.endsWith('/>')) stack.push(node);
   }
+  // Prune bottom-up: recurse first, then decide using the post-prune child list.
+  // Children arrays stay present until the very end — dropping them mid-recursion
+  // used to crash on unlabeled leaf nodes (children undefined when re-read).
   const prune = (n) => {
-    n.children = n.children.map(prune).filter((c) => c.text || c.desc || c.children.length);
-    if (!n.children.length) delete n.children;
+    const kept = n.children
+      .map(prune)
+      .filter((c) => c.text || c.desc || (c.children && c.children.length));
+    if (kept.length) n.children = kept;
+    else delete n.children;
     return n;
   };
   return nodes.map(prune);
@@ -309,7 +334,11 @@ function cmdInstallLaunch(args) {
 
 function cmdSeedFixture(args) {
   // Validate arguments before touching the device so usage errors surface first.
+  // Mode is a strict whitelist: a typo must never fall through to an adb call.
   const mode = args.mode || 'seed';
+  if (mode !== 'seed' && mode !== 'clean') {
+    fail(`未知模式 ${mode}`, '只支持 seed 或 clean', 2, args.json);
+  }
   const scenario = args.scenario;
   if (mode === 'seed') {
     if (!scenario) fail('缺少 --scenario <name>', `可选：${SCENARIOS.join(', ')}`, 2, args.json);
@@ -321,14 +350,28 @@ function cmdSeedFixture(args) {
   if (!pkg.includes(PACKAGE)) {
     fail('debug 包未安装', '先运行: node scripts/control-codexmeter.mjs install-launch', 5, args.json);
   }
-  const extras = mode === 'seed' ? ['--es', 'scenario', scenario, '--es', 'mode', 'seed'] : ['--es', 'mode', 'clean'];
-  adb(args, ['shell', 'am', 'broadcast', '-a', FIXTURE_ACTION, '-p', PACKAGE, ...extras]);
+  const nonce = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const modeExtra = mode === 'seed'
+    ? ['--es', 'scenario', scenario, '--es', 'mode', 'seed', '--es', 'nonce', nonce]
+    : ['--es', 'mode', 'clean', '--es', 'nonce', nonce];
+  // The receiver is protected by a signature-level permission. The shell user (uid 2000)
+  // does NOT hold it — proven on Android 36: direct `am broadcast` is rejected at enqueue
+  // with "requires ...permission.SEED_FIXTURE". That rejection is exactly the boundary we
+  // want for ordinary apps. The sanctioned path is `run-as`: the broadcast then carries the
+  // app's own uid, which holds its own signature permission. `--user 0` is required because
+  // `am` otherwise defaults to user -2 and fails the cross-user check.
+  adb(args, ['shell', 'run-as', PACKAGE, 'am', 'broadcast', '--user', '0', '-a', FIXTURE_ACTION, '-p', PACKAGE, ...modeExtra]);
   const target = mode === 'seed' ? scenario : 'clean';
-  const result = waitForFixtureMarker(args, mode === 'seed' ? scenario : 'clean');
+  const result = waitForFixtureMarker(args, target, nonce);
   if (!result.ok) {
     fail(`fixture 注入失败或未确认（${target}）`, `查看 logcat-safe 输出排查；确认 DebugFixtureReceiver 已编入 debug 构建。错误: ${result.error || '无'}`, 5, args.json);
   }
-  emit({ ok: true, action: 'seed-fixture', scenario: mode === 'seed' ? scenario : undefined, mode }, args.json);
+  // The injected rows are plain Room/DataStore writes: a RUNNING app does not re-read them
+  // reactively (proven end-to-end — the UI keeps its empty/previous state). Restart the app
+  // process so the production UI path renders the fixture state on the next open.
+  adb(args, ['shell', 'am', 'force-stop', PACKAGE]);
+  adb(args, ['shell', 'monkey', '-p', PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1']);
+  emit({ ok: true, action: 'seed-fixture', scenario: mode === 'seed' ? scenario : undefined, mode, note: 'app restarted to render injected state' }, args.json);
 }
 
 function cmdSnapshot(args) {
@@ -438,10 +481,18 @@ function cmdLogcatSafe(args) {
   requireDevice(args);
   const lines = Number.isFinite(args.lines) ? args.lines : 500;
   const pidOut = adb(args, ['shell', 'pidof', PACKAGE]).trim();
-  const raw = adb(args, ['logcat', '-d', '-t', String(lines)], { timeout: 15000 });
-  const filtered = pidOut
-    ? raw.split('\n').filter((l) => l.includes(pidOut) || l.includes('CMFixture'))
-    : raw.split('\n');
+  // Parse with the structured threadtime format so PID filtering is exact:
+  // `MM-DD HH:MM:SS.mmm  PID  TID LEVEL Tag: message`. A loose substring match on
+  // the pid used to pull in any other process whose message happened to contain
+  // the same digits.
+  const raw = adb(args, ['logcat', '-d', '-v', 'threadtime', '-t', String(lines)], { timeout: 15000 });
+  const filtered = raw.split('\n').filter((l) => {
+    const m = /^\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+\s+(\d+)\s+\d+\s+\w\s+([^:]+):/.exec(l);
+    if (!m) return false;
+    if (pidOut && m[1] === pidOut) return true;
+    // Keep fixture markers even if the app process restarts mid-seed (new pid).
+    return m[2].trim() === 'DebugFixtureReceiver';
+  });
   const safe = redact(filtered.join('\n'));
   const dir = runDir(args);
   const out = join(dir, `logcat-${Date.now()}.log`);
@@ -456,17 +507,31 @@ function cmdLogcatSafe(args) {
 function cmdCleanup(args) {
   const report = { ok: true, steps: {} };
   const online = devices(args).filter((d) => d.state === 'device');
-  if (online.length) {
-    // Stop any stray screenrecord on device, remove temp files, reset fixture state.
-    try { adb(args, ['shell', 'pkill', '-f', 'screenrecord']); report.steps.screenrecord = 'killed'; } catch { report.steps.screenrecord = 'none-running'; }
-    try { adb(args, ['shell', 'rm', '-f', '/data/local/tmp/cm-ui.xml']); report.steps.tempFiles = 'removed'; } catch { report.steps.tempFiles = 'skip'; }
-    try {
-      adb(args, ['shell', 'am', 'broadcast', '-a', FIXTURE_ACTION, '-p', PACKAGE, '--es', 'mode', 'clean']);
-      report.steps.fixtures = 'clean-broadcast-sent';
-    } catch { report.steps.fixtures = 'clean-broadcast-failed'; }
-  } else {
+  if (!online.length) {
     report.steps.device = 'offline-skip';
+    emit(report, args.json);
+    return;
   }
+  // Cleanup is best-effort by design: every step must tolerate its target being absent
+  // (no recording running, no temp files, app uninstalled) and let later steps proceed.
+  // The fatal adb() helper exits the process on any non-zero status, so cleanup runs
+  // its steps through a non-fatal variant and reports per-step outcomes.
+  const bin = adbBin();
+  const run = (cmdArgs) => {
+    const full = args.serial ? ['-s', args.serial, ...cmdArgs] : cmdArgs;
+    const r = spawnSync(bin, full, { encoding: 'utf8', timeout: 15000 });
+    return { status: r.error ? -1 : r.status, stderr: (r.stderr || '').trim() };
+  };
+
+  const kill = run(['shell', 'pkill', '-f', 'screenrecord']);
+  // pkill exits 1 when nothing matched — that IS the goal state, not a failure.
+  report.steps.screenrecord = kill.status === 0 ? 'killed' : kill.status === 1 ? 'none-running' : `error(${kill.status})`;
+
+  const rm = run(['shell', 'rm', '-f', '/data/local/tmp/cm-ui.xml']);
+  report.steps.tempFiles = rm.status === 0 ? 'removed' : `error(${rm.status})`;
+
+  const bc = run(['shell', 'run-as', PACKAGE, 'am', 'broadcast', '--user', '0', '-a', FIXTURE_ACTION, '-p', PACKAGE, '--es', 'mode', 'clean']);
+  report.steps.fixtures = bc.status === 0 ? 'clean-broadcast-sent' : 'clean-broadcast-failed';
   emit(report, args.json);
 }
 

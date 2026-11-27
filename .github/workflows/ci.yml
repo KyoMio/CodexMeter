@@ -27,8 +27,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Same as release.yml: skip the action's obsolete default package list
+          # ("tools platform-tools" — the legacy `tools` archive fails to install on a
+          # clean SDK) and install the required packages explicitly below.
+          packages: ''
+
+      - name: Install SDK platform & build-tools
+        run: |
+          sdkmanager --install \
+            "platforms;android-37.0" \
+            "build-tools;37.0.0" \
+            "platform-tools"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

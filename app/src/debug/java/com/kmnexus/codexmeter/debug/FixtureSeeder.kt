@@ -45,14 +45,17 @@ class FixtureSeeder(
     }
 
     /**
-     * Removes every account whose display name carries the fixture marker prefix, along with
-     * its snapshots, refresh attempts, alert state and session file. If the current selection
-     * pointed at a deleted fixture account it is moved to the first remaining account (or
-     * cleared when no accounts remain).
+     * Removes every fixture-owned account along with its snapshots, refresh attempts, alert
+     * state and session file. Ownership is keyed on the immutable identity the fixture
+     * builders assign — a localAccountId with the "fixture-" prefix — never on the display
+     * name: a user can rename a fixture account (the name must not turn it immortal), and a
+     * normal account may legitimately be called "Fixture QA" (the name must not make it
+     * deletable). If the current selection pointed at a deleted fixture account it is moved
+     * to the first remaining account (or cleared when no accounts remain).
      */
     suspend fun cleanFixtureAccounts() {
         val fixtureAccounts = bridge.database.providerAccountDao().listAll()
-            .filter { it.displayName.startsWith(FixtureScenarios.DISPLAY_NAME_PREFIX) }
+            .filter { it.localAccountId.startsWith(FixtureScenarios.FIXTURE_ID_PREFIX) }
         if (fixtureAccounts.isEmpty()) return
 
         bridge.database.withTransaction {
