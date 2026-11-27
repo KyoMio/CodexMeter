@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.detekt)
 }
 
 // App version is derived from the latest git tag (e.g. `v0.1.1`), never hardcoded.
@@ -124,8 +125,34 @@ android {
     }
 }
 
+// ArchitectureGuardrailsTest scans main-source text, res XML, and gradle files at
+// runtime. Gradle does not track those as test inputs by default (it only tracks
+// compiled classes), so without this the guardrail tests could silently reuse a
+// stale "passed" result when only imports or resources change.
+tasks.withType<Test>().configureEach {
+    inputs.dir("src/main/java").withPropertyName("guardrailsMainSources")
+    inputs.dir("src/main/res").withPropertyName("guardrailsResources")
+    inputs.files(
+        rootProject.file("build.gradle.kts"),
+        rootProject.file("settings.gradle.kts"),
+        rootProject.file("gradle/libs.versions.toml"),
+    ).withPropertyName("guardrailsGradleFiles")
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+
+// Detekt: static analysis gate for NEW/changed code. The baseline accepts the
+// historical debt verbatim (config/detekt/baseline.xml, generated once); the five
+// rules below are hard errors so anything written or edited from now on trips the
+// build. Run with ./gradlew detekt; regenerate the baseline ONLY to shrink it.
+detekt {
+    buildUponDefaultConfig = true
+    baseline = file("$rootDir/config/detekt/baseline.xml")
+    config.setFrom("$rootDir/config/detekt/detekt.yml")
+    autoCorrect = false
 }
 
 dependencies {

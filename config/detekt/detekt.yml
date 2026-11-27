@@ -1,0 +1,24 @@
+# Detekt configuration — layered on top of the default ruleset
+# (buildUponDefaultConfig). Only the rules the architecture contract cares
+# about are pinned here; everything else keeps the upstream defaults, and the
+# historical debt lives in baseline.xml. The five hard gates below must stay
+# active: they encode RULES.md §5/§8.4 and the exception-handling red lines.
+exceptions:
+  active: true
+  SwallowedException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true
+complexity:
+  active: true
+  LongMethod:
+    active: true
+    threshold: 60
+  LargeClass:
+    active: true
+    threshold: 350
+style:
+  active: true
+  MagicNumber:
+    active: true
+    excludes: ["**/test/**/*.kt"]

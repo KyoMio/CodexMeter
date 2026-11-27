@@ -1,4 +1,4 @@
-package com.kmnexus.codexmeter.providers.common.auth
+package com.kmnexus.codexmeter.core.network
 
 import java.net.InetAddress
 import java.net.ServerSocket
