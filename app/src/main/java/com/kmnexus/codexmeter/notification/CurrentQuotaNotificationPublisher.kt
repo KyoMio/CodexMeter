@@ -29,16 +29,19 @@ class CurrentQuotaNotificationPublisher(
     private val currencyPreferenceReader: CurrencyPreferenceReader = NoopCurrencyPreferenceReader,
     private val exchangeRateReader: ExchangeRateReader = NoopExchangeRateReader,
 ) : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
+    /**
+     * Updates or cancels the single persistent status notification (`STATUS_CHANNEL_ID`).
+     * Per-account effects (quota alerts and account error notifications) belong in
+     * [publishAccountEffects] so refreshes of non-selected or non-status-bound accounts never lose
+     * alerts or error notifications under the status epoch guard.
+     */
     override suspend fun publish(state: CurrentQuotaState) {
         val options = optionsReader.currentOptions()
         if (!options.notificationPermissionAvailable || !options.statusNotificationEnabled) {
             notificationSink.cancel(NotificationOrchestrator.STATUS_NOTIFICATION_ID)
+            return
         }
-        val statusState = if (options.notificationPermissionAvailable && options.statusNotificationEnabled) {
-            statusNotificationStateLoader.loadStatusNotificationState(refreshedState = state)
-        } else {
-            state
-        }
+        val statusState = statusNotificationStateLoader.loadStatusNotificationState(refreshedState = state)
         val statusRequests = orchestrator.buildRequests(
             state = statusState,
             options = options.copy(
@@ -46,35 +49,29 @@ class CurrentQuotaNotificationPublisher(
                 accountErrorsEnabled = false,
             ),
         )
-        val accountErrorEvent = if (options.notificationPermissionAvailable && options.accountErrorsEnabled) {
-            accountErrorEventReader.accountErrorEvent(state)
-        } else {
-            null
-        }
-        val accountErrorRequests = orchestrator.buildRequests(
-            state = state,
-            options = options.copy(
-                statusNotificationEnabled = false,
-                quotaAlertsEnabled = false,
-            ),
-            accountErrorEvent = accountErrorEvent,
-        )
-
         statusRequests.forEach(notificationSink::post)
-        accountErrorRequests.forEach(notificationSink::post)
     }
 
     /**
-     * Per-account threshold alerts. Unlike the status notification — which presents THE selected
-     * account — alerts belong to whichever account was refreshed: docs/SPEC.md states any
-     * alert-enabled account window can trigger. This channel therefore fires on every refresh,
-     * including background refreshes of non-selected accounts, and is intentionally NOT guarded by
-     * the state epoch: a stale write-back can never happen here because nothing is overwritten,
-     * alert de-duplication is already keyed per (account, window, resetAt, threshold).
+     * Per-account notification effects: quota threshold alerts and account error notifications.
+     * Fires for every refreshed account regardless of which account is selected on Home or pinned
+     * to the persistent status notification.
      */
     override suspend fun publishAccountEffects(state: CurrentQuotaState) {
         val options = optionsReader.currentOptions()
-        if (!options.notificationPermissionAvailable || !options.quotaAlertsEnabled) return
+        if (!options.notificationPermissionAvailable) return
+        if (options.quotaAlertsEnabled) {
+            postQuotaAlerts(state = state, options = options)
+        }
+        if (options.accountErrorsEnabled) {
+            postAccountErrors(state = state, options = options)
+        }
+    }
+
+    private suspend fun postQuotaAlerts(
+        state: CurrentQuotaState,
+        options: NotificationRequestOptions,
+    ) {
         val thresholds = alertThresholdsReader.currentThresholds()
         val convertedState = convertForDisplay(state)
         val alertEvents = alertPolicy.evaluate(
@@ -98,6 +95,22 @@ class CurrentQuotaNotificationPublisher(
                     alertStateStore.markNotified(event = event, notifiedAt = notifiedAt)
                 }
         }
+    }
+
+    private suspend fun postAccountErrors(
+        state: CurrentQuotaState,
+        options: NotificationRequestOptions,
+    ) {
+        val accountErrorEvent = accountErrorEventReader.accountErrorEvent(state)
+        val accountErrorRequests = orchestrator.buildRequests(
+            state = state,
+            options = options.copy(
+                statusNotificationEnabled = false,
+                quotaAlertsEnabled = false,
+            ),
+            accountErrorEvent = accountErrorEvent,
+        )
+        accountErrorRequests.forEach(notificationSink::post)
     }
 
     private suspend fun convertForDisplay(state: CurrentQuotaState): CurrentQuotaState {

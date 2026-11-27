@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.refresh
 
 import com.kmnexus.codexmeter.CodexMeterApp
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
@@ -89,6 +90,7 @@ class RefreshWorkSchedulerTest {
                 attemptStore = RecordingAttemptStore(),
                 attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-1") },
                 clock = Clock.fixed(Instant.parse("2026-05-23T12:00:00Z"), ZoneOffset.UTC),
+                stateGuard = VersionedStateGuard(),
             ),
         )
 
@@ -112,6 +114,7 @@ class RefreshWorkSchedulerTest {
                 attemptStore = RecordingAttemptStore(),
                 attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-1") },
                 clock = Clock.fixed(Instant.parse("2026-05-23T12:00:00Z"), ZoneOffset.UTC),
+                stateGuard = VersionedStateGuard(),
             ),
         )
 

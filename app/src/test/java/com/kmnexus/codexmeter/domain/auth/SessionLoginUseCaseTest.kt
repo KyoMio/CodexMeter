@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.domain.auth
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountStore
@@ -154,6 +155,7 @@ class SessionLoginUseCaseTest {
             accountDao = database.providerAccountDao(),
             snapshotDao = database.quotaSnapshotDao(),
             currentAccountStore = store,
+            stateGuard = VersionedStateGuard(),
             clock = fixedClock,
         )
         try {

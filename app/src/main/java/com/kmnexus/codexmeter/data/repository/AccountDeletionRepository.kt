@@ -20,7 +20,7 @@ class AccountDeletionRepository(
     private val deletedAccountStateCleaner: DeletedAccountStateCleaner,
     private val localDataDeleter: AccountLocalDataDeleter = RoomAccountLocalDataDeleter(database),
     private val notificationPreferenceStore: NotificationPreferenceStore? = null,
-    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
+    private val stateGuard: VersionedStateGuard,
 ) {
     suspend fun deleteAccount(
         providerId: ProviderId,

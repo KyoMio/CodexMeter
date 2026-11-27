@@ -40,6 +40,7 @@ import com.kmnexus.codexmeter.domain.auth.SessionLoginUseCase
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginController
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginDiagnosticsReader
 import com.kmnexus.codexmeter.domain.auth.DeviceCodeLoginNotifier
+import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
@@ -561,6 +562,7 @@ class AppContainer private constructor(
                 quotaHistoryClearRepository = QuotaHistoryClearRepository(
                     database = database,
                     currentAccountReader = currentAccountPreferences,
+                    stateGuard = sharedStateGuard,
                 ),
                 currentQuotaStateFactory = currentQuotaStateFactory,
                 widgetQuotaStateRepository = widgetQuotaStateRepository,
@@ -629,6 +631,7 @@ class AppContainer private constructor(
                     database = database,
                     sessionStore = sessionStore,
                     currentAccountStore = currentAccountPreferences,
+                    stateGuard = sharedStateGuard,
                 ),
                 sessionEnvelopeFactory = CodexSessionEnvelopeFactory(sessionCipher),
                 localAccountIdProvider = CodexSessionImporter.LocalAccountIdProvider {
@@ -643,6 +646,7 @@ class AppContainer private constructor(
                 database = database,
                 sessionStore = sessionStore,
                 currentAccountStore = currentAccountPreferences,
+                stateGuard = sharedStateGuard,
             )
             val grokSessionImporter = GrokSessionImporter(
                 billingClient = GrokSessionImporter.BillingClient(grokBillingClient::fetchBilling),
@@ -682,6 +686,7 @@ class AppContainer private constructor(
                 accountDao = database.providerAccountDao(),
                 snapshotDao = database.quotaSnapshotDao(),
                 currentAccountStore = currentAccountPreferences,
+                stateGuard = sharedStateGuard,
                 clock = clock,
             )
             val codexDeviceCodeClient = CodexDeviceCodeClient(httpClient)
@@ -745,20 +750,31 @@ class AppContainer private constructor(
                 },
                 clock = clock,
                 onSaved = { saved ->
-                    currentQuotaStatePublisher.publish(
-                        currentQuotaStateFactory.create(
-                            account = saved.account,
-                            latestSnapshot = saved.snapshot,
-                            latestAttempt = null,
-                            now = clock.instant(),
-                            primaryWindowId = primaryQuotaWindowPreferences.primaryQuotaWindowId(),
-                        ),
-                    )
+                    sharedStateGuard.commitSerialized {
+                        currentQuotaStatePublisher.publish(
+                            currentQuotaStateFactory.create(
+                                account = saved.account,
+                                latestSnapshot = saved.snapshot,
+                                latestAttempt = null,
+                                now = clock.instant(),
+                                primaryWindowId = primaryQuotaWindowPreferences.primaryQuotaWindowId(),
+                            ),
+                        )
+                    }
                 },
             )
             val currentQuotaRefreshAccountStore = CurrentQuotaRefreshAccountStore(
                 currentAccountReader = currentAccountReader,
                 providerAccountDao = database.providerAccountDao(),
+            )
+            // Separate notification-only publishing from the full composite (which includes
+            // WidgetQuotaStateUpdater) so a single refresh or immediate alert evaluation never
+            // triggers widget.updateAll twice.
+            val notificationOnlyPublisher = CompositeCurrentQuotaStatePublisher(
+                (currentQuotaStatePublisher as? CompositeCurrentQuotaStatePublisher)
+                    ?.members
+                    ?.filterNot { it is WidgetQuotaStateUpdater }
+                    ?: listOf(currentQuotaStatePublisher),
             )
             val refreshCoordinator = RefreshCoordinator(
                 provider = refreshProvider,
@@ -768,16 +784,23 @@ class AppContainer private constructor(
                 attemptIdProvider = AttemptIdProvider {
                     RefreshAttemptId("periodic-${UUID.randomUUID()}")
                 },
-                currentQuotaStatePublisher = currentQuotaStatePublisher,
+                currentQuotaStatePublisher = notificationOnlyPublisher,
                 primaryQuotaWindowPreferenceReader = primaryQuotaWindowPreferences,
                 clock = clock,
                 stateGuard = sharedStateGuard,
                 selectedAccountReader = SelectedAccountReader {
-                    currentAccountPreferences.currentAccountSelection()?.localAccountId
+                    val pinned = notificationPreferences.notificationPreferences()
+                        .persistentNotificationAccount
+                    val pinnedLive = pinned?.let { sel ->
+                        database.providerAccountDao().getById(sel.localAccountId.value)
+                            ?.takeIf {
+                                it.providerId == sel.providerId.value &&
+                                    !it.status.equals(AccountStatus.Deleted.name, ignoreCase = true)
+                            }
+                    }
+                    pinnedLive?.let { LocalAccountId(it.localAccountId) }
+                        ?: currentAccountPreferences.currentAccountSelection()?.localAccountId
                 },
-                // Same composite fans out per-account effects to the members that opt in
-                // (quota alerts, widget updater); the epoch guard only gates the
-                // current-account presentation write-back above.
                 perAccountEffectsPublisher = currentQuotaStatePublisher as? PerAccountQuotaEffectPublisher
                     ?: PerAccountQuotaEffectPublisher { },
             )
@@ -832,15 +855,17 @@ class AppContainer private constructor(
             val deviceCodeLoginController = CodexDeviceCodeLoginController(
                 useCase = codexDeviceCodeLoginUseCase,
                 onSaved = { saved ->
-                    currentQuotaStatePublisher.publish(
-                        currentQuotaStateFactory.create(
-                            account = saved.account,
-                            latestSnapshot = saved.snapshot,
-                            latestAttempt = null,
-                            now = clock.instant(),
-                            primaryWindowId = primaryQuotaWindowPreferences.primaryQuotaWindowId(),
-                        ),
-                    )
+                    sharedStateGuard.commitSerialized {
+                        currentQuotaStatePublisher.publish(
+                            currentQuotaStateFactory.create(
+                                account = saved.account,
+                                latestSnapshot = saved.snapshot,
+                                latestAttempt = null,
+                                now = clock.instant(),
+                                primaryWindowId = primaryQuotaWindowPreferences.primaryQuotaWindowId(),
+                            ),
+                        )
+                    }
                 },
             )
             val deviceCodeLoginDiagnosticsReader = deviceCodeLoginController as DeviceCodeLoginDiagnosticsReader
@@ -868,24 +893,16 @@ class AppContainer private constructor(
                     },
                     currentQuotaStateLoader = currentQuotaStateRepository,
                     currentQuotaStatePublisher = currentQuotaStatePublisher,
+                    stateGuard = sharedStateGuard,
                 ),
                 defaultAccountSelectUseCase = accountMutationRepository,
                 accountRenameUseCase = accountMutationRepository,
-                accountQuotaAlertEvaluationRequester = AccountQuotaAlertEvaluationRequester { providerId, localAccountId, windowId ->
-                    // Toggling an alert on an already-low account must notify immediately
-                    // (docs/SPEC.md), so this evaluates through the per-account channel — it is
-                    // the explicit user-triggered evaluation for THIS account, not a stale
-                    // write-back. The current-state publish below keeps the status notification
-                    // in sync and stays on the guarded channel.
-                    val state = currentQuotaStateRepository.loadAccountState(
-                        providerId = providerId,
-                        localAccountId = localAccountId,
-                        primaryWindowId = windowId,
-                    )
-                    (currentQuotaStatePublisher as? PerAccountQuotaEffectPublisher)
-                        ?.publishAccountEffects(state)
-                    currentQuotaStatePublisher.publish(state)
-                },
+                accountQuotaAlertEvaluationRequester = ImmediateAccountQuotaAlertEvaluationRequester(
+                    loadAccountState = currentQuotaStateRepository::loadAccountState,
+                    perAccountEffectsPublisher = notificationOnlyPublisher,
+                    currentQuotaStatePublisher = currentQuotaStatePublisher,
+                    stateGuard = sharedStateGuard,
+                ),
                 homeCurrentQuotaStateLoader = currentQuotaStateRepository,
                 homeRefreshUseCase = homeRefreshUseCase,
                 deviceCodeLoginController = deviceCodeLoginController,
@@ -903,14 +920,15 @@ class AppContainer private constructor(
                     delegate = notificationPreferences,
                     currentQuotaStateLoader = currentQuotaStateRepository,
                     currentQuotaStatePublisher = currentQuotaStatePublisher,
-                    perAccountEffectsPublisher = currentQuotaStatePublisher as? PerAccountQuotaEffectPublisher
-                        ?: PerAccountQuotaEffectPublisher { },
+                    perAccountEffectsPublisher = notificationOnlyPublisher,
+                    stateGuard = sharedStateGuard,
                 ),
                 primaryQuotaWindowPreferences = primaryQuotaWindowPreferences,
                 quotaHistoryClearUseCase = RepublishingQuotaHistoryClearUseCase(
                     delegate = quotaHistoryClearRepository,
                     currentQuotaStateLoader = currentQuotaStateRepository,
                     currentQuotaStatePublisher = currentQuotaStatePublisher,
+                    stateGuard = sharedStateGuard,
                 ),
                 homeTrendHistoryLoader = homeTrendHistoryRepository,
                 backgroundRefreshStatusReader = backgroundRefreshStatusRepository,

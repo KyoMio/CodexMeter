@@ -25,7 +25,7 @@ class AccountMutationRepository(
     private val currentAccountStateRepublisher: CurrentAccountStateRepublisher = NoopCurrentAccountStateRepublisher,
     private val clock: Clock,
     private val refreshScope: CoroutineScope? = null,
-    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
+    private val stateGuard: VersionedStateGuard,
 ) : DefaultAccountSelectUseCase, AccountRenameUseCase {
     /**
      * Completes once the chosen account is durably in the default-account slot — the single source

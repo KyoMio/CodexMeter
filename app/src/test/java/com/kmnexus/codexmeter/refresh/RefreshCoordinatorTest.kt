@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.refresh
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
@@ -437,6 +438,66 @@ class RefreshCoordinatorTest {
         assertEquals(CurrentQuotaStatus.Fresh, publisher.publishedStates.single().status)
     }
 
+    @Test
+    fun `deleted account in-flight refresh skips orphan snapshot attempt and effects`() = runTest {
+        val providerStarted = CompletableDeferred<Unit>()
+        val releaseProvider = CompletableDeferred<Unit>()
+        var accountExists = true
+        val snapshotStore = InMemorySnapshotStore()
+        val attemptStore = RecordingAttemptStore()
+        val statusStore = object : RefreshAccountStatusStore {
+            override suspend fun existsAndNotDeleted(account: ProviderAccount): Boolean = accountExists
+            override suspend fun markNeedsReauth(account: ProviderAccount, updatedAt: Instant) = Unit
+        }
+        val effects = mutableListOf<CurrentQuotaState>()
+        val publisher = RecordingCurrentQuotaStatePublisher()
+        val coordinator = RefreshCoordinator(
+            provider = RefreshProvider { _, _ ->
+                providerStarted.complete(Unit)
+                releaseProvider.await()
+                ProviderRefreshResult.Success(quotaSnapshot("orphan-snap"))
+            },
+            snapshotStore = snapshotStore,
+            attemptStore = attemptStore,
+            accountStatusStore = statusStore,
+            currentQuotaStatePublisher = publisher,
+            perAccountEffectsPublisher = PerAccountQuotaEffectPublisher { effects += it },
+            attemptIdProvider = SequentialAttemptIdProvider(),
+            clock = clock,
+            stateGuard = VersionedStateGuard(),
+        )
+
+        val job = async { coordinator.refresh(account, RefreshTrigger.Periodic) }
+        providerStarted.await()
+        accountExists = false
+        releaseProvider.complete(Unit)
+        job.await()
+
+        assertTrue(snapshotStore.savedSnapshots.isEmpty())
+        assertTrue(attemptStore.savedAttempts.isEmpty())
+        assertTrue(effects.isEmpty())
+        assertTrue(publisher.publishedStates.isEmpty())
+
+        // Same guard holds when an in-flight refresh fails after deletion.
+        val failAttemptStore = RecordingAttemptStore()
+        val failCoordinator = RefreshCoordinator(
+            provider = RefreshProvider { _, _ ->
+                ProviderRefreshResult.Failure(QuotaError.Network(diagnosticsDigest = "net"))
+            },
+            snapshotStore = snapshotStore,
+            attemptStore = failAttemptStore,
+            accountStatusStore = statusStore,
+            currentQuotaStatePublisher = publisher,
+            perAccountEffectsPublisher = PerAccountQuotaEffectPublisher { effects += it },
+            attemptIdProvider = SequentialAttemptIdProvider(),
+            clock = clock,
+            stateGuard = VersionedStateGuard(),
+        )
+        failCoordinator.refresh(account, RefreshTrigger.Periodic)
+        assertTrue(failAttemptStore.savedAttempts.isEmpty())
+        assertTrue(effects.isEmpty())
+    }
+
     private fun coordinator(
         provider: RefreshProvider,
         snapshotStore: SnapshotStore = InMemorySnapshotStore(),
@@ -455,6 +516,7 @@ class RefreshCoordinatorTest {
             primaryQuotaWindowPreferenceReader = StaticPrimaryQuotaWindowPreferenceReader(primaryWindowId),
             attemptIdProvider = SequentialAttemptIdProvider(),
             clock = clock,
+            stateGuard = VersionedStateGuard(),
         ).also {
             it.beforeFlightRemoval = beforeFlightRemoval
         }

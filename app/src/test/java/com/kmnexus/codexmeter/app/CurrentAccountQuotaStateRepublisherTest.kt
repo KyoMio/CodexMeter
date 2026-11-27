@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.app
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.local.entity.QuotaSnapshotEntity
@@ -96,6 +97,7 @@ class CurrentAccountQuotaStateRepublisherTest {
             currentQuotaStatePublisher = publisher,
             primaryQuotaWindowPreferenceReader = StaticPrimaryQuotaWindowPreferenceReader(primaryWindowId),
             clock = Clock.fixed(Instant.parse("2026-05-23T12:00:00Z"), ZoneOffset.UTC),
+            stateGuard = VersionedStateGuard(),
         )
 
         try {

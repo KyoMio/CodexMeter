@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.data.repository
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
@@ -172,6 +173,7 @@ class AccountMutationRepositoryTest {
             accountSelectRefreshRequester = accountSelectRefreshRequester,
             currentAccountStateRepublisher = currentAccountStateRepublisher,
             clock = Clock.fixed(UPDATED_AT, ZoneOffset.UTC),
+            stateGuard = VersionedStateGuard(),
         )
 
         try {

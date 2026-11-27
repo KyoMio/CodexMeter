@@ -1,15 +1,17 @@
 package com.kmnexus.codexmeter.app
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
+import com.kmnexus.codexmeter.domain.quota.CurrentQuotaFreshness
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaStatus
-import com.kmnexus.codexmeter.domain.quota.CurrentQuotaFreshness
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
+import com.kmnexus.codexmeter.refresh.CompositeCurrentQuotaStatePublisher
 import com.kmnexus.codexmeter.refresh.CurrentQuotaStatePublisher
 import com.kmnexus.codexmeter.refresh.PerAccountQuotaEffectPublisher
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
@@ -21,30 +23,24 @@ import org.junit.Test
 /**
  * Regression for GH-PR12-R2: enabling an alert on an already-low account, or raising a threshold
  * above the current remaining quota, must evaluate immediately — not at the next refresh.
- *
- * Both production entry points were silently dead after the per-account channel split because they
- * only drove the current-state channel, which no longer carries alerts. These tests pin the wiring
- * contract: each entry point must reach the per-account effects channel with the loaded state.
  */
 class ImmediateAlertEvaluationRegressionTest {
 
     private val now = Instant.parse("2026-05-23T12:00:00Z")
 
-    /**
-     * Threshold-save entry: RepublishingNotificationPreferenceStore must re-evaluate alerts through
-     * the per-account channel right after persisting new preferences.
-     */
     @Test
     fun `saving notification preferences immediately re-evaluates alerts on the per-account channel`() = runTest {
         val delegate = RecordingNotificationPreferenceStore()
         val currentState = state()
         val publisher = RecordingCurrentStatePublisher()
         val effects = RecordingPerAccountEffects()
+        val guard = VersionedStateGuard()
         val store = RepublishingNotificationPreferenceStore(
             delegate = delegate,
             currentQuotaStateLoader = HomeCurrentQuotaStateLoader { currentState },
             currentQuotaStatePublisher = publisher,
             perAccountEffectsPublisher = effects,
+            stateGuard = guard,
         )
 
         store.updateNotificationPreferences(NotificationPreferences(statusNotificationEnabled = false))
@@ -59,28 +55,36 @@ class ImmediateAlertEvaluationRegressionTest {
             listOf(currentState),
             publisher.publishedStates,
         )
+        assertEquals(1, guard.committedWrites)
     }
 
-    /**
-     * Account-screen entry: the production wiring of AccountQuotaAlertEvaluationRequester must call
-     * the per-account channel. This mirrors the AppContainer lambda exactly; the wiring assertion
-     * is the channel choice, so the lambda body is replicated here against the real interfaces.
-     */
     @Test
-    fun `account screen alert evaluation wiring reaches the per-account channel`() = runTest {
-        val effects = RecordingPerAccountEffects()
-        val publisher = CompositeRecordingPublisher(effects)
+    fun `account screen alert evaluation wiring reaches production requester and updates widget once`() = runTest {
+        val notificationMember = RecordingDualChannelMember()
+        val widgetMember = RecordingDualChannelMember()
+        val composite = CompositeCurrentQuotaStatePublisher(listOf(widgetMember, notificationMember))
+        val notificationOnly = CompositeCurrentQuotaStatePublisher(listOf(notificationMember))
         val state = state()
+        val guard = VersionedStateGuard()
 
-        // Replica of the AppContainer wiring lambda (keep in sync — the regression is about the
-        // channel choice and ordering, which this pins):
-        //   (composite as? PerAccountQuotaEffectPublisher)?.publishAccountEffects(state)
-        //   composite.publish(state)
-        (publisher as? PerAccountQuotaEffectPublisher)?.publishAccountEffects(state)
-        publisher.publish(state)
+        val requester = ImmediateAccountQuotaAlertEvaluationRequester(
+            loadAccountState = { _, _, _ -> state },
+            perAccountEffectsPublisher = notificationOnly,
+            currentQuotaStatePublisher = composite,
+            stateGuard = guard,
+        )
 
-        assertEquals(listOf(state), effects.effectStates)
-        assertEquals(listOf(state), publisher.publishedStates)
+        requester.requestQuotaAlertEvaluation(
+            providerId = ProviderId("codex"),
+            localAccountId = LocalAccountId("local-1"),
+            windowId = QuotaWindowId("five_hour"),
+        )
+
+        assertEquals(listOf(state), notificationMember.effectStates)
+        assertEquals(listOf(state), notificationMember.publishedStates)
+        assertEquals(emptyList<CurrentQuotaState>(), widgetMember.effectStates)
+        assertEquals(listOf(state), widgetMember.publishedStates)
+        assertEquals(1, guard.committedWrites)
     }
 
     private fun state(): CurrentQuotaState =
@@ -130,18 +134,16 @@ class ImmediateAlertEvaluationRegressionTest {
         }
     }
 
-    /** Mirrors CompositeCurrentQuotaStatePublisher's dual-channel shape for the wiring replica. */
-    private class CompositeRecordingPublisher(
-        private val effects: RecordingPerAccountEffects,
-    ) : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
+    private class RecordingDualChannelMember : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
         val publishedStates = mutableListOf<CurrentQuotaState>()
+        val effectStates = mutableListOf<CurrentQuotaState>()
 
         override suspend fun publish(state: CurrentQuotaState) {
             publishedStates += state
         }
 
         override suspend fun publishAccountEffects(state: CurrentQuotaState) {
-            effects.publishAccountEffects(state)
+            effectStates += state
         }
     }
 }

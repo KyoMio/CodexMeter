@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.app
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
@@ -58,12 +59,14 @@ class RepublishingAccountDeleteUseCaseTest {
                     ),
                 ),
             )
+            val guard = VersionedStateGuard()
             val deletionRepository = AccountDeletionRepository(
                 database = db,
                 secureSessionStore = FakeSecureSessionStore(),
                 currentAccountStore = currentAccountStore,
                 deletedAccountStateCleaner = NoopDeletedAccountStateCleaner,
                 notificationPreferenceStore = notificationStore,
+                stateGuard = guard,
             )
             val stateRepository = CurrentQuotaStateRepository(
                 currentAccountReader = currentAccountStore,
@@ -80,6 +83,7 @@ class RepublishingAccountDeleteUseCaseTest {
                 },
                 currentQuotaStateLoader = stateRepository,
                 currentQuotaStatePublisher = publisher,
+                stateGuard = guard,
             )
 
             useCase.deleteAccount(ProviderId("codex"), LocalAccountId("target"))
@@ -115,12 +119,14 @@ class RepublishingAccountDeleteUseCaseTest {
                     ),
                 ),
             )
+            val guard = VersionedStateGuard()
             val deletionRepository = AccountDeletionRepository(
                 database = db,
                 secureSessionStore = FakeSecureSessionStore(),
                 currentAccountStore = currentAccountStore,
                 deletedAccountStateCleaner = NoopDeletedAccountStateCleaner,
                 notificationPreferenceStore = notificationStore,
+                stateGuard = guard,
             )
             val stateRepository = CurrentQuotaStateRepository(
                 currentAccountReader = currentAccountStore,
@@ -137,6 +143,7 @@ class RepublishingAccountDeleteUseCaseTest {
                 },
                 currentQuotaStateLoader = stateRepository,
                 currentQuotaStatePublisher = publisher,
+                stateGuard = guard,
             )
 
             useCase.deleteAccount(ProviderId("codex"), LocalAccountId("target"))
@@ -161,6 +168,7 @@ class RepublishingAccountDeleteUseCaseTest {
                     throw IllegalStateException("publish failed")
                 }
             },
+            stateGuard = VersionedStateGuard(),
         )
 
         useCase.deleteAccount(ProviderId("codex"), LocalAccountId("target"))
@@ -175,6 +183,7 @@ class RepublishingAccountDeleteUseCaseTest {
             delegate = AccountDeleteUseCase { _, _ -> throw IllegalStateException("delete failed") },
             currentQuotaStateLoader = HomeCurrentQuotaStateLoader { unauthenticatedState() },
             currentQuotaStatePublisher = publisher,
+            stateGuard = VersionedStateGuard(),
         )
 
         val result = runCatching<Unit> {

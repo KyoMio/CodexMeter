@@ -134,6 +134,8 @@ tasks.withType<Test>().configureEach {
     inputs.dir("src/main/java").withPropertyName("guardrailsMainSources")
     inputs.dir("src/main/res").withPropertyName("guardrailsResources")
     inputs.files(
+        file("build.gradle.kts"),
+        file("src/main/AndroidManifest.xml"),
         rootProject.file("build.gradle.kts"),
         rootProject.file("settings.gradle.kts"),
         rootProject.file("gradle/libs.versions.toml"),
@@ -186,8 +188,8 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.turbine)
     // Roborazzi golden screenshots: test-only, never enters the release graph.
+    testImplementation(libs.roborazzi.core)
     testImplementation(libs.roborazzi.compose)
-    testImplementation(libs.roborazzi.rule)
     testImplementation(libs.compose.ui.test.junit4)
 
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -209,7 +209,7 @@ class CurrentQuotaNotificationPublisherTest {
     }
 
     @Test
-    fun `publish posts repeated refresh failure account error from policy reader`() = runTest {
+    fun `publishAccountEffects posts repeated refresh failure account error from policy reader`() = runTest {
         val sink = RecordingNotificationSink()
         val publisher = publisher(
             sink = sink,
@@ -224,10 +224,31 @@ class CurrentQuotaNotificationPublisherTest {
             ),
         )
 
-        publisher.publish(state(usedPercent = 42, status = CurrentQuotaStatus.ErrorWithLastKnownGood))
+        publisher.publishAccountEffects(state(usedPercent = 42, status = CurrentQuotaStatus.ErrorWithLastKnownGood))
 
         assertEquals(listOf(NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID), sink.requests.map { it.channelId })
         assertEquals(R.string.notification_account_error_body_refresh_failed, sink.requests.single().body.resourceId)
+    }
+
+    @Test
+    fun `publish only posts status notification and does not emit account error notifications`() = runTest {
+        val sink = RecordingNotificationSink()
+        val publisher = publisher(
+            sink = sink,
+            options = NotificationRequestOptions(
+                notificationPermissionAvailable = true,
+                statusNotificationEnabled = true,
+                quotaAlertsEnabled = false,
+                accountErrorsEnabled = true,
+            ),
+            accountErrorEventReader = StaticAccountErrorEventReader(
+                AccountErrorNotificationEvent(AccountErrorNotificationReason.RepeatedRefreshFailure),
+            ),
+        )
+
+        publisher.publish(state(usedPercent = 42, status = CurrentQuotaStatus.ErrorWithLastKnownGood))
+
+        assertEquals(listOf(NotificationChannels.STATUS_CHANNEL_ID), sink.requests.map { it.channelId })
     }
 
     @Test

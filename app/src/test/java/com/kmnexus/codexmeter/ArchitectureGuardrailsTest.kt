@@ -29,7 +29,7 @@ class ArchitectureGuardrailsTest {
     private val mainSourceRoot: File =
         File(moduleDir, "src/main/java/com/kmnexus/codexmeter")
 
-    private val repoRoot: File = moduleDir.parentFile.canonicalFile
+    private val repoRoot: File = moduleDir.parentFile!!.canonicalFile
 
     private fun kotlinFilesUnder(dir: File): List<File> =
         if (dir.isDirectory) {
@@ -46,10 +46,14 @@ class ArchitectureGuardrailsTest {
 
     @Test
     fun `ui layer never imports persistence networking keystore or provider internals`() {
-        val forbiddenImport = Regex(
-            "^import\\s+(androidx\\.room|androidx\\.datastore|okhttp3|" +
+        val forbiddenPrefix = Regex(
+            "(?:androidx\\.room|androidx\\.datastore|okhttp3|" +
                 "java\\.security\\.KeyStore|android\\.security\\.keystore|" +
-                "com\\.kmnexus\\.codexmeter\\.providers\\.)",
+                "com\\.kmnexus\\.codexmeter\\.providers\\.|" +
+                "com\\.kmnexus\\.codexmeter\\.data\\.local\\.|" +
+                "com\\.kmnexus\\.codexmeter\\.data\\.secure\\.|" +
+                "com\\.kmnexus\\.codexmeter\\.data\\.preferences\\.|" +
+                "com\\.kmnexus\\.codexmeter\\.data\\.repository\\.)",
         )
         // ProviderRegistry is the single, reviewed metadata seam the UI is
         // allowed to read (display names, auth kind). Any deeper providers.*
@@ -59,11 +63,34 @@ class ArchitectureGuardrailsTest {
             "com.kmnexus.codexmeter.providers.ProviderAuthKind",
             "com.kmnexus.codexmeter.providers.ProviderConfig",
         )
-        val violations = scanImports(packageDir("ui")) { file, import ->
-            if (forbiddenImport.containsMatchIn(import) && import.removePrefix("import ").trim() !in allowlist) {
-                "$file imports `$import`"
-            } else {
-                null
+        val violations = mutableListOf<String>()
+        kotlinFilesUnder(packageDir("ui")).forEach { file ->
+            val rel = file.relativeTo(moduleDir).toString()
+            file.readLines().forEachIndexed { index, rawLine ->
+                val line = rawLine.trim()
+                if (line.startsWith("//") || line.startsWith("*")) return@forEachIndexed
+                if (line.startsWith("import ")) {
+                    val target = line.removePrefix("import ").substringBefore(" as ").trim()
+                    if (forbiddenPrefix.containsMatchIn(target) && target !in allowlist) {
+                        violations += "$rel:${index + 1} imports `$target`"
+                    }
+                    return@forEachIndexed
+                }
+                val fqnMatches = Regex(
+                    "(?:androidx\\.room|androidx\\.datastore|okhttp3|" +
+                        "java\\.security\\.KeyStore|android\\.security\\.keystore|" +
+                        "com\\.kmnexus\\.codexmeter\\.(?:providers|data\\.(?:local|secure|preferences|repository)))" +
+                        "\\.[A-Za-z0-9_.]+",
+                ).findAll(line)
+                fqnMatches.forEach { match ->
+                    val ref = match.value
+                    val isAllowlisted = allowlist.any { allowed ->
+                        ref == allowed || ref.startsWith("$allowed.")
+                    }
+                    if (!isAllowlisted) {
+                        violations += "$rel:${index + 1} references `$ref`"
+                    }
+                }
             }
         }
         assertTrue(
@@ -75,8 +102,8 @@ class ArchitectureGuardrailsTest {
                 appendLine("Fix: move the interaction behind a domain/app-layer use case or repository")
                 appendLine("(e.g. expose the data through a ViewModel state flow). If the UI genuinely")
                 appendLine("needs provider metadata, read it through ProviderRegistry, never through")
-                appendLine("provider implementation classes. Room/DataStore/OkHttp/Keystore belong to")
-                appendLine("data/ and providers/ only.")
+                appendLine("provider implementation classes. Room/DataStore/OkHttp/Keystore/data.* belong")
+                appendLine("to data/, app/, and providers/ only.")
             },
             violations.isEmpty(),
         )
@@ -101,14 +128,23 @@ class ArchitectureGuardrailsTest {
                 null
             }
         }
-        // Decrypted sessions must never cross into the widget process surface:
+        // Decrypted sessions and raw session/cipher primitives must never cross into the widget surface:
         // the widget renders already-aggregated CurrentQuotaState only.
         val decryptionUsage = mutableListOf<String>()
+        val decryptionNeedles = listOf(
+            "SessionCipher",
+            "decryptSession",
+            "decryptedSession",
+            "AndroidKeyStore",
+            "keystoreDecrypt",
+            "PayloadCipher",
+            "AesGcmPayloadCipher",
+            "SecureSessionStore",
+            "FileSecureSessionStore",
+            "ProviderSessionEnvelope",
+        )
         kotlinFilesUnder(packageDir("widget")).forEach { file ->
             val text = file.readText()
-            val decryptionNeedles = listOf(
-                "SessionCipher", "decryptSession", "decryptedSession", "AndroidKeyStore", "keystoreDecrypt",
-            )
             decryptionNeedles.forEach { needle ->
                 if (text.contains(needle)) {
                     decryptionUsage += "${file.relativeTo(moduleDir)} references `$needle`"
@@ -165,25 +201,28 @@ class ArchitectureGuardrailsTest {
 
     // endregion
 
-    // region CM-2.4 no new *Manager/*Helper/*Utils classes
+    // region CM-2.4 no new *Manager/*Helper/*Utils classes or files
 
     @Test
-    fun `no new Manager Helper or Utils classes beyond the shrinking whitelist`() {
+    fun `no new Manager Helper or Utils classes or files beyond the shrinking whitelist`() {
         val declaration = Regex(
-            "^\\s*(internal\\s+|private\\s+|public\\s+)?" +
-                "(abstract\\s+|open\\s+|sealed\\s+|final\\s+)?" +
-                "(class|object)\\s+([A-Za-z0-9_]*(?:Manager|Helper|Utils))\\b",
+            "^\\s*(?:(?:internal|private|public|protected)\\s+)?" +
+                "(?:(?:abstract|open|sealed|final|data|enum|value|annotation)\\s+)*" +
+                "(class|object|interface)\\s+([A-Za-z0-9_]*(?:Manager|Helper|Utils))\\b",
         )
         // Existing offenders, grandfathered. This list may ONLY shrink:
         // remove entries as classes get renamed or deleted, never add new ones.
-        // (Baseline scan 2026-11-27: the codebase currently has zero such classes.)
         val whitelist = setOf<String>()
+        val forbiddenFileSuffixes = listOf("Manager.kt", "Helper.kt", "Utils.kt")
 
         val offenders = mutableListOf<String>()
         kotlinFilesUnder(mainSourceRoot).forEach { file ->
+            if (forbiddenFileSuffixes.any { file.name.endsWith(it) } && file.nameWithoutExtension !in whitelist) {
+                offenders += "${file.relativeTo(moduleDir)} uses forbidden file suffix"
+            }
             file.readLines().forEachIndexed { index, line ->
                 val match = declaration.find(line) ?: return@forEachIndexed
-                val className = match.groupValues[4]
+                val className = match.groupValues[2]
                 if (className !in whitelist) {
                     offenders += "${file.relativeTo(moduleDir)}:${index + 1} declares `$className`"
                 }
@@ -191,16 +230,14 @@ class ArchitectureGuardrailsTest {
         }
         assertTrue(
             buildString {
-                appendLine("`*Manager` / `*Helper` / `*Utils` classes are grab-bags that bypass the")
-                appendLine("package ownership model (RULES.md). New ones are banned; the whitelist above")
+                appendLine("`*Manager` / `*Helper` / `*Utils` types and files are grab-bags that bypass")
+                appendLine("the package ownership model (RULES.md). New ones are banned; the whitelist")
                 appendLine("can only shrink as legacy offenders are renamed.")
                 appendLine("Violations:")
                 offenders.forEach { appendLine("  - $it") }
                 appendLine()
-                appendLine("Fix: name the class after the thing it DOES or OWNS in its package")
-                appendLine("(e.g. `RefreshWorkScheduler`, `QuotaSnapshotDao`, `SessionCipher`). If it")
-                appendLine("coordinates writes, make it a Repository/Store/Coordinator inside the")
-                appendLine("owning package — not a cross-cutting helper.")
+                appendLine("Fix: name the file/type after the thing it DOES or OWNS in its package")
+                appendLine("(e.g. `RefreshWorkScheduler`, `QuotaSnapshotDao`, `SessionCipher`).")
             },
             offenders.isEmpty(),
         )
@@ -208,17 +245,17 @@ class ArchitectureGuardrailsTest {
 
     // endregion
 
-    // region CM-2.5 no Hilt/Retrofit/Ktor in gradle files
+    // region CM-2.5 hard boundaries: gradle deps, single module, foreground service, release manifest
 
     @Test
-    fun `gradle files never add Hilt Retrofit or Ktor`() {
+    fun `gradle files never add Hilt Retrofit Ktor Firebase or Crashlytics`() {
         val gradleFiles = listOf(
             File(repoRoot, "build.gradle.kts"),
             File(repoRoot, "settings.gradle.kts"),
             File(repoRoot, "app/build.gradle.kts"),
             File(repoRoot, "gradle/libs.versions.toml"),
         )
-        val banned = Regex("\\bhilt\\b|\\bdagger\\b|\\bretrofit\\b|\\bktor\\b", RegexOption.IGNORE_CASE)
+        val banned = Regex("\\b(?:hilt|dagger|retrofit|ktor|firebase|crashlytics)", RegexOption.IGNORE_CASE)
         val violations = mutableListOf<String>()
         gradleFiles.filter { it.isFile }.forEach { file ->
             file.readLines().forEachIndexed { index, line ->
@@ -231,15 +268,53 @@ class ArchitectureGuardrailsTest {
         assertTrue(
             buildString {
                 appendLine("Hard red line (AGENTS.md): single-module Gradle, hand-written AppContainer,")
-                appendLine("OkHttp + kotlinx.serialization only. Hilt/Retrofit/Ktor must never enter")
-                appendLine("the dependency graph.")
+                appendLine("OkHttp + kotlinx.serialization only, zero analytics/crash SDKs.")
                 appendLine("Violations:")
                 violations.forEach { appendLine("  - $it") }
-                appendLine()
-                appendLine("Fix: remove the dependency. Wire dependencies manually in AppContainer")
-                appendLine("(app/AppContainer.kt) and use OkHttp + kotlinx.serialization for HTTP —")
-                appendLine("see any existing provider network client for the pattern.")
             },
+            violations.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `settings gradle stays single-module app only`() {
+        val settingsFile = File(repoRoot, "settings.gradle.kts")
+        assertTrue("Missing ${settingsFile.path}", settingsFile.isFile)
+        val includes = Regex("include\\s*\\(([^)]+)\\)")
+            .findAll(settingsFile.readText())
+            .flatMap { m ->
+                Regex("\"([^\"]+)\"").findAll(m.groupValues[1]).map { it.groupValues[1] }
+            }
+            .toList()
+        assertTrue(
+            "AGENTS.md requires single-module Gradle (include(\":app\") only), found: $includes",
+            includes == listOf(":app"),
+        )
+    }
+
+    @Test
+    fun `main sources and manifest never introduce ForegroundService or DebugFixture`() {
+        val mainManifest = File(moduleDir, "src/main/AndroidManifest.xml")
+        assertTrue("Missing ${mainManifest.path}", mainManifest.isFile)
+        val manifestText = mainManifest.readText()
+        val violations = mutableListOf<String>()
+
+        listOf("FOREGROUND_SERVICE", "foregroundServiceType", "DebugFixture", "SEED_FIXTURE").forEach { needle ->
+            if (manifestText.contains(needle)) {
+                violations += "src/main/AndroidManifest.xml contains forbidden `$needle`"
+            }
+        }
+        val fgCodePattern = Regex("\\b(ForegroundService|startForeground|startForegroundService|FOREGROUND_SERVICE)\\b")
+        kotlinFilesUnder(mainSourceRoot).forEach { file ->
+            file.readLines().forEachIndexed { index, line ->
+                if (!line.trimStart().startsWith("//") && fgCodePattern.containsMatchIn(line)) {
+                    violations += "${file.relativeTo(moduleDir)}:${index + 1} references `${line.trim()}`"
+                }
+            }
+        }
+        assertTrue(
+            "AGENTS.md hard boundary violated (ForegroundService / DebugFixture in main):\n" +
+                violations.joinToString("\n"),
             violations.isEmpty(),
         )
     }
@@ -251,7 +326,8 @@ class ArchitectureGuardrailsTest {
     @Test
     fun `sensitive credential fields never reach Log or diagnostics output`() {
         val sensitiveTokens = Regex(
-            "\\b(accessToken|refreshToken|idToken|cookieHeader|authJson|rawResponseBody)\\b",
+            "\\b(accessToken|refreshToken|idToken|cookieHeader|authJson|rawResponseBody|" +
+                "apiKey|cookieValue|codeVerifier|access_token|refresh_token|id_token)\\b",
         )
         val violations = mutableListOf<String>()
 
@@ -259,14 +335,14 @@ class ArchitectureGuardrailsTest {
             val text = file.readText()
             val relative = file.relativeTo(moduleDir).toString()
 
-            // 1) Log.x(...) statements must not mention credential fields.
+            // 1) Log.* / println(...) statements must not mention credential fields.
             violations += credentialLeaksInLogStatements(text, relative, sensitiveTokens)
 
             // 2) Diagnostics builders must never read credential fields at all —
             //    DiagnosticsRedactor is the single sanctioned exception because
             //    redaction itself has to know the field names.
             val isDiagnosticsFile =
-                relative.contains("iagnostics") || relative.startsWith("app/SettingsDiagnosticsRepository")
+                relative.contains("Diagnostics", ignoreCase = true) || file.name == "SettingsViewModel.kt"
             val isRedactor = file.name == "DiagnosticsRedactor.kt"
             if (isDiagnosticsFile && !isRedactor && sensitiveTokens.containsMatchIn(text)) {
                 violations += "$relative references credential fields inside diagnostics construction"
@@ -328,10 +404,6 @@ class ArchitectureGuardrailsTest {
                     appendLine("Keys present in values-zh-rCN but missing in values/strings.xml:")
                     missingInEnglish.forEach { appendLine("  - $it") }
                 }
-                appendLine()
-                appendLine("Fix: add the missing <string name=\"...\"> entry to the file that lacks it")
-                appendLine("(translate the copy, or copy the English string as a placeholder and file a")
-                appendLine("follow-up), or delete the key from the file that should not have it.")
             },
             missingInChinese.isEmpty() && missingInEnglish.isEmpty(),
         )
@@ -340,9 +412,8 @@ class ArchitectureGuardrailsTest {
     // endregion
 
     /**
-     * Extracts every `Log.x(...)` statement (balanced parentheses) and reports the ones whose
-     * content mentions a credential field. Statement extraction is parenthesis-aware so multi-line
-     * string concatenation inside one call cannot hide a leak.
+     * Extracts every `Log.x(...)` / `println(...)` statement (parenthesis- and string-literal-aware)
+     * and reports the ones whose content mentions a credential field.
      */
     private fun credentialLeaksInLogStatements(
         text: String,
@@ -351,32 +422,59 @@ class ArchitectureGuardrailsTest {
     ): List<String> {
         val leaks = mutableListOf<String>()
         var searchFrom = 0
+        val callPattern = Regex("(?:Log\\.(?:d|e|i|w|v|wtf|println)|\\bprintln)\\s*\\(")
         while (true) {
-            val logStart = Regex("Log\\.(d|e|i|w|v)\\s*\\(").find(text, searchFrom) ?: break
+            val logStart = callPattern.find(text, searchFrom) ?: break
             val statementEnd = balancedStatementEnd(text, logStart.range.first)
             val statement = text.substring(logStart.range.first, statementEnd)
             if (sensitiveTokens.containsMatchIn(statement)) {
-                leaks += "$relative passes a credential field into Log.* near offset ${logStart.range.first}"
+                leaks += "$relative passes a credential field into Log/println near offset ${logStart.range.first}"
             }
             searchFrom = statementEnd
         }
         return leaks
     }
 
-    /** End offset (exclusive) of the parenthesised expression starting at or after [fromIndex]. */
+    /**
+     * End offset (exclusive) of the parenthesised expression starting at or after [fromIndex],
+     * ignoring parens inside string/char literals.
+     */
     private fun balancedStatementEnd(text: String, fromIndex: Int): Int {
         val openParen = text.indexOf('(', fromIndex)
         var depth = 0
         var i = openParen
         while (i < text.length) {
-            when (text[i]) {
-                '(' -> depth++
-                ')' -> {
-                    depth--
-                    if (depth == 0) return i + 1
-                }
+            val quotedEnd = skipLiteralAt(text, i)
+            if (quotedEnd > i) {
+                i = quotedEnd
+                continue
+            }
+            if (text[i] == '(') depth++
+            else if (text[i] == ')') {
+                depth--
+                if (depth == 0) return i + 1
             }
             i++
+        }
+        return text.length
+    }
+
+    private fun skipLiteralAt(text: String, start: Int): Int {
+        if (text.startsWith("\"\"\"", start)) {
+            val closeTriple = text.indexOf("\"\"\"", start + 3)
+            return if (closeTriple == -1) text.length else closeTriple + 3
+        }
+        val quote = text[start]
+        if (quote != '"' && quote != '\'') return start
+        var i = start + 1
+        while (i < text.length) {
+            if (text[i] == '\\') {
+                i += 2
+            } else if (text[i] == quote) {
+                return i + 1
+            } else {
+                i++
+            }
         }
         return text.length
     }

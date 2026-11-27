@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.app
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.account.AccountDeleteUseCase
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderId
@@ -11,6 +12,7 @@ internal class RepublishingAccountDeleteUseCase(
     private val delegate: AccountDeleteUseCase,
     private val currentQuotaStateLoader: HomeCurrentQuotaStateLoader,
     private val currentQuotaStatePublisher: CurrentQuotaStatePublisher,
+    private val stateGuard: VersionedStateGuard,
 ) : AccountDeleteUseCase {
     override suspend fun deleteAccount(
         providerId: ProviderId,
@@ -21,7 +23,9 @@ internal class RepublishingAccountDeleteUseCase(
             localAccountId = localAccountId,
         )
         try {
-            currentQuotaStatePublisher.publish(currentQuotaStateLoader.loadCurrentState())
+            stateGuard.commitSerialized {
+                currentQuotaStatePublisher.publish(currentQuotaStateLoader.loadCurrentState())
+            }
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {

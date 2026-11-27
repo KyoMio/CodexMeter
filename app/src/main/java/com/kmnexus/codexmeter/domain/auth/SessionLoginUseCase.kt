@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.domain.auth
 
 import androidx.room.withTransaction
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.dao.ProviderAccountDao
 import com.kmnexus.codexmeter.data.local.dao.QuotaSnapshotDao
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
@@ -31,6 +32,7 @@ class SessionLoginUseCase(
     private val accountDao: ProviderAccountDao,
     private val snapshotDao: QuotaSnapshotDao,
     private val currentAccountStore: CurrentAccountStore,
+    private val stateGuard: VersionedStateGuard,
     private val clock: Clock = Clock.systemUTC(),
 ) {
     suspend fun importApiKey(
@@ -111,9 +113,14 @@ class SessionLoginUseCase(
         }
         val snapshot = snapshotResult.getOrThrow()
 
-        database.withTransaction {
-            accountDao.upsert(account.toEntity())
-            snapshotDao.insert(snapshot.toEntity())
+        stateGuard.beginEdit()
+        try {
+            database.withTransaction {
+                accountDao.upsert(account.toEntity())
+                snapshotDao.insert(snapshot.toEntity())
+            }
+        } finally {
+            stateGuard.endEdit()
         }
         // Re-login never changes which account is current.
         return Result.success(account)
@@ -143,19 +150,24 @@ class SessionLoginUseCase(
         }
         val snapshot = snapshotResult.getOrThrow()
 
-        database.withTransaction {
-            accountDao.upsert(account.toEntity())
-            snapshotDao.insert(snapshot.toEntity())
-        }
-        // Only the first connected account becomes current; later additions never steal the
-        // user's selected current account.
-        if (currentAccountStore.currentAccountSelection() == null) {
-            currentAccountStore.updateCurrentAccountSelection(
-                CurrentAccountSelection(
-                    providerId = providerId,
-                    localAccountId = localAccountId,
-                ),
-            )
+        stateGuard.beginEdit()
+        try {
+            database.withTransaction {
+                accountDao.upsert(account.toEntity())
+                snapshotDao.insert(snapshot.toEntity())
+            }
+            // Only the first connected account becomes current; later additions never steal the
+            // user's selected current account.
+            if (currentAccountStore.currentAccountSelection() == null) {
+                currentAccountStore.updateCurrentAccountSelection(
+                    CurrentAccountSelection(
+                        providerId = providerId,
+                        localAccountId = localAccountId,
+                    ),
+                )
+            }
+        } finally {
+            stateGuard.endEdit()
         }
 
         return Result.success(account)

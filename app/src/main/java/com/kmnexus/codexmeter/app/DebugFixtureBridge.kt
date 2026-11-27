@@ -25,7 +25,7 @@ class DebugFixtureBridge internal constructor(
     val sessionStore: SecureSessionStore,
     val currentAccountStore: CurrentAccountStore,
     val clock: Clock,
-    val stateGuard: VersionedStateGuard = VersionedStateGuard(),
+    val stateGuard: VersionedStateGuard,
     val deletedAccountStateCleaner: DeletedAccountStateCleaner? = null,
     val notificationPreferenceStore: NotificationPreferenceStore? = null,
     val republishCurrentState: (suspend () -> Unit)? = null,

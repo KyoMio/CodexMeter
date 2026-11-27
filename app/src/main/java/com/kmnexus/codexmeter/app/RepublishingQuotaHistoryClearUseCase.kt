@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.app
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearResult
 import com.kmnexus.codexmeter.domain.settings.QuotaHistoryClearUseCase
 import com.kmnexus.codexmeter.refresh.CurrentQuotaStatePublisher
@@ -10,6 +11,7 @@ internal class RepublishingQuotaHistoryClearUseCase(
     private val delegate: QuotaHistoryClearUseCase,
     private val currentQuotaStateLoader: HomeCurrentQuotaStateLoader,
     private val currentQuotaStatePublisher: CurrentQuotaStatePublisher,
+    private val stateGuard: VersionedStateGuard,
 ) : QuotaHistoryClearUseCase {
     override suspend fun clearCurrentAccountHistory(): QuotaHistoryClearResult =
         clearAndRepublish { delegate.clearCurrentAccountHistory() }
@@ -22,7 +24,9 @@ internal class RepublishingQuotaHistoryClearUseCase(
     ): QuotaHistoryClearResult {
         val result = clear()
         try {
-            currentQuotaStatePublisher.publish(currentQuotaStateLoader.loadCurrentState())
+            stateGuard.commitSerialized {
+                currentQuotaStatePublisher.publish(currentQuotaStateLoader.loadCurrentState())
+            }
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {

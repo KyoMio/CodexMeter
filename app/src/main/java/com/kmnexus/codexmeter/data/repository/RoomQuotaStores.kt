@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.data.repository
 
 import androidx.room.withTransaction
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.dao.ProviderAccountDao
 import com.kmnexus.codexmeter.data.local.dao.QuotaSnapshotDao
 import com.kmnexus.codexmeter.data.local.dao.RefreshAttemptDao
@@ -70,6 +71,12 @@ class RoomRefreshAttemptStore(
 class RoomRefreshAccountStatusStore(
     private val providerAccountDao: ProviderAccountDao,
 ) : RefreshAccountStatusStore {
+    override suspend fun existsAndNotDeleted(account: ProviderAccount): Boolean {
+        val row = providerAccountDao.getById(account.localAccountId.value) ?: return false
+        return row.providerId == account.providerId.value &&
+            row.status.lowercase() != AccountStatus.Deleted.storageName()
+    }
+
     override suspend fun markNeedsReauth(account: ProviderAccount, updatedAt: Instant) {
         providerAccountDao.updateStatus(
             providerId = account.providerId.value,
@@ -93,9 +100,27 @@ class RoomCodexSessionImportPersistence(
     private val database: CodexMeterDatabase,
     private val sessionStore: SecureSessionStore,
     private val currentAccountStore: CurrentAccountStore,
+    private val stateGuard: VersionedStateGuard,
     private val beforeRoomCommit: suspend () -> Unit = {},
 ) : CodexSessionImporter.ImportPersistence {
     override suspend fun save(
+        account: ProviderAccount,
+        sessionEnvelope: ProviderSessionEnvelope,
+        snapshot: QuotaSnapshot,
+    ): CodexSessionImporter.CommittedImport {
+        stateGuard.beginEdit()
+        try {
+            return saveGuarded(
+                account = account,
+                sessionEnvelope = sessionEnvelope,
+                snapshot = snapshot,
+            )
+        } finally {
+            stateGuard.endEdit()
+        }
+    }
+
+    private suspend fun saveGuarded(
         account: ProviderAccount,
         sessionEnvelope: ProviderSessionEnvelope,
         snapshot: QuotaSnapshot,

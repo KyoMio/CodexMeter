@@ -6,6 +6,9 @@ import kotlinx.coroutines.CancellationException
 class CompositeCurrentQuotaStatePublisher(
     private val publishers: List<CurrentQuotaStatePublisher>,
 ) : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
+    internal val members: List<CurrentQuotaStatePublisher>
+        get() = publishers
+
     override suspend fun publish(state: CurrentQuotaState) {
         publishers.forEach { publisher ->
             try {

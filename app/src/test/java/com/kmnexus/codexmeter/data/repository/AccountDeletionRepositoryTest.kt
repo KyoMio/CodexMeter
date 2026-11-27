@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.data.repository
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.AlertStateEntity
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
@@ -319,6 +320,7 @@ class AccountDeletionRepositoryTest {
             deletedAccountStateCleaner = deletedAccountStateCleaner,
             localDataDeleter = localDataDeleter ?: RoomAccountLocalDataDeleter(db),
             notificationPreferenceStore = notificationPreferenceStore,
+            stateGuard = VersionedStateGuard(),
         )
 
         try {

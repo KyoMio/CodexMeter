@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.app
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountReader
@@ -88,6 +89,7 @@ class HomeRefreshCoordinatorUseCaseTest {
             attemptStore = RoomRefreshAttemptStore(db.refreshAttemptDao()),
             attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-1") },
             clock = clock,
+            stateGuard = VersionedStateGuard(),
         )
         val currentQuotaStateRepository = CurrentQuotaStateRepository(
             currentAccountReader = currentAccountReader,

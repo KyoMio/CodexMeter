@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.refresh
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderAccountId
@@ -188,6 +189,7 @@ class QuotaRefreshWorkerTest {
             attemptStore = RecordingAttemptStore(),
             attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-${System.nanoTime()}") },
             clock = Clock.fixed(Instant.parse("2026-05-23T12:00:00Z"), ZoneOffset.UTC),
+            stateGuard = VersionedStateGuard(),
         )
 
     private fun account(localAccountId: String): ProviderAccount =

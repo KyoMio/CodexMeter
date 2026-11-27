@@ -23,8 +23,8 @@ internal class CurrentAccountQuotaStateRepublisher(
     private val currentQuotaStateFactory: CurrentQuotaStateFactory = CurrentQuotaStateFactory(),
     private val primaryQuotaWindowPreferenceReader: PrimaryQuotaWindowPreferenceReader =
         DefaultPrimaryQuotaWindowPreferenceReader,
-    private val clock: Clock,
-    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
+    private val clock: Clock = Clock.systemUTC(),
+    private val stateGuard: VersionedStateGuard,
 ) : CurrentAccountStateRepublisher {
     override suspend fun republishCurrentAccountState(account: ProviderAccount) {
         // Capture the epoch before the durable reads below. If another local edit or an account
@@ -51,10 +51,13 @@ internal class CurrentAccountQuotaStateRepublisher(
             localAccountId = persistedAccount.localAccountId.value,
         )?.toDomain()
 
-        val commitSelection = currentAccountReader.currentAccountSelection()
+        // Re-read the active selection inside commitIfFresh's mutex so a concurrent switch cannot
+        // race between the read and the publish.
         stateGuard.commitIfFresh(
             epoch = epoch,
-            selectedAccountId = commitSelection?.localAccountId,
+            selectedAccountIdProvider = {
+                currentAccountReader.currentAccountSelection()?.localAccountId
+            },
         ) {
             currentQuotaStatePublisher.publish(
                 currentQuotaStateFactory.create(

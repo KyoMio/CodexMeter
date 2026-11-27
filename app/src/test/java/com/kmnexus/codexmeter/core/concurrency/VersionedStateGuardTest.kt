@@ -1,6 +1,8 @@
 package com.kmnexus.codexmeter.core.concurrency
 
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -61,7 +63,6 @@ class VersionedStateGuardTest {
         val epoch = guard.captureReadToken(accountA)
         var writes = 0
 
-        // No generation bump at all: the account mismatch alone must discard the write.
         val committed = guard.commitIfFresh(epoch = epoch, selectedAccountId = accountB) { writes += 1 }
 
         assertFalse(committed)
@@ -96,16 +97,59 @@ class VersionedStateGuardTest {
     }
 
     @Test
-    fun `overlapping edits keep blocking commits until the last one finishes`() = runTest {
+    fun `overlapping edits keep epoch captured inside edit window stale even after endEdit`() = runTest {
         val guard = VersionedStateGuard()
         guard.beginEdit()
         guard.beginEdit()
         guard.endEdit()
         val epochDuringOverlap = guard.captureReadToken(accountA)
 
-        // One edit is still in flight: even an epoch captured right now must not commit.
+        // One edit is still in flight AND endEdit() advances generation, so the epoch captured
+        // mid-edit stays permanently stale after the final edit finishes.
         assertFalse(guard.isFresh(epochDuringOverlap, accountA))
         guard.endEdit()
-        assertTrue(guard.isFresh(epochDuringOverlap, accountA))
+        assertFalse(guard.isFresh(epochDuringOverlap, accountA))
+
+        val epochAfterAllEdits = guard.captureReadToken(accountA)
+        assertTrue(guard.isFresh(epochAfterAllEdits, accountA))
+    }
+
+    @Test
+    fun `unmatched endEdit throws instead of underflowing inFlightEdits`() {
+        val guard = VersionedStateGuard()
+
+        val error = runCatching { guard.endEdit() }.exceptionOrNull()
+
+        assertTrue(error is IllegalStateException)
+        assertEquals(0, guard.inFlightEdits)
+        assertTrue(guard.isFresh(guard.captureReadToken(accountA), accountA))
+    }
+
+    @Test
+    fun `commitIfFresh reads target account inside commitMutex after serialized switch`() = runTest {
+        val guard = VersionedStateGuard()
+        var currentSelected = accountA
+        val epochA = guard.captureReadToken(accountA)
+        val firstInsideMutex = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+
+        val first = async {
+            guard.commitSerialized {
+                firstInsideMutex.complete(Unit)
+                releaseFirst.await()
+                currentSelected = accountB
+            }
+        }
+        firstInsideMutex.await()
+
+        val second = async {
+            guard.commitIfFresh(epoch = epochA, selectedAccountIdProvider = { currentSelected }) {}
+        }
+        releaseFirst.complete(Unit)
+        first.await()
+        val secondCommitted = second.await()
+
+        assertFalse(secondCommitted)
+        assertEquals(1, guard.discardedWrites)
     }
 }

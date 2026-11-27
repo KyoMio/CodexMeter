@@ -1,6 +1,7 @@
 package com.kmnexus.codexmeter.data.repository
 
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.AlertStateEntity
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
@@ -69,6 +70,7 @@ class QuotaHistoryClearRepositoryTest {
         val repository = QuotaHistoryClearRepository(
             database = db,
             currentAccountReader = currentAccountReader,
+            stateGuard = VersionedStateGuard(),
         )
         try {
             block(db, currentAccountReader, repository)

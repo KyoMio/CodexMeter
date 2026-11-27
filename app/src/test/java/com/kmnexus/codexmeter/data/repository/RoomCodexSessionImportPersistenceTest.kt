@@ -2,6 +2,7 @@ package com.kmnexus.codexmeter.data.repository
 
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountPreferences
@@ -247,6 +248,7 @@ class RoomCodexSessionImportPersistenceTest {
             database = database,
             sessionStore = sessionStore,
             currentAccountStore = currentAccountStore ?: preferences,
+            stateGuard = VersionedStateGuard(),
             beforeRoomCommit = beforeRoomCommit,
         )
         try {

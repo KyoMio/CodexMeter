@@ -22,8 +22,23 @@ import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.domain.quota.QuotaWindow
 import com.kmnexus.codexmeter.domain.quota.QuotaWindowAvailability
+import com.kmnexus.codexmeter.domain.refresh.QuotaError
 import com.kmnexus.codexmeter.domain.refresh.RefreshAttempt
 import com.kmnexus.codexmeter.domain.refresh.RefreshTrigger
+import com.kmnexus.codexmeter.notification.AccountErrorEventReader
+import com.kmnexus.codexmeter.notification.AccountErrorNotificationEvent
+import com.kmnexus.codexmeter.notification.AccountErrorNotificationReason
+import com.kmnexus.codexmeter.notification.AlertThresholds
+import com.kmnexus.codexmeter.notification.CurrentQuotaNotificationPublisher
+import com.kmnexus.codexmeter.notification.NotificationAlertStateStore
+import com.kmnexus.codexmeter.notification.NotificationChannels
+import com.kmnexus.codexmeter.notification.NotificationRequest
+import com.kmnexus.codexmeter.notification.NotificationRequestOptions
+import com.kmnexus.codexmeter.notification.NotificationSink
+import com.kmnexus.codexmeter.notification.StaticAlertThresholdsReader
+import com.kmnexus.codexmeter.notification.StaticNotificationRequestOptionsReader
+import com.kmnexus.codexmeter.notification.AlertDedupeKey
+import com.kmnexus.codexmeter.notification.QuotaAlertEvent
 import com.kmnexus.codexmeter.domain.settings.DefaultPrimaryQuotaWindowPreferenceReader
 import java.time.Clock
 import java.time.Instant
@@ -409,6 +424,176 @@ class StaleWriteBackRegressionTest {
     }
 
 
+
+    @Test
+    fun `pinned non-default status notification account still updates when refreshed`() = runTest {
+        val guard = VersionedStateGuard()
+        val accountA = domainAccount("local-a", "Account A")
+        val accountB = domainAccount("local-b", "Account B")
+        val homeSelected = LocalAccountId("local-a")
+        val pinnedNotificationAccount = LocalAccountId("local-b")
+        val posted = mutableListOf<NotificationRequest>()
+        val notificationPublisher = CurrentQuotaNotificationPublisher(
+            notificationSink = NotificationSink { posted += it },
+            alertStateStore = object : NotificationAlertStateStore {
+                override suspend fun hasNotified(key: AlertDedupeKey) = false
+                override suspend fun markNotified(event: QuotaAlertEvent, notifiedAt: Instant) = Unit
+            },
+            optionsReader = StaticNotificationRequestOptionsReader(
+                NotificationRequestOptions(
+                    notificationPermissionAvailable = true,
+                    statusNotificationEnabled = true,
+                    quotaAlertsEnabled = false,
+                    accountErrorsEnabled = true,
+                ),
+            ),
+            alertThresholdsReader = StaticAlertThresholdsReader(AlertThresholds()),
+            accountErrorEventReader = AccountErrorEventReader { null },
+            clock = clock,
+        )
+        val notificationOnly = CompositeCurrentQuotaStatePublisher(listOf(notificationPublisher))
+        val refreshCoordinator = RefreshCoordinator(
+            provider = RefreshProvider { acc, _ ->
+                ProviderRefreshResult.Success(quotaSnapshot("snap-${acc.localAccountId.value}"))
+            },
+            snapshotStore = object : SnapshotStore {
+                override suspend fun save(snapshot: QuotaSnapshot) = Unit
+                override suspend fun latestFor(account: ProviderAccount): QuotaSnapshot? = null
+            },
+            attemptStore = object : RefreshAttemptStore {
+                override suspend fun save(attempt: RefreshAttempt) = Unit
+            },
+            currentQuotaStatePublisher = notificationOnly,
+            perAccountEffectsPublisher = notificationOnly,
+            attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-b") },
+            clock = clock,
+            stateGuard = guard,
+            // Production AppContainer resolves pinned persistentNotificationAccount first, falling back to Home.
+            selectedAccountReader = SelectedAccountReader {
+                assertEquals(LocalAccountId("local-a"), homeSelected)
+                pinnedNotificationAccount
+            },
+        )
+
+        refreshCoordinator.refresh(accountB, RefreshTrigger.Periodic)
+
+        val statusRequests = posted.filter { it.channelId == NotificationChannels.STATUS_CHANNEL_ID }
+        assertEquals(1, statusRequests.size)
+        assertEquals(listOf("Codex", "Account B"), statusRequests.single().title.formatArgs)
+        assertEquals(0, guard.discardedWrites)
+    }
+
+    @Test
+    fun `non-selected account failure still emits account error notification via per-account channel`() = runTest {
+        val guard = VersionedStateGuard()
+        val accountA = LocalAccountId("local-a")
+        val accountB = domainAccount("local-b", "Account B")
+        val posted = mutableListOf<NotificationRequest>()
+        val notificationPublisher = CurrentQuotaNotificationPublisher(
+            notificationSink = NotificationSink { posted += it },
+            alertStateStore = object : NotificationAlertStateStore {
+                override suspend fun hasNotified(key: AlertDedupeKey) = false
+                override suspend fun markNotified(event: QuotaAlertEvent, notifiedAt: Instant) = Unit
+            },
+            optionsReader = StaticNotificationRequestOptionsReader(
+                NotificationRequestOptions(
+                    notificationPermissionAvailable = true,
+                    statusNotificationEnabled = true,
+                    quotaAlertsEnabled = false,
+                    accountErrorsEnabled = true,
+                ),
+            ),
+            alertThresholdsReader = StaticAlertThresholdsReader(AlertThresholds()),
+            accountErrorEventReader = AccountErrorEventReader { state ->
+                if (state.account?.localAccountId == accountB.localAccountId) {
+                    AccountErrorNotificationEvent(AccountErrorNotificationReason.AuthRequired)
+                } else {
+                    null
+                }
+            },
+            clock = clock,
+        )
+        val notificationOnly = CompositeCurrentQuotaStatePublisher(listOf(notificationPublisher))
+        val refreshCoordinator = RefreshCoordinator(
+            provider = RefreshProvider { _, _ ->
+                ProviderRefreshResult.Failure(QuotaError.AuthRequired(httpStatus = 401, diagnosticsDigest = "401"))
+            },
+            snapshotStore = object : SnapshotStore {
+                override suspend fun save(snapshot: QuotaSnapshot) = Unit
+                override suspend fun latestFor(account: ProviderAccount): QuotaSnapshot? = null
+            },
+            attemptStore = object : RefreshAttemptStore {
+                override suspend fun save(attempt: RefreshAttempt) = Unit
+            },
+            currentQuotaStatePublisher = notificationOnly,
+            perAccountEffectsPublisher = notificationOnly,
+            attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-err") },
+            clock = clock,
+            stateGuard = guard,
+            selectedAccountReader = SelectedAccountReader { accountA },
+        )
+
+        refreshCoordinator.refresh(accountB, RefreshTrigger.Periodic)
+
+        val errorRequests = posted.filter { it.channelId == NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID }
+        assertEquals(1, errorRequests.size)
+        assertTrue(posted.none { it.channelId == NotificationChannels.STATUS_CHANNEL_ID })
+    }
+
+    @Test
+    fun `single refresh of selected account updates widget once when channels are split`() = runTest {
+        val guard = VersionedStateGuard()
+        val accountA = domainAccount("local-a", "Account A")
+        var widgetUpdates = 0
+        var notificationStatusUpdates = 0
+        var notificationEffectUpdates = 0
+
+        val widgetMember = object : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
+            override suspend fun publish(state: CurrentQuotaState) {
+                widgetUpdates++
+            }
+
+            override suspend fun publishAccountEffects(state: CurrentQuotaState) {
+                widgetUpdates++
+            }
+        }
+        val notificationMember = object : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
+            override suspend fun publish(state: CurrentQuotaState) {
+                notificationStatusUpdates++
+            }
+
+            override suspend fun publishAccountEffects(state: CurrentQuotaState) {
+                notificationEffectUpdates++
+            }
+        }
+
+        val fullComposite = CompositeCurrentQuotaStatePublisher(listOf(widgetMember, notificationMember))
+        val notificationOnly = CompositeCurrentQuotaStatePublisher(
+            fullComposite.members.filterNot { it === widgetMember },
+        )
+        val refreshCoordinator = RefreshCoordinator(
+            provider = RefreshProvider { _, _ -> ProviderRefreshResult.Success(quotaSnapshot("snap-a")) },
+            snapshotStore = object : SnapshotStore {
+                override suspend fun save(snapshot: QuotaSnapshot) = Unit
+                override suspend fun latestFor(account: ProviderAccount): QuotaSnapshot? = null
+            },
+            attemptStore = object : RefreshAttemptStore {
+                override suspend fun save(attempt: RefreshAttempt) = Unit
+            },
+            currentQuotaStatePublisher = notificationOnly,
+            perAccountEffectsPublisher = fullComposite,
+            attemptIdProvider = AttemptIdProvider { RefreshAttemptId("attempt-a") },
+            clock = clock,
+            stateGuard = guard,
+            selectedAccountReader = SelectedAccountReader { accountA.localAccountId },
+        )
+
+        refreshCoordinator.refresh(accountA, RefreshTrigger.Manual)
+
+        assertEquals(1, widgetUpdates)
+        assertEquals(1, notificationStatusUpdates)
+        assertEquals(1, notificationEffectUpdates)
+    }
 
     // endregion
 }

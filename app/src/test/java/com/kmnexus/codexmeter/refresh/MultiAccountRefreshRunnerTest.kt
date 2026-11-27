@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.refresh
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
@@ -50,6 +51,7 @@ class MultiAccountRefreshRunnerTest {
             attemptStore = NoopAttemptStore,
             attemptIdProvider = SequentialAttemptIdProvider(),
             clock = clock,
+            stateGuard = VersionedStateGuard(),
         )
 
     private fun account(localAccountId: String, status: AccountStatus): ProviderAccount =

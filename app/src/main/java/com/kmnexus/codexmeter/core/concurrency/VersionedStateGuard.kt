@@ -2,7 +2,7 @@ package com.kmnexus.codexmeter.core.concurrency
 
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -10,10 +10,6 @@ import kotlinx.coroutines.sync.withLock
  * Version token tying an asynchronous write-back to the account and state generation it started
  * from. The token is a plain value captured cheaply before network or database I/O and re-validated
  * at commit time; it never holds a lock across suspension points.
- *
- * @property accountId the local account the write-back is about
- * @property generation the state generation at capture time; any local edit that starts afterwards
- *   increments the generation and makes this token stale
  */
 data class SnapshotEpoch(
     val accountId: LocalAccountId,
@@ -24,39 +20,26 @@ data class SnapshotEpoch(
  * Compile-enforced defense against stale asynchronous write-backs (collab-rule A8: a late result
  * must never clobber newer state).
  *
- * The guard tracks two things:
- * - a monotonically increasing generation, bumped whenever a local edit (rename, deletion,
- *   re-selection) starts,
- * - the number of local edits currently in flight.
- *
- * Account identity is deliberately NOT stored here: the durable selection lives in DataStore and is
- * mutated by several repositories, so a cached copy inside the guard could itself go stale. Instead
- * the caller re-reads the selected account at commit time and passes it to [commitIfFresh].
- *
- * Writers capture an epoch with [captureReadToken] BEFORE starting their asynchronous work and must
- * funnel the write-back through [commitIfFresh]. The commit runs only when all of these hold:
- * 1. the generation has not advanced since capture (no edit started in between),
- * 2. no local edit is in flight right now (the durable stores may be mid-transition),
- * 3. the freshly re-read selected account is still the epoch's account.
- *
- * Otherwise the write is deterministically discarded and counted in [discardedWrites]. Because
- * [commitIfFresh] demands a [SnapshotEpoch] in its signature, a bare unguarded overwrite cannot be
- * expressed — the type system refuses it.
- *
- * The guard is UI-agnostic and diagnostics-safe: it exposes counters only, never account content.
+ * The guard tracks `(generation, inFlightEdits)` atomically in one [AtomicReference]:
+ * - [beginEdit] advances `generation` and increments `inFlightEdits`;
+ * - [endEdit] checks `inFlightEdits > 0`, advances `generation` again, and decrements
+ *   `inFlightEdits`. Advancing `generation` on both edges guarantees that an epoch captured inside
+ *   an overlapping edit window never becomes fresh once the edit finishes;
+ * - [commitIfFresh] reads the target account inside [commitMutex] and validates the epoch +
+ *   write atomically.
+ * - [commitSerialized] runs durable post-edit republishes under [commitMutex] so they cannot race
+ *   with a guarded write-back.
  */
 class VersionedStateGuard {
 
-    private val generationCounter = AtomicLong(0L)
-    private val inFlightEditCounter = AtomicInteger(0)
+    private data class GuardState(
+        val generation: Long = 0L,
+        val inFlightEdits: Int = 0,
+    )
+
+    private val guardState = AtomicReference(GuardState())
     private val discardedWriteCounter = AtomicInteger(0)
     private val committedWriteCounter = AtomicInteger(0)
-
-    // Validation and the write itself must be one indivisible unit against every other writer:
-    // publishing suspends (widget/notification IO), and without serialization a write that passed
-    // the freshness check can resume and land AFTER a newer local edit's republish, overwriting it
-    // (GH-PR12 review finding #2). Writers are few (refreshes + republishes), so one mutex is the
-    // simplest correct serialization — never lock per account, which would re-open the window.
     private val commitMutex = Mutex()
 
     /** Total write-backs discarded because their epoch was stale. Diagnostics-safe counter only. */
@@ -69,31 +52,50 @@ class VersionedStateGuard {
 
     /** Number of local edits currently executing. Exposed for tests and diagnostics. */
     val inFlightEdits: Int
-        get() = inFlightEditCounter.get()
+        get() = guardState.get().inFlightEdits
 
     /** Current generation. Exposed for tests and diagnostics. */
     val generation: Long
-        get() = generationCounter.get()
+        get() = guardState.get().generation
 
     /** Captures the epoch a new asynchronous operation starts from. */
     fun captureReadToken(accountId: LocalAccountId): SnapshotEpoch =
-        SnapshotEpoch(accountId = accountId, generation = generationCounter.get())
+        SnapshotEpoch(accountId = accountId, generation = guardState.get().generation)
 
     /**
-     * Marks a local edit (rename, deletion, re-selection) as started: the generation advances
-     * immediately so every epoch captured before this moment is already stale, and the in-flight
-     * count increments so commits during the edit window are dropped too.
+     * Marks a local edit (rename, deletion, re-selection, import, preference change) as started:
+     * atomically advances generation and increments the in-flight edit count.
      *
      * MUST be paired with [endEdit] in a finally block.
      */
     fun beginEdit() {
-        generationCounter.incrementAndGet()
-        inFlightEditCounter.incrementAndGet()
+        while (true) {
+            val current = guardState.get()
+            val next = GuardState(
+                generation = current.generation + 1L,
+                inFlightEdits = current.inFlightEdits + 1,
+            )
+            if (guardState.compareAndSet(current, next)) return
+        }
     }
 
-    /** Marks a local edit as finished. See [beginEdit]. */
+    /**
+     * Marks a local edit as finished: asserts [inFlightEdits] > 0 (never underflows), advances
+     * generation so any epoch captured during the edit window stays stale, and decrements the
+     * in-flight count.
+     */
     fun endEdit() {
-        inFlightEditCounter.decrementAndGet()
+        while (true) {
+            val current = guardState.get()
+            check(current.inFlightEdits > 0) {
+                "VersionedStateGuard.endEdit() called without a matching beginEdit()"
+            }
+            val next = GuardState(
+                generation = current.generation + 1L,
+                inFlightEdits = current.inFlightEdits - 1,
+            )
+            if (guardState.compareAndSet(current, next)) return
+        }
     }
 
     /**
@@ -101,27 +103,22 @@ class VersionedStateGuard {
      * and the freshly re-read [selectedAccountId] is still the epoch's account.
      */
     fun isFresh(epoch: SnapshotEpoch, selectedAccountId: LocalAccountId?): Boolean {
-        val generationUnchanged = epoch.generation == generationCounter.get()
-        val noEditInFlight = inFlightEditCounter.get() == 0
-        return generationUnchanged && noEditInFlight && epoch.accountId == selectedAccountId
+        val current = guardState.get()
+        return current.generation == epoch.generation &&
+            current.inFlightEdits == 0 &&
+            epoch.accountId == selectedAccountId
     }
 
     /**
-     * Applies [write] only when [epoch] is still fresh against the freshly re-read
-     * [selectedAccountId]; otherwise the write is dropped and counted.
-     *
-     * Validation and [write] run inside one mutex shared by every writer, so even if the write
-     * suspends halfway (publishing IO), a local edit's republish cannot slip in between and then
-     * get overwritten by this older write resuming afterwards. Callers MUST complete their
-     * preparatory reads before entering this function so the critical section stays short.
-     *
-     * @return true when the write was committed, false when it was discarded as stale.
+     * Reads the current target account inside [commitMutex], validates [epoch], and runs [write]
+     * atomically if still fresh; otherwise discards and counts the write.
      */
     suspend fun commitIfFresh(
         epoch: SnapshotEpoch,
-        selectedAccountId: LocalAccountId?,
+        selectedAccountIdProvider: suspend () -> LocalAccountId?,
         write: suspend () -> Unit,
     ): Boolean = commitMutex.withLock {
+        val selectedAccountId = selectedAccountIdProvider()
         if (isFresh(epoch, selectedAccountId)) {
             write()
             committedWriteCounter.incrementAndGet()
@@ -129,6 +126,28 @@ class VersionedStateGuard {
         } else {
             discardedWriteCounter.incrementAndGet()
             false
+        }
+    }
+
+    /** Convenience overload when the target account id is already resolved for the test. */
+    suspend fun commitIfFresh(
+        epoch: SnapshotEpoch,
+        selectedAccountId: LocalAccountId?,
+        write: suspend () -> Unit,
+    ): Boolean = commitIfFresh(
+        epoch = epoch,
+        selectedAccountIdProvider = { selectedAccountId },
+        write = write,
+    )
+
+    /**
+     * Serializes a post-mutation state republish under [commitMutex] so local edits cannot interleave
+     * with guarded refresh write-backs.
+     */
+    suspend fun commitSerialized(write: suspend () -> Unit) {
+        commitMutex.withLock {
+            write()
+            committedWriteCounter.incrementAndGet()
         }
     }
 }

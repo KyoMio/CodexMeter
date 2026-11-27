@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.app
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaFreshness
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaStatus
@@ -21,6 +22,7 @@ class RepublishingNotificationPreferenceStoreTest {
             delegate = delegate,
             currentQuotaStateLoader = HomeCurrentQuotaStateLoader { currentState },
             currentQuotaStatePublisher = publisher,
+            stateGuard = VersionedStateGuard(),
         )
         val preferences = NotificationPreferences(statusNotificationEnabled = false)
 
