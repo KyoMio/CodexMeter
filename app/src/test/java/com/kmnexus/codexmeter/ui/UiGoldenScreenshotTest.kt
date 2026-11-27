@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RoborazziComposeLocaleOption
 import com.github.takahirom.roborazzi.RoborazziComposeOptions
+import com.github.takahirom.roborazzi.RoborazziComposeSizeOption
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
@@ -71,16 +72,31 @@ class UiGoldenScreenshotTest {
         EN("en", "en"),
     }
 
-    private fun golden(name: String, locale: Locale, content: @Composable () -> Unit) {
-        captureRoboImage(
-            filePath = "src/test/roborazzi/${name}_${locale.suffix}.png",
-            roborazziComposeOptions = RoborazziComposeOptions.Builder()
+    /**
+     * Every capture pins three environment pieces, or the goldens depend on the machine running
+     * them: (1) the JVM default timezone drives the reset-time formatter — the same input renders
+     * differently per host zone (a UTC baseline failed on America/Los_Angeles and vice versa);
+     * (2) ValueAnimator duration scale gates every compose animation in this app — left enabled,
+     * the infinite status-dot halo keeps frames in flight and the capture races the breath cycle,
+     * which both stalls for tens of seconds and lands on a random halo radius; (3) the viewport
+     * height is fixed so a tall scene (the 2x2 grid) captures every row instead of clipping.
+     */
+    private fun golden(name: String, locale: Locale, heightDp: Int? = null, content: @Composable () -> Unit) {
+        withGoldenEnvironment {
+            val optionsBuilder = RoborazziComposeOptions.Builder()
                 .addOption(RoborazziComposeLocaleOption(locale.tag))
-                .build(),
-        ) {
-            CodexMeterTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    content()
+            if (heightDp != null) {
+                // widthDp 0 means "keep the default display width" — only the height grows.
+                optionsBuilder.addOption(RoborazziComposeSizeOption(0, heightDp))
+            }
+            captureRoboImage(
+                filePath = "src/test/roborazzi/${name}_${locale.suffix}.png",
+                roborazziComposeOptions = optionsBuilder.build(),
+            ) {
+                CodexMeterTheme {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        content()
+                    }
                 }
             }
         }
@@ -88,6 +104,10 @@ class UiGoldenScreenshotTest {
 
     private fun forEachLocale(block: (Locale) -> Unit) {
         Locale.entries.forEach(block)
+    }
+
+    private fun withGoldenEnvironment(block: () -> Unit) {
+        pinGoldenEnvironment(block)
     }
 
     // endregion
@@ -122,6 +142,7 @@ class UiGoldenScreenshotTest {
         tone: HomeStatusTone = HomeStatusTone.Neutral,
         statusLabelResId: Int = R.string.home_quota_status_normal,
         isPrimary: Boolean = false,
+        resetAt: Instant? = Instant.parse("2026-05-23T17:00:00Z"),
     ) = HomeQuotaCardUi(
         windowId = windowId,
         titleResId = titleResId,
@@ -133,7 +154,7 @@ class UiGoldenScreenshotTest {
         limitCount = null,
         subLabel = null,
         isPrimary = isPrimary,
-        resetAt = Instant.parse("2026-05-23T17:00:00Z"),
+        resetAt = resetAt,
         status = status,
         tone = tone,
         statusLabelResId = statusLabelResId,
@@ -153,12 +174,32 @@ class UiGoldenScreenshotTest {
         ),
     )
 
-    /** Antigravity's 2x2 grid: Gemini 5h/weekly + Claude-GPT 5h/weekly. */
+    /**
+     * Antigravity's 2x2 grid: Gemini 5h/weekly + Claude-GPT 5h/weekly, using the real summary-path
+     * window ids (`antigravity_{family}_{lane}_window`) and resolving their labels through the same
+     * production mapper the ViewModel uses — pinning raw string resources here would drift the
+     * golden away from what the screen actually renders. Each card gets a distinct reset instant
+     * so the second row's reset line is exercised, not just the first.
+     */
     private fun antigravityCards() = listOf(
-        percentCard("gemini_five_hour", R.string.home_quota_window_five_hour, 35, isPrimary = true),
-        percentCard("gemini_weekly", R.string.home_quota_window_weekly, 62),
-        percentCard("claude_gpt_five_hour", R.string.home_quota_window_five_hour, 12),
-        percentCard("claude_gpt_weekly", R.string.home_quota_window_weekly, 48),
+        antigravityCard("antigravity_gemini_5h_window", 35, hoursAhead = 5, isPrimary = true),
+        antigravityCard("antigravity_gemini_weekly_window", 62, daysAhead = 3),
+        antigravityCard("antigravity_claude_gpt_5h_window", 12, hoursAhead = 2),
+        antigravityCard("antigravity_claude_gpt_weekly_window", 48, daysAhead = 5),
+    )
+
+    private fun antigravityCard(
+        windowId: String,
+        usedPercent: Int,
+        hoursAhead: Int = 0,
+        daysAhead: Int = 0,
+        isPrimary: Boolean = false,
+    ) = percentCard(
+        windowId = windowId,
+        titleResId = com.kmnexus.codexmeter.ui.quota.quotaWindowLabelRes(windowId),
+        usedPercent = usedPercent,
+        isPrimary = isPrimary,
+        resetAt = fixedNow.plusSeconds((daysAhead * 24 + hoursAhead) * 3600L),
     )
 
     private fun homeState(
@@ -231,7 +272,10 @@ class UiGoldenScreenshotTest {
     @Test
     fun home_antigravityTwoByTwoGrid() {
         forEachLocale { locale ->
-            golden("home_antigravity_2x2", locale) {
+            // The default 470dp viewport clips the grid's second row at its title, so neither the
+            // second-row reset times nor any pixel below the fold is verified. A tall viewport
+            // makes the whole grid part of the golden.
+            golden("home_antigravity_2x2", locale, heightDp = 1200) {
                 HomeScreen(uiState = homeState(HomeContentStatus.Fresh, antigravityCards()))
             }
         }

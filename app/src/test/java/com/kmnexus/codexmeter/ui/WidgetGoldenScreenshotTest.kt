@@ -46,6 +46,7 @@ class WidgetGoldenScreenshotTest {
         heightDp: Int,
         state: WidgetQuotaState,
     ) {
+        pinGoldenEnvironment {
         captureRoboImage(
             filePath = "src/test/roborazzi/${name}_${locale.suffix}.png",
             roborazziComposeOptions = RoborazziComposeOptions.Builder()
@@ -70,6 +71,7 @@ class WidgetGoldenScreenshotTest {
                 },
                 modifier = Modifier.size(widthDp.dp, heightDp.dp),
             )
+        }
         }
     }
 
