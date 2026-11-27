@@ -5,26 +5,33 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.kmnexus.codexmeter.CodexMeterApp
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlinx.coroutines.runBlocking
 
 /**
  * Debug-only fixture injection receiver. NEVER shipped in release builds: this class lives in
  * the `debug` source set and is registered in `app/src/debug/AndroidManifest.xml` only.
  *
- * Usage from the host shell (the shell user can reach non-exported receivers, the standard
- * adb-driven debug pattern):
+ * The receiver is `android:exported="true"` and guarded by the signature-level permission
+ * `com.kmnexus.codexmeter.debug.permission.SEED_FIXTURE` (see `app/src/debug/AndroidManifest.xml`).
+ * Ordinary apps and `adb shell` (uid 2000) do not hold that permission on Android 12+, so the
+ * sanctioned host-shell invocation runs under `run-as`:
  *
  * ```
- * adb shell am broadcast \
+ * adb shell run-as com.kmnexus.codexmeter.debug \
+ *   am broadcast --user 0 \
  *   -a com.kmnexus.codexmeter.debug.SEED_FIXTURE \
+ *   -p com.kmnexus.codexmeter.debug \
  *   --es scenario antigravity_2x2_depleted \
- *   [--es mode seed|clean]
+ *   [--es mode seed|clean] [--es nonce <id>]
  * ```
  *
  * `mode` defaults to `seed` (idempotent: pre-existing fixture rows are wiped first); `clean`
  * removes every fixture account and restores a clean state. Completion is reported through
  * logcat markers (`CMFIXTURE_OK scenario=<name>` / `CMFIXTURE_ERR scenario=<name> error=<msg>`)
  * so a CLI driver can assert the outcome, and through the ordered-broadcast result code.
+ * Broadcasts are serialized on a single background executor to prevent interleaved store writes.
  */
 class DebugFixtureReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -39,10 +46,11 @@ class DebugFixtureReceiver : BroadcastReceiver() {
         val nonce = intent.getStringExtra(EXTRA_NONCE).orEmpty()
         val nonceSuffix = if (nonce.isEmpty()) "" else " nonce=$nonce"
         val pendingResult = goAsync()
-        Thread {
+        val appContext = context.applicationContext
+        executor.execute {
             runBlocking {
                 try {
-                    execute(context.applicationContext, scenarioName, mode)
+                    execute(appContext, scenarioName, mode)
                     Log.i(TAG, "$MARKER_OK scenario=$scenarioName mode=$mode$nonceSuffix")
                     pendingResult.setResultCode(RESULT_OK)
                 } catch (error: Throwable) {
@@ -52,7 +60,7 @@ class DebugFixtureReceiver : BroadcastReceiver() {
                     pendingResult.finish()
                 }
             }
-        }.start()
+        }
     }
 
     private suspend fun execute(context: Context, scenarioName: String, mode: String) {
@@ -88,5 +96,11 @@ class DebugFixtureReceiver : BroadcastReceiver() {
         const val RESULT_ERR = 2
 
         private const val TAG = "DebugFixtureReceiver"
+
+        // Serialize broadcasts so concurrent seed/clean calls cannot interleave FileSecureSessionStore
+        // or DataStore mutations.
+        private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, TAG).apply { isDaemon = true }
+        }
     }
 }

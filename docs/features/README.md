@@ -17,7 +17,7 @@
 
 - **Sub-features**：这个模块实际包含哪些子能力。
 - **User POV**：用户视角能看到/感到什么。
-- **CLI 驱动命令**：未来 `scripts/control-codexmeter.mjs`（CM-5）应提供的验证命令；当前 CLI 尚未交付，命令名为约定规格，作为验收输入。
+- **CLI 驱动命令**：通过 `scripts/control-codexmeter.mjs`（CM-5）执行的 debug 验证命令与 fixture 场景。
 - **Gotchas**：最容易踩错的边界、反直觉事实与历史变更。
 
 ## 重要纠偏：先读这两条

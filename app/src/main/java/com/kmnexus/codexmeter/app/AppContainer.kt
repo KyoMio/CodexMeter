@@ -938,14 +938,22 @@ class AppContainer private constructor(
                     quotaSnapshotDao = database.quotaSnapshotDao(),
                 ),
             ).apply {
-                // Debug-only seam handoff: fixture tooling (debug source set only) reads these
-                // handles to seed sanitized fake data. No scenario knowledge crosses this line.
-                debugFixtureBridge = DebugFixtureBridge(
-                    database = database,
-                    sessionStore = sessionStore,
-                    currentAccountStore = currentAccountPreferences,
-                    clock = clock,
-                )
+                if (BuildConfig.DEBUG) {
+                    // Debug-only seam handoff: fixture tooling (debug source set only) reads these
+                    // handles to seed sanitized fake data. No scenario knowledge crosses this line.
+                    debugFixtureBridge = DebugFixtureBridge(
+                        database = database,
+                        sessionStore = sessionStore,
+                        currentAccountStore = currentAccountPreferences,
+                        clock = clock,
+                        stateGuard = sharedStateGuard,
+                        deletedAccountStateCleaner = WidgetDeletedAccountStateCleaner(appContext),
+                        notificationPreferenceStore = notificationPreferences,
+                        republishCurrentState = {
+                            currentQuotaStatePublisher.publish(currentQuotaStateRepository.loadCurrentState())
+                        },
+                    )
+                }
             }
         }
 

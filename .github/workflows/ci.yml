@@ -10,9 +10,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   gate:
-    name: Quality gate (detekt + unit tests + golden screenshots + assembleDebug)
+    name: Quality gate (detekt + unit tests + golden screenshots + assembleDebug + compileReleaseKotlin)
     runs-on: ubuntu-latest
 
     steps:
@@ -21,11 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -42,6 +45,18 @@ jobs:
             "build-tools;37.0.0" \
             "platform-tools"
 
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -52,7 +67,25 @@ jobs:
       # first CI runs. If that happens, re-record baselines on the CI image
       # (documented in RULES.md section 19) rather than weakening the gate.
       - name: Gradle quality gate
-        run: ./gradlew detekt testDebugUnitTest verifyRoborazziDebug assembleDebug
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8"
+        run: ./gradlew detekt testDebugUnitTest verifyRoborazziDebug assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace
+
+      - name: Upload Roborazzi failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roborazzi-diff
+          path: |
+            app/src/test/roborazzi/*_compare.png
+            app/src/test/roborazzi/*_actual.png
+            app/build/outputs/roborazzi/
+            app/build/reports/roborazzi/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Control CLI checks
+        run: node --check scripts/control-codexmeter.mjs && node --test scripts/control-codexmeter.test.mjs
 
       - name: DESIGN.md lint
-        run: npx -y @google/design.md lint DESIGN.md
+        run: npx -y @google/design.md@0.4.0 lint DESIGN.md

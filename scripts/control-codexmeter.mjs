@@ -25,19 +25,42 @@
  *
  * Exit codes: 0 ok · 2 usage error · 3 environment missing · 4 device/adb failure · 5 app-side failure
  */
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 const PACKAGE = 'com.kmnexus.codexmeter.debug';
 const MAIN_ACTIVITY = `${PACKAGE}/com.kmnexus.codexmeter.MainActivity`;
 const FIXTURE_ACTION = 'com.kmnexus.codexmeter.debug.SEED_FIXTURE';
 const SCENARIOS = ['antigravity_2x2_depleted', 'codex_cf_blocked', 'kimi_active', 'multi_account_race'];
 
+const VALUE_FLAGS = new Set([
+  '--run-id',
+  '--scenario',
+  '--text',
+  '--xy',
+  '--name',
+  '--seconds',
+  '--lines',
+  '--out',
+  '--mode',
+  '--serial',
+]);
+
 // ---------------------------------------------------------------------------
 // Small utilities
 // ---------------------------------------------------------------------------
+
+export class UsageError extends Error {
+  constructor(message, hint = '', code = 2, json = false) {
+    super(message);
+    this.name = 'UsageError';
+    this.hint = hint;
+    this.code = code;
+    this.json = json;
+  }
+}
 
 function fail(message, hint, code = 2, json = false) {
   const payload = { ok: false, error: message, hint };
@@ -61,30 +84,77 @@ function emit(data, json) {
   }
 }
 
-function parseArgs(argv) {
-  const args = { _: [] };
+export function validateSafeSegment(flag, value, json = false) {
+  if (
+    typeof value !== 'string' ||
+    value.trim().length === 0 ||
+    value === '.' ||
+    value === '..' ||
+    value.includes('..') ||
+    value.includes('/') ||
+    value.includes('\\') ||
+    value.includes('\0')
+  ) {
+    throw new UsageError(
+      `${flag} 包含非法路径字符: ${String(value)}`,
+      `${flag} 仅允许单级文件名/标识，不能包含 ..、/、\\ 或空白`,
+      2,
+      json,
+    );
+  }
+  return value;
+}
+
+export function parseArgs(argv) {
+  const json = argv.includes('--json');
+  const args = { _: [], json };
+
+  const takeValue = (flag, index) => {
+    const next = argv[index + 1];
+    if (next === undefined || next.startsWith('--')) {
+      throw new UsageError(`${flag} 缺少参数值`, '用 --help 查看参数格式', 2, json);
+    }
+    return next;
+  };
+
+  const parsePositiveInt = (flag, raw) => {
+    const trimmed = raw.trim();
+    const num = Number(trimmed);
+    if (!trimmed || !Number.isInteger(num) || num <= 0) {
+      throw new UsageError(`${flag} 必须为正整数: ${raw}`, '例如 --seconds 10 或 --lines 500', 2, json);
+    }
+    return num;
+  };
+
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--json') args.json = true;
-    else if (a === '--run-id') args.runId = argv[++i];
-    else if (a === '--scenario') args.scenario = argv[++i];
-    else if (a === '--text') args.text = argv[++i];
-    else if (a === '--xy') args.xy = argv[++i];
-    else if (a === '--name') args.name = argv[++i];
-    else if (a === '--seconds') args.seconds = Number(argv[++i]);
-    else if (a === '--lines') args.lines = Number(argv[++i]);
-    else if (a === '--out') args.out = argv[++i];
-    else if (a === '--mode') args.mode = argv[++i];
-    else if (a === '--serial') args.serial = argv[++i];
-    else if (a.startsWith('--')) fail(`未知参数 ${a}`, '用 --help 查看支持参数', 2);
-    else args._.push(a);
+    else if (a === '--help' || a === '-h') args.help = true;
+    else if (VALUE_FLAGS.has(a)) {
+      const val = takeValue(a, i);
+      i++;
+      if (a === '--run-id') args.runId = validateSafeSegment(a, val, json);
+      else if (a === '--scenario') args.scenario = val;
+      else if (a === '--text') args.text = val;
+      else if (a === '--xy') args.xy = val;
+      else if (a === '--name') args.name = validateSafeSegment(a, val, json);
+      else if (a === '--seconds') args.seconds = parsePositiveInt(a, val);
+      else if (a === '--lines') args.lines = parsePositiveInt(a, val);
+      else if (a === '--out') args.out = val;
+      else if (a === '--mode') args.mode = val;
+      else if (a === '--serial') args.serial = val;
+    } else if (a.startsWith('--')) {
+      throw new UsageError(`未知参数 ${a}`, '用 --help 查看支持参数', 2, json);
+    } else {
+      args._.push(a);
+    }
   }
   return args;
 }
 
-function repoRoot() {
-  // scripts/ sits at the repo root; resolve relative to this file.
-  return resolve(new URL('..', import.meta.url).pathname);
+export function repoRoot() {
+  // scripts/ sits at the repo root; resolve relative to this file (spaces-safe via fileURLToPath).
+  return resolve(fileURLToPath(new URL('..', import.meta.url)));
 }
 
 function runDir(args) {
@@ -121,7 +191,7 @@ function adb(args, cmdArgs, { encoding = 'utf8', timeout = 30000 } = {}) {
   }
 }
 
-function devices(args) {
+function devices() {
   const bin = adbBin();
   if (!bin) return [];
   const out = execFileSync(bin, ['devices'], { encoding: 'utf8' });
@@ -138,7 +208,7 @@ function devices(args) {
 }
 
 function requireDevice(args) {
-  const list = devices(args).filter((d) => d.state === 'device');
+  const list = devices().filter((d) => d.state === 'device');
   if (args.serial) {
     const hit = list.find((d) => d.serial === args.serial);
     if (!hit) fail(`设备 ${args.serial} 不在线`, 'adb devices 确认序列号；模拟器用 emulator -avd <name> 启动', 4, args.json);
@@ -153,55 +223,123 @@ function requireDevice(args) {
   return list[0];
 }
 
-function waitForFixtureMarker(args, scenario, nonce, timeoutMs = 20000) {
+function pollFixtureMarker(args, scenario, nonce, timeoutMs = 20000) {
+  const bin = adbBin();
+  if (!bin) return { ok: false, error: 'adb-missing' };
   const started = Date.now();
   // The receiver echoes the nonce we passed; requiring it in the marker means we confirm
   // THIS execution and can never green-light on a stale marker from an earlier run.
-  const okNeedle = nonce ? `CMFIXTURE_OK scenario=${scenario}` : `CMFIXTURE_OK scenario=${scenario}`;
+  const okNeedle = `CMFIXTURE_OK scenario=${scenario}`;
+  const errNeedle = `CMFIXTURE_ERR scenario=${scenario}`;
   const nonceNeedle = nonce ? ` nonce=${nonce}` : '';
+  const serialArgs = args.serial ? ['-s', args.serial] : [];
   while (Date.now() - started < timeoutMs) {
-    // Tag must match the receiver's Log tag (DebugFixtureReceiver) — the receiver's
-    // Kotlin TAG constant is the single source of truth; keep these in sync.
-    const log = adb(args, ['logcat', '-d', '-s', 'DebugFixtureReceiver:*', '-t', '200'], { timeout: 10000 });
-    const okLine = log.split('\n').find((l) => l.includes(okNeedle) && (!nonce || l.includes(nonceNeedle)));
-    if (okLine) return { ok: true };
-    const errLine = log.split('\n').find((l) => l.includes(`CMFIXTURE_ERR scenario=${scenario}`) && (!nonce || l.includes(nonceNeedle)));
-    if (errLine) return { ok: false, error: errLine.trim() };
+    const res = spawnSync(
+      bin,
+      [...serialArgs, 'logcat', '-d', '-s', 'DebugFixtureReceiver:*', '-t', '200'],
+      { encoding: 'utf8', timeout: 10000 },
+    );
+    if (res.status === 0 && res.stdout) {
+      const lines = res.stdout.split('\n');
+      const okLine = lines.find((l) => l.includes(okNeedle) && (!nonce || l.includes(nonceNeedle)));
+      if (okLine) return { ok: true };
+      const errLine = lines.find((l) => l.includes(errNeedle) && (!nonce || l.includes(nonceNeedle)));
+      if (errLine) return { ok: false, error: errLine.trim() };
+    }
     spawnSync('sleep', ['1']);
   }
   return { ok: false, error: 'timeout' };
 }
 
+function waitForFixtureMarker(args, scenario, nonce, timeoutMs = 20000) {
+  // Ensure adb errors still surface loudly for seed-fixture.
+  adb(args, ['logcat', '-d', '-s', 'DebugFixtureReceiver:*', '-t', '1'], { timeout: 10000 });
+  return pollFixtureMarker(args, scenario, nonce, timeoutMs);
+}
+
 // ---------------------------------------------------------------------------
 // Credential redaction — anything token/cookie-shaped must never leave the device raw.
-// Keep patterns conservative: long bearer/JWT/base64-ish runs, cookie pairs, auth headers.
+// Use horizontal whitespace ([ \t]) so replacements never bleed across log lines.
 // ---------------------------------------------------------------------------
-// Note: `(access|refresh|id)` prefix is optional so a bare `token=` is redacted too,
-// and the cookie value stops at whitespace so the rest of the log line survives.
 const REDACTION_PATTERNS = [
+  // 1. JWTs
   [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g, '[REDACTED-JWT]'],
-  [/(Bearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, '$1[REDACTED]'],
-  [/((?:(?:access|refresh|id)[_-])?token["'\s:=]+)[A-Za-z0-9._~+/=-]{12,}/gi, '$1[REDACTED]'],
-  // Cookie/Set-Cookie headers: redact the ENTIRE header value, not just key=value pairs —
-  // cookie names can carry dots (connect.sid) or other characters a kv-shaped pattern
-  // misses, and a partial value is still a live credential. Matching stops at the first
-  // whitespace-delimited token without an `=` so trailing plain log text survives.
-  [/((?:set-)?cookie["'\s:=]+)((?:[^\s;=]+=[^;\s]*[;\s]*)+)/gi, (m, head) => head + '[REDACTED]'],
-  // JSON-embedded cookie fields: `"cookie":"value"` / `"set-cookie":"value"` anywhere in a
-  // payload — the header pattern above cannot see these because JSON quoting breaks its
-  // key=value shape. Value is redacted regardless of content.
-  [/("(?:set-)?cookie"\s*:\s*")[^"]*(")/gi, '$1[REDACTED]$2'],
-  [/(auth(?:orization)?["'\s:=]+)[A-Za-z0-9._~+/=-]{16,}/gi, '$1[REDACTED]'],
+
+  // 2. OAuth / callback URLs carrying error/code/state/code_verifier/token/secret query strings
+  [/([^\s?"'<>]*(?:auth|oauth|callback)[^\s?"'<>]*\?)(?=[^\s"'<>]*\berror=)[^\s"'<>]+/gi, '$1[REDACTED]'],
+  [
+    /([^\s?"'<>]+\?)(?=[^\s"'<>]*\b(?:code|state|code_verifier|codeVerifier|access_token|refresh_token|id_token|token|api_key|apiKey|client_secret|clientSecret)=)[^\s"'<>]+/gi,
+    '$1[REDACTED]',
+  ],
+
+  // 3. JSON string-valued credential fields (string quotes avoid clobbering numeric HTTP `"code": 200`)
+  [
+    /("(?:(?:set-)?cookie|authorization|(?:(?:access|refresh|id)[_-]?)?token|(?:access|refresh|id)Token|code|code[_-]?verifier|codeVerifier|state|x-api-key|api[_-]?key|apiKey|client[_-]?secret|clientSecret)"[ \t]*:[ \t]*")[^"]*(")/gi,
+    '$1[REDACTED]$2',
+  ],
+
+  // 4. Authorization / Proxy-Authorization headers (Bearer, Basic, Digest, etc.) + standalone Bearer
+  [
+    /\b((?:proxy-)?authorization[ \t]*[:=][ \t]*)(?:(Bearer|Basic|Token|Digest|ApiKey)[ \t]+)?[^\s,"'}\]]+/gi,
+    (_m, head, scheme) => (scheme ? `${head}${scheme} [REDACTED]` : `${head}[REDACTED]`),
+  ],
+  [/\b(Bearer[ \t]+)[^\s,"'}\]]+/gi, '$1[REDACTED]'],
+
+  // 5. Cookie / Set-Cookie headers (single-value, quoted, or multi-segment semicolon lists), stopping before trailing prose
+  [/\b((?:set-)?cookie[ \t]*[:=][ \t]*)(["'])[^"']*\2/gi, '$1$2[REDACTED]$2'],
+  [
+    /\b((?:set-)?cookie[ \t]*[:=][ \t]*)[^\s;,"'}\]]+(?:[ \t]*;[ \t]*[^\s;,"'}\]]+)*;?/gi,
+    '$1[REDACTED]',
+  ],
+
+  // 6. Auth code, API keys, client secrets, code_verifier, tokens, bare code=/state=
+  [/\b(auth(?:orization)?[ \t]+code[ \t]*[:=][ \t]*)[^\s,"'}\]]+/gi, '$1[REDACTED]'],
+  [
+    /(?<![A-Za-z0-9_-])((?:x-api-key|api[_-]?key|apiKey|client[_-]?secret|clientSecret|code[_-]?verifier|codeVerifier|(?:(?:access|refresh|id)[_-]?)?token)[ \t]*[:=][ \t]*)(["'])[^"']*\2/gi,
+    '$1$2[REDACTED]$2',
+  ],
+  [
+    /(?<![A-Za-z0-9_-])((?:x-api-key|api[_-]?key|apiKey|client[_-]?secret|clientSecret|code[_-]?verifier|codeVerifier|(?:(?:access|refresh|id)[_-]?)?token)[ \t]*[:=][ \t]*)[^\s&,"';)}\]]+/gi,
+    '$1[REDACTED]',
+  ],
+  [/(?<![A-Za-z0-9_-])((?:code|state)=)[^&\s"',;)}\]]+/gi, '$1[REDACTED]'],
+  [/(?<![A-Za-z0-9_-])(auth[ \t]*[:=][ \t]*)[A-Za-z0-9._~+/=:%-]{12,}/gi, '$1[REDACTED]'],
+
+  // 7. Known raw key/session prefixes
   [/sk-[A-Za-z0-9_-]{16,}/g, '[REDACTED-KEY]'],
   [/sess-[A-Za-z0-9_-]{16,}/g, '[REDACTED-SESSION]'],
 ];
 
-function redact(text) {
+export function redact(text) {
   let out = text;
   for (const [pattern, replacement] of REDACTION_PATTERNS) {
     out = out.replace(pattern, replacement);
   }
   return out;
+}
+
+export function filterLogcatLines(raw, pidSet) {
+  if (!raw) return [];
+  return raw
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .filter((line) => {
+      const m = /^\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+\s+(\d+)\s+\d+\s+\w\s+([^:]+):/.exec(line);
+      if (!m) return false;
+      if (pidSet && pidSet.has(m[1])) return true;
+      // Keep fixture markers even if the app process crashed or restarted mid-seed.
+      return m[2].trim() === 'DebugFixtureReceiver';
+    });
+}
+
+export function escapeAndroidInputText(text) {
+  if (/[\r\n]/.test(text)) {
+    throw new UsageError('type 不支持换行符', '请分段输入或使用 keyevent 发送回车', 2);
+  }
+  // Escape all Android sh -c metacharacters first, then map spaces to %s for `input text`.
+  return text
+    .replace(/([\\"'`$&;|<>()*?[\]#~!{}])/g, '\\$1')
+    .replace(/ /g, '%s');
 }
 
 // ---------------------------------------------------------------------------
@@ -258,9 +396,6 @@ function xmlToTree(xml) {
     else nodes.push(node);
     if (!tag.endsWith('/>')) stack.push(node);
   }
-  // Prune bottom-up: recurse first, then decide using the post-prune child list.
-  // Children arrays stay present until the very end — dropping them mid-recursion
-  // used to crash on unlabeled leaf nodes (children undefined when re-read).
   const prune = (n) => {
     const kept = n.children
       .map(prune)
@@ -298,13 +433,12 @@ function cmdDoctor(args) {
   check('adb', Boolean(bin), bin || '未找到', 'brew install --cask android-platform-tools（macOS）或安装 Android SDK Platform-Tools');
 
   if (bin) {
-    const devs = devices(args);
+    const devs = devices();
     const online = devs.filter((d) => d.state === 'device');
     check('device_online', online.length > 0, online.length ? online.map((d) => d.serial).join(', ') : '无在线设备', '启动模拟器：emulator -list-avds 查看后 emulator -avd <name>；或真机开启 USB 调试');
 
     if (online.length) {
       const serial = args.serial || online[0].serial;
-      const probe = { serial };
       const out = spawnSync(bin, ['-s', serial, 'shell', 'pm', 'list', 'packages', PACKAGE], { encoding: 'utf8' });
       const installed = (out.stdout || '').includes(PACKAGE);
       check('debug_apk_installed', installed, installed ? `${PACKAGE} 已安装` : '未安装', installed ? null : '运行: node scripts/control-codexmeter.mjs install-launch（会自动构建并安装）');
@@ -313,7 +447,7 @@ function cmdDoctor(args) {
 
   const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
   const javaVersion = (java.stderr || java.stdout || '').split('\n')[0] || '';
-  check('jdk', !java.error, javaVersion || '未找到', '安装 JDK 17：brew install temurin@17 或 Android Studio 自带 jbr');
+  check('jdk', !java.error, javaVersion || '未找到', '安装 JDK 21：brew install temurin@21 或 Android Studio 自带 jbr');
 
   const wrapperExists = existsSync(join(repoRoot(), 'gradlew'));
   check('gradle_wrapper', wrapperExists, wrapperExists ? 'gradlew 存在' : '缺失', '在仓库根目录运行本脚本（scripts/ 的上一级应有 gradlew）');
@@ -338,8 +472,6 @@ function cmdInstallLaunch(args) {
 }
 
 function cmdSeedFixture(args) {
-  // Validate arguments before touching the device so usage errors surface first.
-  // Mode is a strict whitelist: a typo must never fall through to an adb call.
   const mode = args.mode || 'seed';
   if (mode !== 'seed' && mode !== 'clean') {
     fail(`未知模式 ${mode}`, '只支持 seed 或 clean', 2, args.json);
@@ -350,7 +482,6 @@ function cmdSeedFixture(args) {
     if (!SCENARIOS.includes(scenario)) fail(`未知场景 ${scenario}`, `可选：${SCENARIOS.join(', ')}`, 2, args.json);
   }
   requireDevice(args);
-  // Make sure the debug app is installed before broadcasting.
   const pkg = adb(args, ['shell', 'pm', 'list', 'packages', PACKAGE]);
   if (!pkg.includes(PACKAGE)) {
     fail('debug 包未安装', '先运行: node scripts/control-codexmeter.mjs install-launch', 5, args.json);
@@ -359,21 +490,12 @@ function cmdSeedFixture(args) {
   const modeExtra = mode === 'seed'
     ? ['--es', 'scenario', scenario, '--es', 'mode', 'seed', '--es', 'nonce', nonce]
     : ['--es', 'mode', 'clean', '--es', 'nonce', nonce];
-  // The receiver is protected by a signature-level permission. The shell user (uid 2000)
-  // does NOT hold it — proven on Android 36: direct `am broadcast` is rejected at enqueue
-  // with "requires ...permission.SEED_FIXTURE". That rejection is exactly the boundary we
-  // want for ordinary apps. The sanctioned path is `run-as`: the broadcast then carries the
-  // app's own uid, which holds its own signature permission. `--user 0` is required because
-  // `am` otherwise defaults to user -2 and fails the cross-user check.
   adb(args, ['shell', 'run-as', PACKAGE, 'am', 'broadcast', '--user', '0', '-a', FIXTURE_ACTION, '-p', PACKAGE, ...modeExtra]);
   const target = mode === 'seed' ? scenario : 'clean';
   const result = waitForFixtureMarker(args, target, nonce);
   if (!result.ok) {
     fail(`fixture 注入失败或未确认（${target}）`, `查看 logcat-safe 输出排查；确认 DebugFixtureReceiver 已编入 debug 构建。错误: ${result.error || '无'}`, 5, args.json);
   }
-  // The injected rows are plain Room/DataStore writes: a RUNNING app does not re-read them
-  // reactively (proven end-to-end — the UI keeps its empty/previous state). Restart the app
-  // process so the production UI path renders the fixture state on the next open.
   adb(args, ['shell', 'am', 'force-stop', PACKAGE]);
   adb(args, ['shell', 'monkey', '-p', PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1']);
   emit({ ok: true, action: 'seed-fixture', scenario: mode === 'seed' ? scenario : undefined, mode, note: 'app restarted to render injected state' }, args.json);
@@ -381,7 +503,6 @@ function cmdSeedFixture(args) {
 
 function cmdSnapshot(args) {
   requireDevice(args);
-  // uiautomator dump writes on device; pull it back.
   adb(args, ['shell', 'uiautomator', 'dump', '/data/local/tmp/cm-ui.xml']);
   const xml = adb(args, ['shell', 'cat', '/data/local/tmp/cm-ui.xml']);
   if (!xml.includes('<hierarchy')) {
@@ -392,13 +513,6 @@ function cmdSnapshot(args) {
   const outFile = args.out || join(dir, `snapshot-${Date.now()}.json`);
   writeFileSync(outFile, JSON.stringify(tree, null, 2));
   emit(args.json ? { ok: true, path: outFile, nodes: tree } : { ok: true, path: outFile, preview: JSON.stringify(tree).slice(0, 400) }, args.json);
-}
-
-function loadLatestSnapshot(args) {
-  const dir = runDir(args);
-  const files = readdirSync(dir).filter((f) => f.startsWith('snapshot-')).sort();
-  if (!files.length) return null;
-  return JSON.parse(readFileSync(join(dir, files[files.length - 1]), 'utf8'));
 }
 
 function cmdTap(args) {
@@ -412,7 +526,6 @@ function cmdTap(args) {
   }
   if (!args.text) fail('tap 需要 --text <label> 或 --xy <x,y>', '', 2, args.json);
   requireDevice(args);
-  // Fresh snapshot, find the node whose text/desc matches, tap its center.
   adb(args, ['shell', 'uiautomator', 'dump', '/data/local/tmp/cm-ui.xml']);
   const xml = adb(args, ['shell', 'cat', '/data/local/tmp/cm-ui.xml']);
   const tree = xmlToTree(xml);
@@ -436,11 +549,19 @@ function cmdTap(args) {
 }
 
 function cmdType(args) {
-  requireDevice(args);
   const text = args._.join(' ') || args.text;
   if (!text) fail('type 需要文本参数', '例如: type hello-world', 2, args.json);
-  // input text does not handle spaces well; escape them.
-  adb(args, ['shell', 'input', 'text', text.replace(/ /g, '%s').replace(/([&<>|;'\\"$`])/g, '\\$1')]);
+  let escaped;
+  try {
+    escaped = escapeAndroidInputText(text);
+  } catch (err) {
+    if (err instanceof UsageError) {
+      fail(err.message, err.hint, err.code, args.json);
+    }
+    throw err;
+  }
+  requireDevice(args);
+  adb(args, ['shell', 'input', 'text', escaped]);
   emit({ ok: true, action: 'type', length: text.length }, args.json);
 }
 
@@ -462,48 +583,88 @@ function cmdScreenshot(args) {
 }
 
 function cmdRecord(args) {
+  const seconds = args.seconds !== undefined ? args.seconds : 10;
+  if (!Number.isFinite(seconds) || seconds <= 0 || seconds > 180) {
+    fail('--seconds 需在 1-180 之间', 'screenrecord 上限 180 秒', 2, args.json);
+  }
   requireDevice(args);
-  const seconds = Number.isFinite(args.seconds) ? args.seconds : 10;
-  if (seconds <= 0 || seconds > 180) fail('--seconds 需在 1-180 之间', 'screenrecord 上限 180 秒', 2, args.json);
+  const bin = adbBin();
+  if (!bin) {
+    fail('找不到 adb', '安装 Android SDK Platform-Tools 并设置 ANDROID_HOME', 3, args.json);
+  }
+  const serialArgs = args.serial ? ['-s', args.serial] : [];
   const dir = runDir(args);
   const name = args.name || `rec-${Date.now()}`;
   const devicePath = `/data/local/tmp/cm-rec-${process.pid}.mp4`;
   const out = join(dir, `${name}.mp4`);
   process.stderr.write(`录屏 ${seconds}s…\n`);
-  // screenrecord blocks for its duration; --time-limit makes it self-terminating.
-  spawnSync(adbBin(), [...(args.serial ? ['-s', args.serial] : []), 'shell', 'screenrecord', '--time-limit', String(seconds), devicePath], { timeout: (seconds + 15) * 1000 });
+
+  let recordError = null;
   try {
-    const buf = execFileSync(adbBin(), [...(args.serial ? ['-s', args.serial] : []), 'shell', 'cat', devicePath], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024, timeout: 30000 });
-    writeFileSync(out, buf);
-    adb(args, ['shell', 'rm', '-f', devicePath]);
-    emit({ ok: true, action: 'record', path: out, seconds }, args.json);
-  } catch {
-    fail('录屏文件拉取失败', '设备存储或 adb 传输问题；重试或检查设备剩余空间', 4, args.json);
+    const rec = spawnSync(
+      bin,
+      [...serialArgs, 'shell', 'screenrecord', '--time-limit', String(seconds), devicePath],
+      { encoding: 'utf8', timeout: (seconds + 15) * 1000 },
+    );
+    if (rec.error || rec.status !== 0) {
+      const detail = rec.error ? rec.error.message : (rec.stderr || '').trim() || `exit ${rec.status}`;
+      recordError = {
+        message: `screenrecord 执行失败 (${rec.status ?? 'err'})`,
+        hint: detail || '部分模拟器不支持 screenrecord，可在真机或支持的系统镜像上重试',
+      };
+    } else {
+      const pulled = spawnSync(bin, [...serialArgs, 'pull', devicePath, out], { encoding: 'utf8', timeout: 60000 });
+      if (pulled.error || pulled.status !== 0 || !existsSync(out)) {
+        const detail = pulled.error ? pulled.error.message : (pulled.stderr || '').trim();
+        recordError = {
+          message: '录屏文件拉取失败',
+          hint: detail || '设备存储或 adb pull 传输问题；重试或检查设备剩余空间',
+        };
+      }
+    }
+  } finally {
+    spawnSync(bin, [...serialArgs, 'shell', 'rm', '-f', devicePath], { encoding: 'utf8', timeout: 10000 });
   }
+
+  if (recordError) {
+    fail(recordError.message, recordError.hint, 4, args.json);
+  }
+  emit({ ok: true, action: 'record', path: out, seconds }, args.json);
 }
 
 function cmdLogcatSafe(args) {
+  const lines = args.lines !== undefined ? args.lines : 500;
   requireDevice(args);
-  const lines = Number.isFinite(args.lines) ? args.lines : 500;
-  const pidOut = adb(args, ['shell', 'pidof', PACKAGE]).trim();
-  // Parse with the structured threadtime format so PID filtering is exact:
-  // `MM-DD HH:MM:SS.mmm  PID  TID LEVEL Tag: message`. A loose substring match on
-  // the pid used to pull in any other process whose message happened to contain
-  // the same digits.
+  const bin = adbBin();
+  if (!bin) {
+    fail('找不到 adb', '安装 Android SDK Platform-Tools 并设置 ANDROID_HOME', 3, args.json);
+  }
+  const serialArgs = args.serial ? ['-s', args.serial] : [];
+  // Non-fatal pidof: if the app crashed or stopped (exit 1), keep running so DebugFixtureReceiver
+  // logs and crash evidence still reach logcat-safe output.
+  const pidRes = spawnSync(bin, [...serialArgs, 'shell', 'pidof', PACKAGE], { encoding: 'utf8', timeout: 10000 });
+  const pidList = pidRes.status === 0
+    ? (pidRes.stdout || '').trim().split(/\s+/).filter((p) => /^\d+$/.test(p))
+    : [];
+  const pidSet = new Set(pidList);
+
   const raw = adb(args, ['logcat', '-d', '-v', 'threadtime', '-t', String(lines)], { timeout: 15000 });
-  const filtered = raw.split('\n').filter((l) => {
-    const m = /^\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+\s+(\d+)\s+\d+\s+\w\s+([^:]+):/.exec(l);
-    if (!m) return false;
-    if (pidOut && m[1] === pidOut) return true;
-    // Keep fixture markers even if the app process restarts mid-seed (new pid).
-    return m[2].trim() === 'DebugFixtureReceiver';
-  });
+  const filtered = filterLogcatLines(raw, pidSet);
   const safe = redact(filtered.join('\n'));
   const dir = runDir(args);
   const out = join(dir, `logcat-${Date.now()}.log`);
   writeFileSync(out, safe);
   if (args.json) {
-    emit({ ok: true, path: out, pid: pidOut || null, lines: safe.split('\n').length }, args.json);
+    emit(
+      {
+        ok: true,
+        path: out,
+        pid: pidList.length ? pidList.join(' ') : null,
+        pids: pidList,
+        lines: filtered.length,
+      },
+      args.json,
+    );
   } else {
     process.stdout.write(safe.slice(-4000) + `\n---\nsaved: ${out}\n`);
   }
@@ -511,32 +672,58 @@ function cmdLogcatSafe(args) {
 
 function cmdCleanup(args) {
   const report = { ok: true, steps: {} };
-  const online = devices(args).filter((d) => d.state === 'device');
+  const online = devices().filter((d) => d.state === 'device');
   if (!online.length) {
     report.steps.device = 'offline-skip';
     emit(report, args.json);
     return;
   }
-  // Cleanup is best-effort by design: every step must tolerate its target being absent
-  // (no recording running, no temp files, app uninstalled) and let later steps proceed.
-  // The fatal adb() helper exits the process on any non-zero status, so cleanup runs
-  // its steps through a non-fatal variant and reports per-step outcomes.
+  // Reject ambiguous multi-device or missing --serial instead of silently failing adb while reporting ok: true.
+  requireDevice(args);
+
   const bin = adbBin();
+  const serialArgs = args.serial ? ['-s', args.serial] : [];
   const run = (cmdArgs) => {
-    const full = args.serial ? ['-s', args.serial, ...cmdArgs] : cmdArgs;
-    const r = spawnSync(bin, full, { encoding: 'utf8', timeout: 15000 });
+    const r = spawnSync(bin, [...serialArgs, ...cmdArgs], { encoding: 'utf8', timeout: 15000 });
     return { status: r.error ? -1 : r.status, stderr: (r.stderr || '').trim() };
   };
 
   const kill = run(['shell', 'pkill', '-f', 'screenrecord']);
-  // pkill exits 1 when nothing matched — that IS the goal state, not a failure.
   report.steps.screenrecord = kill.status === 0 ? 'killed' : kill.status === 1 ? 'none-running' : `error(${kill.status})`;
 
-  const rm = run(['shell', 'rm', '-f', '/data/local/tmp/cm-ui.xml']);
+  const rm = run(['shell', 'sh', '-c', 'rm -f /data/local/tmp/cm-ui.xml /data/local/tmp/cm-rec-*.mp4']);
   report.steps.tempFiles = rm.status === 0 ? 'removed' : `error(${rm.status})`;
 
-  const bc = run(['shell', 'run-as', PACKAGE, 'am', 'broadcast', '--user', '0', '-a', FIXTURE_ACTION, '-p', PACKAGE, '--es', 'mode', 'clean']);
-  report.steps.fixtures = bc.status === 0 ? 'clean-broadcast-sent' : 'clean-broadcast-failed';
+  const nonce = `clean-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const bc = run([
+    'shell',
+    'run-as',
+    PACKAGE,
+    'am',
+    'broadcast',
+    '--user',
+    '0',
+    '-a',
+    FIXTURE_ACTION,
+    '-p',
+    PACKAGE,
+    '--es',
+    'mode',
+    'clean',
+    '--es',
+    'nonce',
+    nonce,
+  ]);
+  if (bc.status !== 0) {
+    report.steps.fixtures = 'clean-broadcast-failed';
+  } else {
+    const marker = pollFixtureMarker(args, 'clean', nonce, 10000);
+    report.steps.fixtures = marker.ok ? 'cleaned' : `clean-broadcast-sent(${marker.error || 'unconfirmed'})`;
+  }
+
+  const stop = run(['shell', 'am', 'force-stop', PACKAGE]);
+  report.steps.forceStop = stop.status === 0 ? 'stopped' : `error(${stop.status})`;
+
   emit(report, args.json);
 }
 
@@ -560,7 +747,7 @@ const HELP = `control-codexmeter.mjs — CodexMeter debug 验证 CLI
   screenshot --name <tag>         截图 PNG 到运行目录
   record --seconds <n> --name <t> 录屏 mp4 到运行目录（1-180s）
   logcat-safe [--lines <n>]       应用日志（内置凭据脱敏）落盘+输出
-  cleanup                         终止录屏/清 fixture/清临时文件
+  cleanup                         终止录屏/清 fixture/清临时文件/force-stop
 
 全局选项:
   --json          JSON 输出（日志走 stderr）
@@ -576,7 +763,19 @@ function main() {
     process.exit(0);
   }
   const cmd = argv[0];
-  const args = parseArgs(argv.slice(1));
+  let args;
+  try {
+    args = parseArgs(argv.slice(1));
+  } catch (err) {
+    if (err instanceof UsageError) {
+      fail(err.message, err.hint, err.code, err.json);
+    }
+    throw err;
+  }
+  if (args.help) {
+    process.stdout.write(HELP + '\n');
+    process.exit(0);
+  }
   const commands = {
     doctor: cmdDoctor,
     'install-launch': cmdInstallLaunch,
@@ -595,4 +794,15 @@ function main() {
   fn(args);
 }
 
-main();
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1]);
+  }
+}
+
+if (isDirectExecution()) {
+  main();
+}
