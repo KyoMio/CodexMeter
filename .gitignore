@@ -114,3 +114,6 @@ tasks/
 .codegraph/
 .claude/
 .superpowers/
+
+# control-codexmeter verification run artifacts
+artifacts/cm-control/

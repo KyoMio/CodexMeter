@@ -586,6 +586,27 @@ DataStore 禁止保存任何 session 明文。
 ./gradlew assembleRelease
 ```
 
+### 19.1 CI 必过门禁（2026-11-27 收敛）
+
+CI（`.github/workflows/ci.yml`）与本地交付前的必过门禁收敛为一条龙：
+
+```bash
+./gradlew detekt testDebugUnitTest verifyRoborazziDebug assembleDebug && npx -y @google/design.md lint DESIGN.md
+```
+
+规则：
+
+- 这条命令任一环节失败都不允许交付；不允许跳过某一环节换取绿色。
+- Roborazzi 黄金基线在 macOS 开发机上录制。Linux CI 的字体渲染不同，首次接入若 `verifyRoborazziDebug` 报像素 diff，处理方式是在 CI 镜像上重新录制基线（`recordRoborazziDebug` 产物随提交更新），而不是放宽阈值或删除用例。
+- 没有 Android SDK / JDK 时，必须在结果里明确说明验证受限，门禁状态如实上报。
+
+### 19.2 Issue 复现铁律（Repro-first）
+
+凡接到线上兼容性或 UI 故障类 Issue（如 GH-ISSUE5 / GH-ISSUE7 一类），修复前必须先稳定复现：
+
+1. 用 MockWebServer 抓包单测，或 `node scripts/control-codexmeter.mjs seed-fixture --scenario <name>` 在 debug 包注入脱敏场景，至少稳定复现 2 次，保存截图/日志；
+2. 修复交付物必须自带视觉证据（Roborazzi 前后对比或模拟器截图）+ 单元测试输出；缺视觉证据的 UI/Provider 变更不允许交付合并。
+
 规则：
 
 - 不允许提交无法构建的代码。

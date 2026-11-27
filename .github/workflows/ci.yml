@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Quality gate (detekt + unit tests + golden screenshots + assembleDebug)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # NOTE: the Roborazzi golden baselines were recorded on macOS; Linux font
+      # rasterization differs, so verifyRoborazziDebug may report pixel diffs on
+      # first CI runs. If that happens, re-record baselines on the CI image
+      # (documented in RULES.md section 19) rather than weakening the gate.
+      - name: Gradle quality gate
+        run: ./gradlew detekt testDebugUnitTest verifyRoborazziDebug assembleDebug
+
+      - name: DESIGN.md lint
+        run: npx -y @google/design.md lint DESIGN.md
