@@ -182,10 +182,15 @@ const REDACTION_PATTERNS = [
   [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g, '[REDACTED-JWT]'],
   [/(Bearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, '$1[REDACTED]'],
   [/((?:(?:access|refresh|id)[_-])?token["'\s:=]+)[A-Za-z0-9._~+/=-]{12,}/gi, '$1[REDACTED]'],
-  // Cookie/Set-Cookie: redact EVERY key=value pair in the header run, not just the first —
-  // `Cookie: a=1; b=2` must not leak b. The kv sequence stops at the first token without
-  // an `=`, so trailing normal log text survives.
-  [/((?:set-)?cookie["'\s:=]+)((?:[\w-]+=[^;\s]+[;\s]*)+)/gi, (m, head, kvs) => head + kvs.replace(/[\w-]+=[^;\s]+/g, '[REDACTED]')],
+  // Cookie/Set-Cookie headers: redact the ENTIRE header value, not just key=value pairs —
+  // cookie names can carry dots (connect.sid) or other characters a kv-shaped pattern
+  // misses, and a partial value is still a live credential. Matching stops at the first
+  // whitespace-delimited token without an `=` so trailing plain log text survives.
+  [/((?:set-)?cookie["'\s:=]+)((?:[^\s;=]+=[^;\s]*[;\s]*)+)/gi, (m, head) => head + '[REDACTED]'],
+  // JSON-embedded cookie fields: `"cookie":"value"` / `"set-cookie":"value"` anywhere in a
+  // payload — the header pattern above cannot see these because JSON quoting breaks its
+  // key=value shape. Value is redacted regardless of content.
+  [/("(?:set-)?cookie"\s*:\s*")[^"]*(")/gi, '$1[REDACTED]$2'],
   [/(auth(?:orization)?["'\s:=]+)[A-Za-z0-9._~+/=-]{16,}/gi, '$1[REDACTED]'],
   [/sk-[A-Za-z0-9_-]{16,}/g, '[REDACTED-KEY]'],
   [/sess-[A-Za-z0-9_-]{16,}/g, '[REDACTED-SESSION]'],

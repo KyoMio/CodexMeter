@@ -2,10 +2,12 @@
 
     <!-- Debug-only fixture injection permission. `signature` protection means only packages
          signed with the same key can hold it — no ordinary app can ever acquire it, so no
-         ordinary app can trigger fixture injection. The adb shell user is exempt from
-         signature permission checks (ActivityManagerService grants implicit permission to
-         root/shell), which is exactly the intended adb-driven test path. This permission
-         declaration and the receiver below exist ONLY in the debug manifest merge. -->
+         ordinary app can trigger fixture injection. NOTE: the adb shell user (uid 2000) is
+         NOT exempt — Android 12+ rejects even shell-origin broadcasts lacking the permission
+         (proven on Android 36). The sanctioned adb path invokes am broadcast through
+         run-as with the user-zero flag, so the call carries the app's own uid and therefore
+         its own signature permission. This permission declaration and the receiver below exist ONLY in the
+         debug manifest merge. -->
     <permission
         android:name="com.kmnexus.codexmeter.debug.permission.SEED_FIXTURE"
         android:protectionLevel="signature" />
@@ -30,7 +32,9 @@
         <!-- Exported because Android 12+ policy rejects even shell-origin broadcasts to
              non-exported receivers (the failure mode CM-5 R1 item 1 proved). Reachability
              for ordinary apps is still impossible: the receiver requires the signature-level
-             SEED_FIXTURE permission above, which only same-signature packages can hold. -->
+             SEED_FIXTURE permission above, which only same-signature packages can hold —
+             and the shell user does not hold it either, so the only working caller is
+             `run-as` carrying the app's own uid (see the permission comment above). -->
         <receiver
             android:name=".debug.DebugFixtureReceiver"
             android:exported="true"
