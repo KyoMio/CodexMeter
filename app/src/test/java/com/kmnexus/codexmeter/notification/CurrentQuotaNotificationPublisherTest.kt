@@ -46,7 +46,7 @@ class CurrentQuotaNotificationPublisherTest {
     }
 
     @Test
-    fun `publish posts quota alert once and records dedupe state`() = runTest {
+    fun `publishAccountEffects posts quota alert once and records dedupe state`() = runTest {
         val sink = RecordingNotificationSink()
         val alertStateStore = RecordingNotificationAlertStateStore()
         val publisher = publisher(
@@ -60,8 +60,8 @@ class CurrentQuotaNotificationPublisherTest {
             ),
         )
 
-        publisher.publish(state(usedPercent = 92))
-        publisher.publish(state(usedPercent = 92))
+        publisher.publishAccountEffects(state(usedPercent = 92))
+        publisher.publishAccountEffects(state(usedPercent = 92))
 
         assertEquals(listOf(NotificationChannels.QUOTA_ALERTS_CHANNEL_ID), sink.requests.map { it.channelId })
         assertEquals(1, alertStateStore.markedKeys.size)
@@ -70,7 +70,7 @@ class CurrentQuotaNotificationPublisherTest {
     }
 
     @Test
-    fun `publish evaluates quota alerts with persisted warning threshold`() = runTest {
+    fun `publishAccountEffects evaluates quota alerts with persisted warning threshold`() = runTest {
         val sink = RecordingNotificationSink()
         val alertStateStore = RecordingNotificationAlertStateStore()
         val publisher = publisher(
@@ -85,14 +85,14 @@ class CurrentQuotaNotificationPublisherTest {
             thresholds = AlertThresholds(caution = 30, warning = 15, limit = 0),
         )
 
-        publisher.publish(state(usedPercent = 86))
+        publisher.publishAccountEffects(state(usedPercent = 86))
 
         assertEquals(listOf(NotificationChannels.QUOTA_ALERTS_CHANNEL_ID), sink.requests.map { it.channelId })
         assertEquals(15.0, alertStateStore.markedKeys.single().threshold, 0.0)
     }
 
     @Test
-    fun `publish posts quota alert for enabled refreshed account window`() = runTest {
+    fun `publishAccountEffects posts quota alert for enabled refreshed account window`() = runTest {
         val sink = RecordingNotificationSink()
         val alertStateStore = RecordingNotificationAlertStateStore()
         val publisher = publisher(
@@ -109,7 +109,7 @@ class CurrentQuotaNotificationPublisherTest {
             ),
         )
 
-        publisher.publish(
+        publisher.publishAccountEffects(
             state(
                 usedPercent = 40,
                 snapshotWindows = listOf(
@@ -183,6 +183,7 @@ class CurrentQuotaNotificationPublisherTest {
         )
 
         publisher.publish(state(usedPercent = 92))
+        publisher.publishAccountEffects(state(usedPercent = 92))
 
         assertTrue(sink.requests.isEmpty())
         assertTrue(alertStateStore.markedKeys.isEmpty())
@@ -230,7 +231,7 @@ class CurrentQuotaNotificationPublisherTest {
     }
 
     @Test
-    fun `publish records alert dedupe after alert post even when later request fails`() = runTest {
+    fun `publishAccountEffects records alert dedupe after alert post even when later request fails`() = runTest {
         val alertStateStore = RecordingNotificationAlertStateStore()
         val sink = ThrowingAfterAlertNotificationSink()
         val publisher = publisher(
@@ -245,7 +246,7 @@ class CurrentQuotaNotificationPublisherTest {
         )
 
         runCatching {
-            publisher.publish(
+            publisher.publishAccountEffects(
                 state(
                     usedPercent = 92,
                     status = CurrentQuotaStatus.AuthRequired,

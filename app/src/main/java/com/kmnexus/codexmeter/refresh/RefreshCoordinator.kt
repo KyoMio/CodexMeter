@@ -18,6 +18,7 @@ import com.kmnexus.codexmeter.domain.settings.DefaultPrimaryQuotaWindowPreferenc
 import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceReader
 import java.time.Clock
 import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
@@ -44,6 +45,7 @@ class RefreshCoordinator(
     private val clock: Clock,
     private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
     private val selectedAccountReader: SelectedAccountReader? = null,
+    private val perAccountEffectsPublisher: PerAccountQuotaEffectPublisher = NoopPerAccountQuotaEffectPublisher,
 ) {
     private val inFlightMutex = Mutex()
     private val inFlight = mutableMapOf<RefreshKey, CompletableDeferred<RefreshResult>>()
@@ -227,28 +229,42 @@ class RefreshCoordinator(
         latestAttempt: RefreshAttempt,
         epoch: SnapshotEpoch,
     ) {
+        val state = currentQuotaStateFactory.create(
+            account = account,
+            latestSnapshot = latestSnapshot,
+            latestAttempt = latestAttempt,
+            now = clock.instant(),
+            primaryWindowId = primaryQuotaWindowPreferenceReader.primaryQuotaWindowId(),
+        )
+
+        // Per-account effects (quota alerts, widget state) belong to the refreshed account itself:
+        // they fire for EVERY successful refresh regardless of which account is selected. Only the
+        // "current account" presentation write-back below is epoch-guarded. Spec: any alert-enabled
+        // account window can trigger threshold alerts (docs/SPEC.md alert rules).
+        try {
+            perAccountEffectsPublisher.publishAccountEffects(state)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            // Presentation effects must not turn a successful refresh into a refresh failure.
+        }
+
         // The durable snapshot/attempt writes above are keyed per account and always correct;
-        // what must be defended is the "current state" write-back to widgets/notifications. The
+        // what must be defended is the "current state" write-back to the status notification. The
         // selection is re-read HERE, at commit time, so an account switch that happened while the
         // network call was in flight is observed even if it never touched the guard's generation.
         // A missing reader means the account dimension cannot be checked (tests that predate the
         // guard) — fall back to the epoch's own account so generation/edit protection still applies.
         // A reader that answers null means "no account selected": the commit correctly mismatches.
+        // All preparatory reads (state construction above, selection here) are done BEFORE entering
+        // commitIfFresh so its serialized critical section covers only validation + the write.
         val selectedAccountId = if (selectedAccountReader != null) {
             selectedAccountReader.selectedAccountId()
         } else {
             epoch.accountId
         }
         stateGuard.commitIfFresh(epoch = epoch, selectedAccountId = selectedAccountId) {
-            currentQuotaStatePublisher.publish(
-                currentQuotaStateFactory.create(
-                    account = account,
-                    latestSnapshot = latestSnapshot,
-                    latestAttempt = latestAttempt,
-                    now = clock.instant(),
-                    primaryWindowId = primaryQuotaWindowPreferenceReader.primaryQuotaWindowId(),
-                ),
-            )
+            currentQuotaStatePublisher.publish(state)
         }
     }
 
@@ -271,6 +287,20 @@ class RefreshCoordinator(
  */
 fun interface SelectedAccountReader {
     suspend fun selectedAccountId(): LocalAccountId?
+}
+
+/**
+ * Per-account effects of a completed refresh: threshold alerts and widget updates belong to the
+ * account that was refreshed, not to whichever account is currently selected. Implementations must
+ * never use this channel to overwrite current-account presentation state — that path is the
+ * epoch-guarded [CurrentQuotaStatePublisher].
+ */
+fun interface PerAccountQuotaEffectPublisher {
+    suspend fun publishAccountEffects(state: CurrentQuotaState)
+}
+
+private object NoopPerAccountQuotaEffectPublisher : PerAccountQuotaEffectPublisher {
+    override suspend fun publishAccountEffects(state: CurrentQuotaState) = Unit
 }
 
 fun interface RefreshProvider {

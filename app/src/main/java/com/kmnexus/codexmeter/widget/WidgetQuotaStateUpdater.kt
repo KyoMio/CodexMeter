@@ -8,6 +8,7 @@ import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.refresh.CurrentQuotaStatePublisher
+import com.kmnexus.codexmeter.refresh.PerAccountQuotaEffectPublisher
 
 class WidgetQuotaStateUpdater(
     context: Context,
@@ -16,8 +17,13 @@ class WidgetQuotaStateUpdater(
     private val notificationPreferenceReader: NotificationPreferenceReader =
         DefaultWidgetNotificationPreferenceReader,
     private val widgetQuotaStateLoader: WidgetQuotaStateLoader? = null,
-) : CurrentQuotaStatePublisher {
+) : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
     private val appContext = context.applicationContext
+
+    // Widgets are per-account surfaces: a widget pinned to account B must reflect B's refresh even
+    // when A is the selected account. This channel is the per-account one — it fires on every
+    // refresh; the loader re-reads durable per-account state so nothing current-scoped is clobbered.
+    override suspend fun publishAccountEffects(state: CurrentQuotaState) = publish(state)
 
     override suspend fun publish(state: CurrentQuotaState) {
         val notificationPreferences = notificationPreferenceReader.notificationPreferences()

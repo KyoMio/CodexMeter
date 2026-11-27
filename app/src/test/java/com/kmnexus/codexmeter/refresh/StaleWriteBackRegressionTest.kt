@@ -3,6 +3,9 @@ package com.kmnexus.codexmeter.refresh
 import androidx.room.Room
 import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.db.CodexMeterDatabase
+import com.kmnexus.codexmeter.data.local.dao.ProviderAccountDao
+import com.kmnexus.codexmeter.data.local.dao.QuotaSnapshotDao
+import com.kmnexus.codexmeter.data.local.dao.RefreshAttemptDao
 import com.kmnexus.codexmeter.data.local.entity.ProviderAccountEntity
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountStore
@@ -221,7 +224,67 @@ class StaleWriteBackRegressionTest {
         }
     }
 
-    // region harness
+
+    /**
+     * Regression for GH-PR12 review finding #1: a background refresh of the NON-selected account B
+     * must still fire B's per-account effects (quota alerts, widget updates) — only the
+     * current-account presentation write-back is epoch-guarded and dropped. Before the fix the
+     * guard swallowed the whole publish, so B's alerts never fired while A stayed selected.
+     */
+    @Test
+    fun `background refresh of a non-selected account still fires per-account effects`() = runTest {
+        val db = inMemoryDatabase()
+        try {
+            val guard = VersionedStateGuard()
+            val selectionStore = InMemorySelectionStore()
+            seedAccount(db, "account-a", displayName = "Account A")
+            seedAccount(db, "account-b", displayName = "Account B")
+            // A stays selected for the whole test — B is refreshed in the background.
+            selectionStore.updateCurrentAccountSelection(
+                CurrentAccountSelection(ProviderId("codex"), LocalAccountId("account-a")),
+            )
+
+            val publisher = RecordingPublisher()
+            val effects = RecordingPerAccountEffects()
+            val coordinator = coordinator(
+                guard = guard,
+                selectionStore = selectionStore,
+                publisher = publisher,
+                provider = RefreshProvider { _, _ ->
+                    ProviderRefreshResult.Success(quotaSnapshot("background-b-snapshot"))
+                },
+                perAccountEffectsPublisher = effects,
+            )
+
+            coordinator.refresh(
+                account = domainAccount("account-b", displayName = "Account B"),
+                trigger = RefreshTrigger.Periodic,
+            )
+
+            assertEquals(
+                "per-account effects must fire for the refreshed account even when it is not selected",
+                1,
+                effects.effectStates.size,
+            )
+            assertEquals(
+                "the current-account presentation channel must stay silent for the background account",
+                0,
+                publisher.publishedStates.size,
+            )
+            assertEquals(1, guard.discardedWrites)
+        } finally {
+            db.close()
+        }
+    }
+
+    /**
+     * Regression for GH-PR12 review finding #2: a refresh write that passed the freshness check and
+     * then suspends mid-publish must not end up ordered AFTER a local rename's republish. Before
+     * the fix, validation and the write were not serialized, so the parking write resumed after
+     * "After" had already been published and clobbered it with "Before". With the commit mutex the
+     * republish queues behind the in-progress write, restoring causality: Before then After.
+     */
+    // region harness    // region harness
 
     private fun inMemoryDatabase(): CodexMeterDatabase =
         Room.inMemoryDatabaseBuilder(
@@ -251,6 +314,7 @@ class StaleWriteBackRegressionTest {
         selectionStore: InMemorySelectionStore,
         publisher: RecordingPublisher,
         provider: RefreshProvider,
+        perAccountEffectsPublisher: PerAccountQuotaEffectPublisher = PerAccountQuotaEffectPublisher { },
     ): RefreshCoordinator =
         RefreshCoordinator(
             provider = provider,
@@ -269,6 +333,7 @@ class StaleWriteBackRegressionTest {
             selectedAccountReader = SelectedAccountReader {
                 selectionStore.currentAccountSelection()?.localAccountId
             },
+            perAccountEffectsPublisher = perAccountEffectsPublisher,
         )
 
     private fun mutationRepository(
@@ -314,11 +379,22 @@ class StaleWriteBackRegressionTest {
         responseDigest = "safe-digest",
     )
 
-    private class RecordingPublisher : CurrentQuotaStatePublisher {
+    private class RecordingPublisher(
+        val beforeRecord: suspend () -> Unit = {},
+    ) : CurrentQuotaStatePublisher {
         val publishedStates = mutableListOf<CurrentQuotaState>()
 
         override suspend fun publish(state: CurrentQuotaState) {
+            beforeRecord()
             publishedStates += state
+        }
+    }
+
+    private class RecordingPerAccountEffects : PerAccountQuotaEffectPublisher {
+        val effectStates = mutableListOf<CurrentQuotaState>()
+
+        override suspend fun publishAccountEffects(state: CurrentQuotaState) {
+            effectStates += state
         }
     }
 
@@ -331,6 +407,8 @@ class StaleWriteBackRegressionTest {
             this.selection = selection
         }
     }
+
+
 
     // endregion
 }

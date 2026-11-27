@@ -3,6 +3,8 @@ package com.kmnexus.codexmeter.core.concurrency
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Version token tying an asynchronous write-back to the account and state generation it started
@@ -49,6 +51,13 @@ class VersionedStateGuard {
     private val inFlightEditCounter = AtomicInteger(0)
     private val discardedWriteCounter = AtomicInteger(0)
     private val committedWriteCounter = AtomicInteger(0)
+
+    // Validation and the write itself must be one indivisible unit against every other writer:
+    // publishing suspends (widget/notification IO), and without serialization a write that passed
+    // the freshness check can resume and land AFTER a newer local edit's republish, overwriting it
+    // (GH-PR12 review finding #2). Writers are few (refreshes + republishes), so one mutex is the
+    // simplest correct serialization — never lock per account, which would re-open the window.
+    private val commitMutex = Mutex()
 
     /** Total write-backs discarded because their epoch was stale. Diagnostics-safe counter only. */
     val discardedWrites: Int
@@ -101,14 +110,19 @@ class VersionedStateGuard {
      * Applies [write] only when [epoch] is still fresh against the freshly re-read
      * [selectedAccountId]; otherwise the write is dropped and counted.
      *
+     * Validation and [write] run inside one mutex shared by every writer, so even if the write
+     * suspends halfway (publishing IO), a local edit's republish cannot slip in between and then
+     * get overwritten by this older write resuming afterwards. Callers MUST complete their
+     * preparatory reads before entering this function so the critical section stays short.
+     *
      * @return true when the write was committed, false when it was discarded as stale.
      */
     suspend fun commitIfFresh(
         epoch: SnapshotEpoch,
         selectedAccountId: LocalAccountId?,
         write: suspend () -> Unit,
-    ): Boolean {
-        return if (isFresh(epoch, selectedAccountId)) {
+    ): Boolean = commitMutex.withLock {
+        if (isFresh(epoch, selectedAccountId)) {
             write()
             committedWriteCounter.incrementAndGet()
             true

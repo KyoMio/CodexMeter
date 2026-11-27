@@ -9,6 +9,7 @@ import com.kmnexus.codexmeter.domain.model.QuotaWindowId
 import com.kmnexus.codexmeter.domain.quota.CurrentQuotaState
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.refresh.CurrentQuotaStatePublisher
+import com.kmnexus.codexmeter.refresh.PerAccountQuotaEffectPublisher
 import java.time.Clock
 import java.time.Instant
 
@@ -27,38 +28,11 @@ class CurrentQuotaNotificationPublisher(
     private val clock: Clock,
     private val currencyPreferenceReader: CurrencyPreferenceReader = NoopCurrencyPreferenceReader,
     private val exchangeRateReader: ExchangeRateReader = NoopExchangeRateReader,
-) : CurrentQuotaStatePublisher {
+) : CurrentQuotaStatePublisher, PerAccountQuotaEffectPublisher {
     override suspend fun publish(state: CurrentQuotaState) {
         val options = optionsReader.currentOptions()
         if (!options.notificationPermissionAvailable || !options.statusNotificationEnabled) {
             notificationSink.cancel(NotificationOrchestrator.STATUS_NOTIFICATION_ID)
-        }
-        val thresholds = alertThresholdsReader.currentThresholds()
-        val convertedState = run {
-            val currency = currencyPreferenceReader.currencyPreferences()
-            val rates = exchangeRateReader.currentRates()
-            if (rates != null && state.snapshot != null) {
-                state.copy(
-                    snapshot = state.snapshot.copy(
-                        windows = state.snapshot.windows.map {
-                            it.withConvertedBalance(currency.targetCurrency, rates)
-                        },
-                    ),
-                    primaryWindow = state.primaryWindow
-                        ?.withConvertedBalance(currency.targetCurrency, rates),
-                )
-            } else {
-                state
-            }
-        }
-        val alertEvents = if (options.notificationPermissionAvailable && options.quotaAlertsEnabled) {
-            alertPolicy.evaluate(
-                state = convertedState,
-                thresholds = thresholds,
-                enabledWindowIds = alertWindowPreferenceReader.enabledWindowIds(convertedState),
-            ).filterNot { alertStateStore.hasNotified(it.key) }
-        } else {
-            emptyList()
         }
         val statusState = if (options.notificationPermissionAvailable && options.statusNotificationEnabled) {
             statusNotificationStateLoader.loadStatusNotificationState(refreshedState = state)
@@ -72,17 +46,6 @@ class CurrentQuotaNotificationPublisher(
                 accountErrorsEnabled = false,
             ),
         )
-        val alertRequests = alertEvents.mapNotNull { event ->
-            val request = orchestrator.buildRequests(
-                state = state,
-                alertEvents = listOf(event),
-                options = options.copy(
-                    statusNotificationEnabled = false,
-                    accountErrorsEnabled = false,
-                ),
-            ).firstOrNull { it.channelId == NotificationChannels.QUOTA_ALERTS_CHANNEL_ID }
-            request?.let { it to event }
-        }
         val accountErrorEvent = if (options.notificationPermissionAvailable && options.accountErrorsEnabled) {
             accountErrorEventReader.accountErrorEvent(state)
         } else {
@@ -98,15 +61,61 @@ class CurrentQuotaNotificationPublisher(
         )
 
         statusRequests.forEach(notificationSink::post)
-
-        if (options.notificationPermissionAvailable && options.quotaAlertsEnabled) {
-            val notifiedAt = clock.instant()
-            alertRequests.forEach { (request, event) ->
-                notificationSink.post(request)
-                alertStateStore.markNotified(event = event, notifiedAt = notifiedAt)
-            }
-        }
         accountErrorRequests.forEach(notificationSink::post)
+    }
+
+    /**
+     * Per-account threshold alerts. Unlike the status notification — which presents THE selected
+     * account — alerts belong to whichever account was refreshed: docs/SPEC.md states any
+     * alert-enabled account window can trigger. This channel therefore fires on every refresh,
+     * including background refreshes of non-selected accounts, and is intentionally NOT guarded by
+     * the state epoch: a stale write-back can never happen here because nothing is overwritten,
+     * alert de-duplication is already keyed per (account, window, resetAt, threshold).
+     */
+    override suspend fun publishAccountEffects(state: CurrentQuotaState) {
+        val options = optionsReader.currentOptions()
+        if (!options.notificationPermissionAvailable || !options.quotaAlertsEnabled) return
+        val thresholds = alertThresholdsReader.currentThresholds()
+        val convertedState = convertForDisplay(state)
+        val alertEvents = alertPolicy.evaluate(
+            state = convertedState,
+            thresholds = thresholds,
+            enabledWindowIds = alertWindowPreferenceReader.enabledWindowIds(convertedState),
+        ).filterNot { alertStateStore.hasNotified(it.key) }
+        if (alertEvents.isEmpty()) return
+        val notifiedAt = clock.instant()
+        alertEvents.forEach { event ->
+            orchestrator.buildRequests(
+                state = state,
+                alertEvents = listOf(event),
+                options = options.copy(
+                    statusNotificationEnabled = false,
+                    accountErrorsEnabled = false,
+                ),
+            ).firstOrNull { it.channelId == NotificationChannels.QUOTA_ALERTS_CHANNEL_ID }
+                ?.let { request ->
+                    notificationSink.post(request)
+                    alertStateStore.markNotified(event = event, notifiedAt = notifiedAt)
+                }
+        }
+    }
+
+    private suspend fun convertForDisplay(state: CurrentQuotaState): CurrentQuotaState {
+        val currency = currencyPreferenceReader.currencyPreferences()
+        val rates = exchangeRateReader.currentRates()
+        return if (rates != null && state.snapshot != null) {
+            state.copy(
+                snapshot = state.snapshot.copy(
+                    windows = state.snapshot.windows.map {
+                        it.withConvertedBalance(currency.targetCurrency, rates)
+                    },
+                ),
+                primaryWindow = state.primaryWindow
+                    ?.withConvertedBalance(currency.targetCurrency, rates),
+            )
+        } else {
+            state
+        }
     }
 }
 

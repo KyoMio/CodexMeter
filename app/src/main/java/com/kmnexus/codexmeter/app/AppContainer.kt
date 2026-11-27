@@ -134,6 +134,7 @@ import com.kmnexus.codexmeter.refresh.CurrentQuotaStatePublisher
 import com.kmnexus.codexmeter.refresh.ExchangeRateRefresher
 import com.kmnexus.codexmeter.refresh.MultiAccountRefreshRunner
 import com.kmnexus.codexmeter.refresh.RefreshCoordinator
+import com.kmnexus.codexmeter.refresh.PerAccountQuotaEffectPublisher
 import com.kmnexus.codexmeter.refresh.SelectedAccountReader
 import com.kmnexus.codexmeter.ui.account.AccountRefreshAllUseCase
 import com.kmnexus.codexmeter.refresh.RefreshProvider
@@ -766,6 +767,11 @@ class AppContainer private constructor(
                 selectedAccountReader = SelectedAccountReader {
                     currentAccountPreferences.currentAccountSelection()?.localAccountId
                 },
+                // Same composite fans out per-account effects to the members that opt in
+                // (quota alerts, widget updater); the epoch guard only gates the
+                // current-account presentation write-back above.
+                perAccountEffectsPublisher = currentQuotaStatePublisher as? PerAccountQuotaEffectPublisher
+                    ?: PerAccountQuotaEffectPublisher { },
             )
             val currentAccountStateRepublisher = CurrentAccountQuotaStateRepublisher(
                 currentAccountReader = currentAccountPreferences,
