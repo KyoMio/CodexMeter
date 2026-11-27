@@ -19,6 +19,7 @@ mockwebserver = "5.3.2"
 robolectric = "4.16.1"
 turbine = "1.2.1"
 qm-liquidglass = "1.0.4"
+detekt = "1.23.8"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -26,6 +27,7 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }

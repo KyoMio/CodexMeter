@@ -52,7 +52,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.providers.ProviderRegistry
-import com.kmnexus.codexmeter.providers.common.auth.LoopbackCallbackServer
+import com.kmnexus.codexmeter.core.network.LoopbackCallbackServer
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import com.kmnexus.codexmeter.ui.theme.CodexMeterSpacing
 import java.net.URLDecoder

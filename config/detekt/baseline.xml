@@ -1,0 +1,895 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto$val extra_usage: ExtraUsage? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto$val five_hour: Window? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto$val seven_day: Window? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto$val seven_day_opus: Window? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto$val seven_day_sonnet: Window? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto.ExtraUsage$val is_enabled: Boolean? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto.ExtraUsage$val monthly_limit: Double? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto.ExtraUsage$val used_credits: Double? = null</ID>
+    <ID>ConstructorParameterNaming:ClaudeUsageResponseDto.kt$ClaudeUsageResponseDto.Window$val resets_at: String? = null</ID>
+    <ID>ConstructorParameterNaming:DeepSeekBalanceResponseDto.kt$DeepSeekBalanceResponseDto$val balance_infos: List&lt;BalanceInfo&gt;</ID>
+    <ID>ConstructorParameterNaming:DeepSeekBalanceResponseDto.kt$DeepSeekBalanceResponseDto$val is_available: Boolean</ID>
+    <ID>ConstructorParameterNaming:DeepSeekBalanceResponseDto.kt$DeepSeekBalanceResponseDto.BalanceInfo$val granted_balance: String</ID>
+    <ID>ConstructorParameterNaming:DeepSeekBalanceResponseDto.kt$DeepSeekBalanceResponseDto.BalanceInfo$val topped_up_balance: String</ID>
+    <ID>ConstructorParameterNaming:DeepSeekBalanceResponseDto.kt$DeepSeekBalanceResponseDto.BalanceInfo$val total_balance: String</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto$val base_resp: BaseResp? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto$val current_subscribe_title: String? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto$val model_remains: List&lt;ModelRemain&gt; = emptyList()</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto$val plan_name: String? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.BaseResp$val status_code: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.BaseResp$val status_msg: String? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.DataNode$val base_resp: BaseResp? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.DataNode$val current_subscribe_title: String? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.DataNode$val model_remains: List&lt;ModelRemain&gt; = emptyList()</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.DataNode$val plan_name: String? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_interval_remaining_percent: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_interval_status: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_interval_total_count: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_interval_usage_count: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_weekly_remaining_percent: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_weekly_status: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_weekly_total_count: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val current_weekly_usage_count: Int? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val end_time: Long? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val model_name: String? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val remains_time: Long? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val start_time: Long? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val weekly_end_time: Long? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val weekly_remains_time: Long? = null</ID>
+    <ID>ConstructorParameterNaming:MiniMaxUsageResponseDto.kt$MiniMaxUsageResponseDto.ModelRemain$val weekly_start_time: Long? = null</ID>
+    <ID>CyclomaticComplexMethod:AddAccountScreen.kt$@Composable private fun AddAccountStatusText(uiState: DeviceCodeLoginUiState)</ID>
+    <ID>CyclomaticComplexMethod:AntigravityQuotaClient.kt$AntigravityQuotaClient$private suspend fun fetchPerModelQuota( project: String?, tier: String?, headers: Map&lt;String, String&gt;, ): Result</ID>
+    <ID>CyclomaticComplexMethod:AntigravityQuotaClient.kt$AntigravityQuotaClient$private suspend fun resolveProject( codeAssist: CodeAssistResponse?, headers: Map&lt;String, String&gt;, ): ProjectResolution</ID>
+    <ID>CyclomaticComplexMethod:AntigravityQuotaClient.kt$AntigravityQuotaClient$suspend fun fetchQuota(accessToken: String): Result</ID>
+    <ID>CyclomaticComplexMethod:ApiKeyAuthScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ApiKeyAuthScreen( providerId: ProviderId, onImportApiKey: suspend (apiKey: String, label: String?, apiBaseUrl: String?) -&gt; Result&lt;Unit&gt;, onBack: () -&gt; Unit, modifier: Modifier = Modifier, regions: List&lt;ApiKeyAuthRegion&gt; = emptyList(), onSaved: () -&gt; Unit = onBack, )</ID>
+    <ID>CyclomaticComplexMethod:CodexMeterNavHost.kt$@Composable fun CodexMeterNavHost( modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(), startDestination: String = CodexMeterRoute.Home.route, // Per-provider device-code login controllers; lookup falls back to the Noop controller so // previews/tests stay valid with an empty map. The legacy Codex modes resolve the codex entry. deviceCodeLoginControllers: Map&lt;ProviderId, DeviceCodeLoginController&gt; = emptyMap(), deviceCodeLoginNotifiers: Map&lt;ProviderId, DeviceCodeLoginNotifier&gt; = emptyMap(), deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier, accountListUseCase: AccountListUseCase, accountDeleteUseCase: AccountDeleteUseCase, defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase, accountRenameUseCase: AccountRenameUseCase = NoopAccountRenameUseCase, accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester = NoopAccountQuotaAlertEvaluationRequester, accountRefreshAllUseCase: AccountRefreshAllUseCase = NoopAccountRefreshAllUseCase, homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader, homeRefreshUseCase: HomeRefreshUseCase, homeTrendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -&gt; emptyList() }, currencyPreferenceReader: CurrencyPreferenceReader = object : CurrencyPreferenceReader { override suspend fun currencyPreferences() = CurrencyPreferences() }, exchangeRateReader: ExchangeRateReader = object : ExchangeRateReader { override suspend fun currentRates() = null }, retentionPreferenceStore: RetentionPreferenceStore = InMemoryRetentionPreferenceStore(), notificationPreferenceStore: NotificationPreferenceStore = InMemoryNotificationPreferenceStore(), backgroundRefreshStatusReader: com.kmnexus.codexmeter.ui.settings.SettingsBackgroundRefreshStatusReader = com.kmnexus.codexmeter.ui.settings.InMemoryBackgroundRefreshStatusReader(), settingsDiagnosticsReader: SettingsDiagnosticsReader = DefaultSettingsDiagnosticsReader, quotaHistoryClearUseCase: QuotaHistoryClearUseCase = NoopQuotaHistoryClearUseCase, appUpdateChecker: AppUpdateCheckUseCase = NoopAppUpdateCheckUseCase, appUpdateDownloader: AppUpdateDownloadUseCase = NoopAppUpdateDownloadUseCase, apiKeyLoginUseCase: SessionLoginUseCase? = null, notificationWindowChoicesLoader: NotificationWindowChoicesLoader = NotificationWindowChoicesLoader { _, _ -&gt; emptyList() }, currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore, appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore, updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore, launchDestinationValue: String? = null, )</ID>
+    <ID>CyclomaticComplexMethod:CurrentQuotaNotificationPublisher.kt$CurrentQuotaNotificationPublisher$override suspend fun publish(state: CurrentQuotaState)</ID>
+    <ID>CyclomaticComplexMethod:GrokDeviceCodeLoginController.kt$GrokDeviceCodeLoginController$override suspend fun pollLatest(): DeviceCodeLoginResult</ID>
+    <ID>CyclomaticComplexMethod:HomeViewModel.kt$HomeViewModel$private fun QuotaWindow.toQuotaStatus(): HomeQuotaStatus</ID>
+    <ID>CyclomaticComplexMethod:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$fun configure( role: LiquidGlassSurfaceRole, cornerRadiusPx: Float, isDark: Boolean, )</ID>
+    <ID>CyclomaticComplexMethod:QuotaWindowLabels.kt$@StringRes private fun providerNamedLabelRes(windowId: String): Int</ID>
+    <ID>CyclomaticComplexMethod:SettingsDiagnosticsRepository.kt$SettingsDiagnosticsRepository$override suspend fun diagnosticsInput(): SettingsDiagnosticsInput</ID>
+    <ID>CyclomaticComplexMethod:SettingsScreen.kt$@Composable private fun SettingsChoiceDialogContent( dialog: SettingsChoiceDialog, uiState: SettingsUiState, onPersistentNotificationAccountSelected: (SettingsNotificationAccountSelection) -&gt; Unit, onPersistentNotificationWindowSelected: (QuotaWindowId) -&gt; Unit, onRetentionSelected: (SettingsRetentionOption) -&gt; Unit, onRefreshIntervalSelected: (SettingsRefreshInterval) -&gt; Unit, onCurrencyTargetSelected: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:SettingsViewModel.kt$SettingsViewModel$fun buildDiagnosticsCopyModel(input: SettingsDiagnosticsInput): SettingsDiagnosticsCopyModel</ID>
+    <ID>CyclomaticComplexMethod:WebViewAuthScreen.kt$@Composable fun WebViewAuthScreen( config: WebViewAuthConfig, onCredentialExtracted: suspend (credential: String, redirectUri: String?) -&gt; Result&lt;Unit&gt;, onBack: () -&gt; Unit, modifier: Modifier = Modifier, onSaved: () -&gt; Unit = onBack, )</ID>
+    <ID>CyclomaticComplexMethod:WebViewAuthScreen.kt$@Composable private fun CookieAuthBody( config: WebViewAuthConfig.Cookie, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onError: (String) -&gt; Unit, onClearAction: (() -&gt; Unit) -&gt; Unit, onConfirmAction: (() -&gt; Unit) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:WidgetQuotaStateFactory.kt$WidgetQuotaStateFactory$private fun QuotaWindow.percentTone(notificationPreferences: NotificationPreferences): WidgetQuotaTone</ID>
+    <ID>CyclomaticComplexMethod:ZaiQuotaMapper.kt$ZaiQuotaMapper$private fun ZaiQuotaResponseDto.LimitItem.toQuotaWindow(isPrimary: Boolean): QuotaWindow</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable internal fun AccountCard( account: AccountItemUi, onRenameClick: (LocalAccountId) -&gt; Unit, onReloginClick: (LocalAccountId) -&gt; Unit, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit, onDeleteClick: (LocalAccountId) -&gt; Unit, onToggleExpanded: (LocalAccountId) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable internal fun AccountSurfaceCard(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable internal fun DefaultAccountCard(account: AccountItemUi)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable internal fun EmptyAccountsCard(onAddAccountClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable internal fun SectionLabel(resId: Int)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun AccountActions( account: AccountItemUi, onRenameClick: (LocalAccountId) -&gt; Unit, onReloginClick: (LocalAccountId) -&gt; Unit, onDeleteClick: (LocalAccountId) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun AccountAvatar(account: AccountItemUi, size: Dp)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun AccountDetailsDrawer( account: AccountItemUi, animatorsEnabled: Boolean, onRenameClick: (LocalAccountId) -&gt; Unit, onReloginClick: (LocalAccountId) -&gt; Unit, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit, onDeleteClick: (LocalAccountId) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun AccountExpandIconButton( isExpanded: Boolean, contentDescription: String, animatorsEnabled: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun AccountMetadataTile( label: String, value: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun ModelDetailsSection(families: List&lt;AccountModelFamilyUi&gt;)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun PlanCreditsRow(account: AccountItemUi)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun QuotaAlertSwitchLine( label: String, checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun QuotaAlertSwitches( account: AccountItemUi, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun QuotaSummaryRow(summaries: List&lt;AccountQuotaSummaryUi&gt;)</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun QuotaSummaryTile( summary: AccountQuotaSummaryUi, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:AccountCards.kt$@Composable private fun StatusBadge(account: AccountItemUi)</ID>
+    <ID>FunctionNaming:AccountScreen.kt$@Composable fun AccountRoute( accountListUseCase: AccountListUseCase, accountDeleteUseCase: AccountDeleteUseCase, accountRenameUseCase: AccountRenameUseCase, notificationPreferenceStore: NotificationPreferenceStore = AccountInMemoryNotificationPreferenceStore(), quotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester = NoopAccountQuotaAlertEvaluationRequester, refreshAllUseCase: AccountRefreshAllUseCase = NoopAccountRefreshAllUseCase, currencyPreferenceReader: CurrencyPreferenceReader = NoopAccountCurrencyPreferenceReader, exchangeRateReader: ExchangeRateReader = NoopAccountExchangeRateReader, modifier: Modifier = Modifier, viewModel: AccountViewModel = viewModel( factory = AccountViewModel.factory( deleteUseCase = accountDeleteUseCase, accountListUseCase = accountListUseCase, renameUseCase = accountRenameUseCase, notificationPreferenceStore = notificationPreferenceStore, quotaAlertEvaluationRequester = quotaAlertEvaluationRequester, refreshAllUseCase = refreshAllUseCase, currencyPreferenceReader = currencyPreferenceReader, exchangeRateReader = exchangeRateReader, ), ), onLoginToCodexClick: () -&gt; Unit = {}, onAddAccountClick: () -&gt; Unit = viewModel::requestAddAccount, onReloginAccount: (com.kmnexus.codexmeter.domain.model.ProviderId, LocalAccountId, String?) -&gt; Unit = { _, _, _ -&gt; }, )</ID>
+    <ID>FunctionNaming:AccountScreen.kt$@Composable private fun AccountHeader(onAddAccountClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:AccountScreen.kt$@Composable private fun AddAccountDialog( onLoginToCodexClick: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountScreen.kt$@Composable private fun DeleteAccountDialog( pending: AccountDeleteConfirmationUi, onConfirm: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountScreen.kt$@Composable private fun RenameAccountDialog( pending: AccountRenameUi, onConfirm: (LocalAccountId, String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AccountScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AccountScreen( uiState: AccountUiState, modifier: Modifier = Modifier, onRefresh: () -&gt; Unit = {}, onAddAccountClick: () -&gt; Unit = {}, onLoginToCodexClick: () -&gt; Unit = {}, onAddAccountDismiss: () -&gt; Unit = {}, onRenameClick: (LocalAccountId) -&gt; Unit = {}, onRenameConfirm: (LocalAccountId, String) -&gt; Unit = { _, _ -&gt; }, onRenameDismiss: () -&gt; Unit = {}, onReloginClick: (LocalAccountId) -&gt; Unit = {}, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit = { _, _, _ -&gt; }, onDeleteClick: (LocalAccountId) -&gt; Unit = {}, onToggleExpanded: (LocalAccountId) -&gt; Unit = {}, onDeleteConfirm: () -&gt; Unit = {}, onDeleteDismiss: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable fun AddAccountRoute( modifier: Modifier = Modifier, entryMode: AddAccountEntryMode = AddAccountEntryMode.Choose, deviceCodeLoginController: DeviceCodeLoginController = NoopDeviceCodeLoginController, deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier, providerDisplayName: String = "Codex", viewModel: DeviceCodeLoginViewModel = viewModel( factory = DeviceCodeLoginViewModel.factory( controller = deviceCodeLoginController, notifier = deviceCodeLoginNotifier, ), ), onBackClick: () -&gt; Unit = {}, onLoginSaved: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable fun AddAccountScreen( uiState: DeviceCodeLoginUiState, modifier: Modifier = Modifier, providerDisplayName: String = "Codex", onBackClick: () -&gt; Unit = {}, onStartLoginClick: () -&gt; Unit = {}, onCopyCodeClick: (String) -&gt; Unit = {}, onOpenVerificationClick: (String) -&gt; Unit = {}, onRetryValidationClick: () -&gt; Unit = {}, onCancelLoginClick: () -&gt; Unit = {}, onConfirmAddMismatchClick: () -&gt; Unit = {}, onCancelMismatchClick: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable private fun AccountMismatchDialog( onConfirm: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable private fun AddAccountActionRow( status: DeviceCodeLoginUiStatus, providerDisplayName: String, onStartLoginClick: () -&gt; Unit, onRetryValidationClick: () -&gt; Unit, onCancelLoginClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable private fun AddAccountDeviceCodeCard( uiState: DeviceCodeLoginUiState, providerDisplayName: String, onStartLoginClick: () -&gt; Unit, onCopyCodeClick: (String) -&gt; Unit, onOpenVerificationClick: (String) -&gt; Unit, onRetryValidationClick: () -&gt; Unit, onCancelLoginClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable private fun AddAccountStatusText(uiState: DeviceCodeLoginUiState)</ID>
+    <ID>FunctionNaming:AddAccountScreen.kt$@Composable private fun AddAccountSurfaceCard(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:ApiKeyAuthScreen.kt$@Composable private fun RegionChip( region: ApiKeyAuthRegion, selected: Boolean, enabled: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ApiKeyAuthScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ApiKeyAuthScreen( providerId: ProviderId, onImportApiKey: suspend (apiKey: String, label: String?, apiBaseUrl: String?) -&gt; Result&lt;Unit&gt;, onBack: () -&gt; Unit, modifier: Modifier = Modifier, regions: List&lt;ApiKeyAuthRegion&gt; = emptyList(), onSaved: () -&gt; Unit = onBack, )</ID>
+    <ID>FunctionNaming:AuthScaffold.kt$@Composable fun AuthScaffold( title: String, onBack: () -&gt; Unit, modifier: Modifier = Modifier, actions: @Composable RowScope.() -&gt; Unit = {}, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AuthScaffold.kt$@Composable private fun AuthTopBar( title: String, onBack: () -&gt; Unit, actions: @Composable RowScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CodexMeterNavHost.kt$@Composable fun AddAccountDestination(entryMode: AddAccountEntryMode)</ID>
+    <ID>FunctionNaming:CodexMeterNavHost.kt$@Composable fun CodexMeterNavHost( modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(), startDestination: String = CodexMeterRoute.Home.route, // Per-provider device-code login controllers; lookup falls back to the Noop controller so // previews/tests stay valid with an empty map. The legacy Codex modes resolve the codex entry. deviceCodeLoginControllers: Map&lt;ProviderId, DeviceCodeLoginController&gt; = emptyMap(), deviceCodeLoginNotifiers: Map&lt;ProviderId, DeviceCodeLoginNotifier&gt; = emptyMap(), deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier, accountListUseCase: AccountListUseCase, accountDeleteUseCase: AccountDeleteUseCase, defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase, accountRenameUseCase: AccountRenameUseCase = NoopAccountRenameUseCase, accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester = NoopAccountQuotaAlertEvaluationRequester, accountRefreshAllUseCase: AccountRefreshAllUseCase = NoopAccountRefreshAllUseCase, homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader, homeRefreshUseCase: HomeRefreshUseCase, homeTrendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -&gt; emptyList() }, currencyPreferenceReader: CurrencyPreferenceReader = object : CurrencyPreferenceReader { override suspend fun currencyPreferences() = CurrencyPreferences() }, exchangeRateReader: ExchangeRateReader = object : ExchangeRateReader { override suspend fun currentRates() = null }, retentionPreferenceStore: RetentionPreferenceStore = InMemoryRetentionPreferenceStore(), notificationPreferenceStore: NotificationPreferenceStore = InMemoryNotificationPreferenceStore(), backgroundRefreshStatusReader: com.kmnexus.codexmeter.ui.settings.SettingsBackgroundRefreshStatusReader = com.kmnexus.codexmeter.ui.settings.InMemoryBackgroundRefreshStatusReader(), settingsDiagnosticsReader: SettingsDiagnosticsReader = DefaultSettingsDiagnosticsReader, quotaHistoryClearUseCase: QuotaHistoryClearUseCase = NoopQuotaHistoryClearUseCase, appUpdateChecker: AppUpdateCheckUseCase = NoopAppUpdateCheckUseCase, appUpdateDownloader: AppUpdateDownloadUseCase = NoopAppUpdateDownloadUseCase, apiKeyLoginUseCase: SessionLoginUseCase? = null, notificationWindowChoicesLoader: NotificationWindowChoicesLoader = NotificationWindowChoicesLoader { _, _ -&gt; emptyList() }, currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore, appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore, updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore, launchDestinationValue: String? = null, )</ID>
+    <ID>FunctionNaming:CodexMeterNavHost.kt$@Composable private fun CodexMeterBottomBar( modifier: Modifier = Modifier, tabs: List&lt;CodexMeterRoute&gt;, currentRoute: String, onTabSelected: (CodexMeterRoute) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CodexMeterNavHost.kt$@Composable private fun CodexMeterDestination( modifier: Modifier = Modifier, contentPadding: PaddingValues, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CodexMeterNavHost.kt$@Composable private fun RowScope.CodexMeterBottomBarItem( tab: CodexMeterRoute, selected: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CodexMeterTheme.kt$@Composable fun CodexMeterTheme( themeMode: ThemeMode = ThemeMode.SYSTEM, fontScheme: CodexMeterFontScheme = CodexMeterFontScheme.SystemDefault, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable internal fun CodexMeterWidgetContent( context: Context, state: WidgetQuotaState, widgetSize: DpSize, layoutVariant: WidgetLayoutVariant, )</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun EmptyFieldsHint(context: Context, modifier: GlanceModifier = GlanceModifier)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun FieldValueColumn( context: Context, field: WidgetField, valueSizeSp: Int, alignment: Alignment.Horizontal, modifier: GlanceModifier = GlanceModifier, )</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun FourByOneContent(context: Context, state: WidgetQuotaState)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun FourByTwoContent(context: Context, state: WidgetQuotaState)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun GridFieldCell( context: Context, field: WidgetField?, modifier: GlanceModifier, stacked: Boolean = false, )</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun QuadrantHeader(context: Context, state: WidgetQuotaState, modifier: GlanceModifier)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun RowScope.FieldCellOrHint(context: Context, field: WidgetField?)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun SoftColumnDivider()</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun SoftRowDivider()</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun ThreeByOneContent(context: Context, state: WidgetQuotaState)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun ThreeByTwoContent(context: Context, state: WidgetQuotaState)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun UnconfiguredWidgetContent(context: Context, state: WidgetQuotaState)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun VerticalDivider()</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun WidgetBrandIcon(state: WidgetQuotaState, sizeDp: Int)</ID>
+    <ID>FunctionNaming:CodexMeterWidget.kt$@Composable private fun WidgetHeaderRow( context: Context, state: WidgetQuotaState, modifier: GlanceModifier = GlanceModifier, )</ID>
+    <ID>FunctionNaming:GlassPullToRefreshIndicator.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun GlassPullToRefreshIndicator( isRefreshing: Boolean, state: PullToRefreshState, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:HomeComponents.kt$@Composable internal fun AccountLabel(account: HomeAccountUi)</ID>
+    <ID>FunctionNaming:HomeComponents.kt$@Composable internal fun HomeAccountAvatarBadge( @DrawableRes providerIconResId: Int?, avatarInitial: String, avatarColorKey: String, size: Dp = 38.dp, iconSize: Dp = 21.dp, initialStyle: TextStyle = MaterialTheme.typography.labelLarge, )</ID>
+    <ID>FunctionNaming:HomeHeroGlassLayer.kt$@Composable internal fun HomeHeroGlassLayer(uiState: HomeUiState)</ID>
+    <ID>FunctionNaming:HomeHeroGlassLayer.kt$@Composable private fun HeroAccountAvatar(account: HomeAccountUi)</ID>
+    <ID>FunctionNaming:HomeHeroGlassLayer.kt$@Composable private fun RefreshSuccessSweep(successCount: Int, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:HomeQuotaCards.kt$@Composable internal fun HomeQuotaCards(quotaCards: List&lt;HomeQuotaCardUi&gt;)</ID>
+    <ID>FunctionNaming:HomeQuotaCards.kt$@Composable private fun BalanceQuotaCard(card: HomeQuotaCardUi)</ID>
+    <ID>FunctionNaming:HomeQuotaCards.kt$@Composable private fun PercentQuotaCard(card: HomeQuotaCardUi)</ID>
+    <ID>FunctionNaming:HomeQuotaCards.kt$@Composable private fun QuotaCard( card: HomeQuotaCardUi, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:HomeQuotaCards.kt$@Composable private fun StatusDot(tone: HomeStatusTone)</ID>
+    <ID>FunctionNaming:HomeQuotaCards.kt$@Composable private fun UsageCountQuotaCard(card: HomeQuotaCardUi)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable fun HomeRoute( modifier: Modifier = Modifier, currentQuotaStateLoader: HomeCurrentQuotaStateLoader, refreshUseCase: HomeRefreshUseCase, trendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -&gt; emptyList() }, notificationPreferenceReader: NotificationPreferenceReader, currencyPreferenceReader: CurrencyPreferenceReader, exchangeRateReader: ExchangeRateReader, accountListUseCase: AccountListUseCase = NoopAccountListUseCase, defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase, viewModel: HomeViewModel = viewModel( factory = HomeViewModel.factory( currentQuotaStateLoader = currentQuotaStateLoader, refreshUseCase = refreshUseCase, trendHistoryLoader = trendHistoryLoader, notificationPreferenceReader = notificationPreferenceReader, currencyPreferenceReader = currencyPreferenceReader, exchangeRateReader = exchangeRateReader, accountListUseCase = accountListUseCase, defaultAccountSelectUseCase = defaultAccountSelectUseCase, ), ), onLoginClick: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeAccountSelector( uiState: HomeUiState, onAccountSelected: (ProviderId, LocalAccountId) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeHeader( uiState: HomeUiState, onRefreshClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeRefreshIconButton( isRefreshing: Boolean, onRefreshClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( uiState: HomeUiState, modifier: Modifier = Modifier, onRefreshClick: () -&gt; Unit = {}, onLoginClick: () -&gt; Unit = {}, onAccountSelected: (ProviderId, LocalAccountId) -&gt; Unit = { _, _ -&gt; }, )</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable internal fun HomeActionCard( uiState: HomeUiState, onLoginClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable internal fun HomeLoadingCard(loading: HomeLoadingUi)</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable internal fun HomeRefreshCard(uiState: HomeUiState)</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable internal fun HomeTrendCard(trend: HomeTrendUi)</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable private fun AxisText(resId: Int)</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable private fun HomeSurfaceCard(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable private fun RefreshTimeline(refresh: HomeRefreshUi)</ID>
+    <ID>FunctionNaming:HomeStatusCards.kt$@Composable private fun TrendBarChart(points: List&lt;HomeTrendPointUi&gt;)</ID>
+    <ID>FunctionNaming:MotionComponents.kt$@Composable internal fun AnimatedQuotaPercent( percent: Int?, style: TextStyle, color: Color, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:MotionComponents.kt$@Composable internal fun CodexMeterPageCascade( modifier: Modifier = Modifier, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:MotionComponents.kt$@Composable internal fun MotionQuotaRail( percent: Int?, color: Color, modifier: Modifier = Modifier, trackColor: Color = CodexMeterTheme.colors.neutralAlt, )</ID>
+    <ID>FunctionNaming:ProviderSelectionScreen.kt$@Composable fun ProviderSelectionScreen( onProviderSelected: (ProviderId) -&gt; Unit, onBack: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:ProviderSelectionScreen.kt$@Composable internal fun ProviderListItem( provider: ProviderConfig, onClick: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:ProviderSelectionScreen.kt$@Composable private fun ProviderSelectionHeader(onBack: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:ProviderSelectionSheet.kt$@Composable fun ProviderSelectionSheet( visible: Boolean, onProviderSelected: (ProviderId) -&gt; Unit, onDismiss: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:ProviderSelectionSheet.kt$@Composable private fun ProviderSheetPanel( onProviderSelected: (ProviderId) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:QmLiquidGlassSurface.kt$@Composable fun CodexMeterBackdrop(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:QmLiquidGlassSurface.kt$@Composable fun QmLiquidGlassSurface( modifier: Modifier = Modifier, role: LiquidGlassSurfaceRole, cornerRadius: Dp, contentPadding: PaddingValues, content: @Composable BoxScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:QmLiquidGlassSurface.kt$@Composable private fun LiquidGlassFallback( role: LiquidGlassSurfaceRole, radiusPx: Float, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable @OptIn(ExperimentalMaterial3Api::class) internal fun ThresholdSlider( titleResId: Int, value: Int, valueRange: ClosedFloatingPointRange&lt;Float&gt;, color: Color, onValueChange: (Int) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun AboutCard( about: SettingsAboutUi, onRepositoryClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun AlertsCard( alerts: SettingsAlertsUi, targetCurrency: String, onAccountErrorsChanged: (Boolean) -&gt; Unit, onCautionThresholdChanged: (Int) -&gt; Unit, onWarningThresholdChanged: (Int) -&gt; Unit, onBalanceCautionChanged: (Double) -&gt; Unit, onBalanceWarningChanged: (Double) -&gt; Unit, onCurrencyTargetClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun AppUpdateCard( update: SettingsUpdateUi, onCheckClick: () -&gt; Unit, onAvailableUpdateClick: () -&gt; Unit, onAutoCheckChanged: (Boolean) -&gt; Unit, onNotifyOnUpdateChanged: (Boolean) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun AppearanceCard( appearance: SettingsAppearanceUi, onThemeModeSelected: (ThemeMode) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun ChoiceSummaryRow( titleResId: Int, descriptionResId: Int?, valueResId: Int, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun ChoiceSummaryTextRow( titleResId: Int, descriptionResId: Int?, valueText: String, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun DataCard( data: SettingsDataUi, onRetentionClick: () -&gt; Unit, onClearCurrentHistoryClick: () -&gt; Unit, onClearAllHistoryClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun DiagnosticsCard( diagnostics: SettingsDiagnosticsUi, onDiagnosticsToggle: () -&gt; Unit, onDiagnosticsCopyClick: () -&gt; Unit, onDiagnosticsRecheckClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun PersistentNotificationCard( persistentNotification: SettingsPersistentNotificationUi, onEnabledChanged: (Boolean) -&gt; Unit, onAccountClick: () -&gt; Unit, onWindowClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable internal fun RefreshCard( refresh: SettingsRefreshUi, onBackgroundRefreshChanged: (Boolean) -&gt; Unit, onIntervalClick: () -&gt; Unit, showBatteryOptimizationHint: Boolean = false, onBatteryOptimizationClick: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable private fun AppleThresholdThumb(color: Color)</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable private fun AppleThresholdTrack( value: Float, valueRange: ClosedFloatingPointRange&lt;Float&gt;, color: Color, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable private fun BalanceStepperRow( titleResId: Int, color: Color, currencySymbol: String, value: Double, onDecrement: () -&gt; Unit, onIncrement: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable private fun ChoiceSummaryRowLayout( titleResId: Int, descriptionResId: Int?, valueText: String, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsCards.kt$@Composable private fun ThemeModeSegmentedControl( selected: ThemeMode, onSelected: (ThemeMode) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable fun SettingsRoute( modifier: Modifier = Modifier, accountListUseCase: AccountListUseCase = NoopAccountListUseCase, retentionPreferenceStore: RetentionPreferenceStore = InMemoryRetentionPreferenceStore(), notificationPreferenceStore: NotificationPreferenceStore = InMemoryNotificationPreferenceStore(), backgroundRefreshStatusReader: SettingsBackgroundRefreshStatusReader = InMemoryBackgroundRefreshStatusReader(), diagnosticsReader: SettingsDiagnosticsReader = DefaultSettingsDiagnosticsReader, quotaHistoryClearUseCase: QuotaHistoryClearUseCase = NoopQuotaHistoryClearUseCase, appUpdateChecker: AppUpdateCheckUseCase = NoopAppUpdateCheckUseCase, appUpdateDownloader: AppUpdateDownloadUseCase = NoopAppUpdateDownloadUseCase, backgroundRefreshScheduler: BackgroundRefreshScheduler = NoopBackgroundRefreshScheduler, notificationWindowChoicesLoader: NotificationWindowChoicesLoader = NotificationWindowChoicesLoader { _, _ -&gt; emptyList() }, currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore, appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore, updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore, updateCheckScheduler: UpdateCheckScheduler = NoopUpdateCheckScheduler, openUpdateDialogOnLaunch: Boolean = false, viewModel: SettingsViewModel = viewModel( factory = SettingsViewModel.factory( accountListUseCase = accountListUseCase, retentionPreferenceStore = retentionPreferenceStore, notificationPreferenceStore = notificationPreferenceStore, backgroundRefreshStatusReader = backgroundRefreshStatusReader, diagnosticsReader = diagnosticsReader, quotaHistoryClearUseCase = quotaHistoryClearUseCase, appUpdateChecker = appUpdateChecker, appUpdateDownloader = appUpdateDownloader, backgroundRefreshScheduler = backgroundRefreshScheduler, notificationWindowChoicesLoader = notificationWindowChoicesLoader, currencyPreferenceStore = currencyPreferenceStore, appearancePreferenceStore = appearancePreferenceStore, updatePreferenceStore = updatePreferenceStore, updateCheckScheduler = updateCheckScheduler, ), ), )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable fun SettingsScreen( uiState: SettingsUiState, modifier: Modifier = Modifier, onChoiceDialogRequested: (SettingsChoiceDialog) -&gt; Unit = {}, onChoiceDialogDismiss: () -&gt; Unit = {}, onPersistentNotificationAccountSelected: (SettingsNotificationAccountSelection) -&gt; Unit = {}, onPersistentNotificationWindowSelected: (QuotaWindowId) -&gt; Unit = {}, onStatusNotificationChanged: (Boolean) -&gt; Unit = {}, onAccountErrorsChanged: (Boolean) -&gt; Unit = {}, onCautionThresholdChanged: (Int) -&gt; Unit = {}, onWarningThresholdChanged: (Int) -&gt; Unit = {}, onBalanceCautionChanged: (Double) -&gt; Unit = {}, onBalanceWarningChanged: (Double) -&gt; Unit = {}, onBackgroundRefreshChanged: (Boolean) -&gt; Unit = {}, onRefreshIntervalSelected: (SettingsRefreshInterval) -&gt; Unit = {}, onCurrencyTargetSelected: (String) -&gt; Unit = {}, onThemeModeSelected: (ThemeMode) -&gt; Unit = {}, onRetentionSelected: (SettingsRetentionOption) -&gt; Unit = {}, onClearCurrentHistoryClick: () -&gt; Unit = {}, onClearAllHistoryClick: () -&gt; Unit = {}, onDataActionConfirm: () -&gt; Unit = {}, onDataActionDismiss: () -&gt; Unit = {}, onDiagnosticsToggle: () -&gt; Unit = {}, onDiagnosticsCopyClick: () -&gt; Unit = {}, onDiagnosticsRecheckClick: () -&gt; Unit = {}, onAboutRepositoryClick: () -&gt; Unit = {}, onAppUpdateCheckClick: () -&gt; Unit = {}, onAppUpdateDismiss: () -&gt; Unit = {}, onAppUpdateDownloadClick: () -&gt; Unit = {}, onAppUpdateAvailableClick: () -&gt; Unit = {}, onAppUpdateAutoCheckChanged: (Boolean) -&gt; Unit = {}, onAppUpdateNotifyChanged: (Boolean) -&gt; Unit = {}, showBatteryOptimizationHint: Boolean = false, onBatteryOptimizationClick: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun DestructiveActionRow(@StringRes titleResId: Int, @StringRes descriptionResId: Int, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun OptionButton(@StringRes labelResId: Int, selected: Boolean, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun OptionColumn(content: @Composable ColumnScope.() -&gt; Unit)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun OptionTextButton(label: String, selected: Boolean, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun SettingsItemText(@StringRes titleResId: Int, @StringRes descriptionResId: Int?, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun SettingsSurfaceCard(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable internal fun SwitchRow( @StringRes titleResId: Int, @StringRes descriptionResId: Int?, checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, enabled: Boolean = true, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun AppUpdateAvailableDialog( versionName: String, releaseNotes: String?, onDownloadClick: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun ConfirmDataActionDialog( action: SettingsPendingDataAction, onConfirm: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun NotificationPermissionRationaleDialog( onConfirm: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SettingsChoiceDialogContent( dialog: SettingsChoiceDialog, uiState: SettingsUiState, onPersistentNotificationAccountSelected: (SettingsNotificationAccountSelection) -&gt; Unit, onPersistentNotificationWindowSelected: (QuotaWindowId) -&gt; Unit, onRetentionSelected: (SettingsRetentionOption) -&gt; Unit, onRefreshIntervalSelected: (SettingsRefreshInterval) -&gt; Unit, onCurrencyTargetSelected: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SettingsHeader()</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SettingsSectionLabel(@StringRes resId: Int)</ID>
+    <ID>FunctionNaming:StubAuthScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun StubAuthScreen(title: String, onBack: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable fun WebViewAuthScreen( config: WebViewAuthConfig, onCredentialExtracted: suspend (credential: String, redirectUri: String?) -&gt; Result&lt;Unit&gt;, onBack: () -&gt; Unit, modifier: Modifier = Modifier, onSaved: () -&gt; Unit = onBack, )</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun AuthActionIcon(iconResId: Int, contentDescriptionResId: Int, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun AuthTipText(raw: String, iconResId: Int?)</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun CookieAuthBody( config: WebViewAuthConfig.Cookie, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onError: (String) -&gt; Unit, onClearAction: (() -&gt; Unit) -&gt; Unit, onConfirmAction: (() -&gt; Unit) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun ErrorLine(message: String)</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun OAuthInterceptBody( config: WebViewAuthConfig.OAuthIntercept, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onFailure: (AuthFlowFailure) -&gt; Unit, onWebViewReady: (WebView) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun OAuthLoopbackBody( config: WebViewAuthConfig.OAuthLoopback, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onError: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:WebViewAuthScreen.kt$@Composable private fun VerifyingOverlay()</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable internal fun WidgetConfigurationRoute( appWidgetId: Int, loadState: suspend () -&gt; WidgetConfigurationScreenState, onCancel: () -&gt; Unit, onSave: (WidgetConfigurationAccountSelection?, List&lt;String&gt;) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable private fun AccountOptionRow( account: ProviderAccount, selected: Boolean, current: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable private fun FieldOptionRow(label: String, checked: Boolean, enabled: Boolean, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable private fun LoadingConfigurationScreen()</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable private fun WidgetConfigurationDialogContainer(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable private fun WidgetConfigurationExpandableOption( title: String, summary: String, expanded: Boolean, onToggle: () -&gt; Unit, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:WidgetConfigurationScreen.kt$@Composable private fun WidgetConfigurationScreen( state: WidgetConfigurationScreenState, expandedSection: WidgetConfigurationSection?, isSaving: Boolean, onSectionToggle: (WidgetConfigurationSection) -&gt; Unit, onAccountSelected: (ProviderAccount) -&gt; Unit, onWindowToggled: (String) -&gt; Unit, onCancel: () -&gt; Unit, onSave: () -&gt; Unit, )</ID>
+    <ID>FunctionOnlyReturningConstant:CodexMeterMotion.kt$CodexMeterMotion$fun bottomTabPressIndicationEnabled(): Boolean</ID>
+    <ID>FunctionOnlyReturningConstant:HomeViewModel.kt$HomeViewModel$private fun CurrentQuotaState.secondaryAction(): HomeActionUi?</ID>
+    <ID>FunctionOnlyReturningConstant:KimiCodeUsageClientTest.kt$KimiCodeUsageClientTest$private fun okBody()</ID>
+    <ID>ImplicitDefaultLocale:ClaudeUsageMapper.kt$ClaudeUsageMapper$String.format("%.2f", cents / 100.0)</ID>
+    <ID>LargeClass:AccountViewModel.kt$AccountViewModel : ViewModel</ID>
+    <ID>LargeClass:AccountViewModelTest.kt$AccountViewModelTest</ID>
+    <ID>LargeClass:AntigravitySummaryMappingTest.kt$AntigravitySummaryMappingTest</ID>
+    <ID>LargeClass:AppContainer.kt$AppContainer$Companion</ID>
+    <ID>LargeClass:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest</ID>
+    <ID>LargeClass:CodexMeterDatabaseTest.kt$CodexMeterDatabaseTest</ID>
+    <ID>LargeClass:CurrentQuotaStateFactoryTest.kt$CurrentQuotaStateFactoryTest</ID>
+    <ID>LargeClass:DiagnosticsRedactorTest.kt$DiagnosticsRedactorTest</ID>
+    <ID>LargeClass:HomeViewModel.kt$HomeViewModel : ViewModel</ID>
+    <ID>LargeClass:HomeViewModelTest.kt$HomeViewModelTest</ID>
+    <ID>LargeClass:NotificationOrchestratorTest.kt$NotificationOrchestratorTest</ID>
+    <ID>LargeClass:RefreshCoordinatorTest.kt$RefreshCoordinatorTest</ID>
+    <ID>LargeClass:SettingsViewModel.kt$SettingsViewModel : ViewModel</ID>
+    <ID>LargeClass:SettingsViewModelTest.kt$SettingsViewModelTest</ID>
+    <ID>LongMethod:AccountCards.kt$@Composable internal fun AccountCard( account: AccountItemUi, onRenameClick: (LocalAccountId) -&gt; Unit, onReloginClick: (LocalAccountId) -&gt; Unit, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit, onDeleteClick: (LocalAccountId) -&gt; Unit, onToggleExpanded: (LocalAccountId) -&gt; Unit, )</ID>
+    <ID>LongMethod:AccountScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AccountScreen( uiState: AccountUiState, modifier: Modifier = Modifier, onRefresh: () -&gt; Unit = {}, onAddAccountClick: () -&gt; Unit = {}, onLoginToCodexClick: () -&gt; Unit = {}, onAddAccountDismiss: () -&gt; Unit = {}, onRenameClick: (LocalAccountId) -&gt; Unit = {}, onRenameConfirm: (LocalAccountId, String) -&gt; Unit = { _, _ -&gt; }, onRenameDismiss: () -&gt; Unit = {}, onReloginClick: (LocalAccountId) -&gt; Unit = {}, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit = { _, _, _ -&gt; }, onDeleteClick: (LocalAccountId) -&gt; Unit = {}, onToggleExpanded: (LocalAccountId) -&gt; Unit = {}, onDeleteConfirm: () -&gt; Unit = {}, onDeleteDismiss: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:AccountViewModelTest.kt$AccountViewModelTest$@Test fun `depleted windows with displayable values stay in summaries and alert toggles while missing and valueless stay hidden`()</ID>
+    <ID>LongMethod:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$fun mapSummary( dto: AntigravityQuotaSummaryDto, tier: String?, localAccountId: LocalAccountId, providerAccountId: ProviderAccountId?, fetchedAt: Instant, source: QuotaSnapshotSource, ): QuotaSnapshot</ID>
+    <ID>LongMethod:AntigravityRefreshProvider.kt$AntigravityRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>LongMethod:ApiKeyAuthScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ApiKeyAuthScreen( providerId: ProviderId, onImportApiKey: suspend (apiKey: String, label: String?, apiBaseUrl: String?) -&gt; Result&lt;Unit&gt;, onBack: () -&gt; Unit, modifier: Modifier = Modifier, regions: List&lt;ApiKeyAuthRegion&gt; = emptyList(), onSaved: () -&gt; Unit = onBack, )</ID>
+    <ID>LongMethod:AppContainer.kt$AppContainer.Companion$fun create(context: Context): AppContainer</ID>
+    <ID>LongMethod:AppContainer.kt$AppContainer.Companion$private fun fromDatabase( appContext: Context, sharedStateGuard: VersionedStateGuard, database: CodexMeterDatabase, currentAccountReader: CurrentAccountReader, currentAccountPreferences: CurrentAccountPreferences, retentionPreferences: RetentionPreferences, notificationPreferences: NotificationPreferencesDataStore, primaryQuotaWindowPreferences: PrimaryQuotaWindowPreferences, sessionStore: FileSecureSessionStore, sessionCipher: CodexSessionCipher, refreshProvider: RefreshProvider, usageClient: CodexUsageClient, deepseekSessionImporter: DeepSeekSessionImporter, minimaxSessionImporter: MiniMaxSessionImporter, zaiSessionImporter: ZaiSessionImporter, cursorSessionImporter: CursorSessionImporter, kimiSessionImporter: KimiSessionImporter, kimiCodeSessionImporter: KimiCodeSessionImporter, zaiBalanceSessionImporter: ZaiBalanceSessionImporter, claudeSessionImporter: ClaudeSessionImporter, antigravitySessionImporter: AntigravitySessionImporter, deviceCodeLoginNotifier: DeviceCodeLoginNotifier, grokSessionCipher: GrokSessionCipher, grokBillingClient: GrokBillingClient, grokDeviceCodeLoginNotifier: DeviceCodeLoginNotifier, currentQuotaStatePublisher: CurrentQuotaStatePublisher, currentQuotaStateRepository: CurrentQuotaStateRepository, accountListRepository: AccountListRepository, accountDeletionRepository: AccountDeletionRepository, retentionCleanupRepository: RetentionCleanupRepository, quotaHistoryClearRepository: QuotaHistoryClearRepository, currentQuotaStateFactory: CurrentQuotaStateFactory, widgetQuotaStateRepository: WidgetQuotaStateRepository, defaultAccountDisplayName: String, httpClient: ProviderHttpClient, clock: Clock, appearancePreferences: AppearancePreferenceStore, initialThemeMode: ThemeMode, currencyPreferences: CurrencyPreferencesDataStore, exchangeRateRepository: ExchangeRateRepository, exchangeRateRefresher: ExchangeRateRefresher, updatePreferences: UpdatePreferenceStore, appUpdateNotifier: AppUpdateNotifier, ): AppContainer</ID>
+    <ID>LongMethod:CodexDeviceCodeClient.kt$CodexDeviceCodeClient$suspend fun pollAuthorization(challenge: DeviceCodeChallenge): Result&lt;DeviceCodeAuthorization&gt;</ID>
+    <ID>LongMethod:CodexMeterNavHost.kt$@Composable fun AddAccountDestination(entryMode: AddAccountEntryMode)</ID>
+    <ID>LongMethod:CodexMeterNavHost.kt$@Composable fun CodexMeterNavHost( modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(), startDestination: String = CodexMeterRoute.Home.route, // Per-provider device-code login controllers; lookup falls back to the Noop controller so // previews/tests stay valid with an empty map. The legacy Codex modes resolve the codex entry. deviceCodeLoginControllers: Map&lt;ProviderId, DeviceCodeLoginController&gt; = emptyMap(), deviceCodeLoginNotifiers: Map&lt;ProviderId, DeviceCodeLoginNotifier&gt; = emptyMap(), deviceCodeLoginNotifier: DeviceCodeLoginNotifier = NoopDeviceCodeLoginNotifier, accountListUseCase: AccountListUseCase, accountDeleteUseCase: AccountDeleteUseCase, defaultAccountSelectUseCase: DefaultAccountSelectUseCase = NoopDefaultAccountSelectUseCase, accountRenameUseCase: AccountRenameUseCase = NoopAccountRenameUseCase, accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester = NoopAccountQuotaAlertEvaluationRequester, accountRefreshAllUseCase: AccountRefreshAllUseCase = NoopAccountRefreshAllUseCase, homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader, homeRefreshUseCase: HomeRefreshUseCase, homeTrendHistoryLoader: HomeTrendHistoryLoader = HomeTrendHistoryLoader { _, _ -&gt; emptyList() }, currencyPreferenceReader: CurrencyPreferenceReader = object : CurrencyPreferenceReader { override suspend fun currencyPreferences() = CurrencyPreferences() }, exchangeRateReader: ExchangeRateReader = object : ExchangeRateReader { override suspend fun currentRates() = null }, retentionPreferenceStore: RetentionPreferenceStore = InMemoryRetentionPreferenceStore(), notificationPreferenceStore: NotificationPreferenceStore = InMemoryNotificationPreferenceStore(), backgroundRefreshStatusReader: com.kmnexus.codexmeter.ui.settings.SettingsBackgroundRefreshStatusReader = com.kmnexus.codexmeter.ui.settings.InMemoryBackgroundRefreshStatusReader(), settingsDiagnosticsReader: SettingsDiagnosticsReader = DefaultSettingsDiagnosticsReader, quotaHistoryClearUseCase: QuotaHistoryClearUseCase = NoopQuotaHistoryClearUseCase, appUpdateChecker: AppUpdateCheckUseCase = NoopAppUpdateCheckUseCase, appUpdateDownloader: AppUpdateDownloadUseCase = NoopAppUpdateDownloadUseCase, apiKeyLoginUseCase: SessionLoginUseCase? = null, notificationWindowChoicesLoader: NotificationWindowChoicesLoader = NotificationWindowChoicesLoader { _, _ -&gt; emptyList() }, currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore, appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore, updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore, launchDestinationValue: String? = null, )</ID>
+    <ID>LongMethod:CodexMeterNavHost.kt$@Composable private fun CodexMeterBottomBar( modifier: Modifier = Modifier, tabs: List&lt;CodexMeterRoute&gt;, currentRoute: String, onTabSelected: (CodexMeterRoute) -&gt; Unit, )</ID>
+    <ID>LongMethod:CodexMeterNavHost.kt$@Composable private fun RowScope.CodexMeterBottomBarItem( tab: CodexMeterRoute, selected: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>LongMethod:CodexMeterWidget.kt$@Composable private fun GridFieldCell( context: Context, field: WidgetField?, modifier: GlanceModifier, stacked: Boolean = false, )</ID>
+    <ID>LongMethod:CurrentQuotaNotificationPublisher.kt$CurrentQuotaNotificationPublisher$override suspend fun publish(state: CurrentQuotaState)</ID>
+    <ID>LongMethod:DeviceCodeLoginViewModel.kt$DeviceCodeLoginViewModel$private fun applyResult(result: DeviceCodeLoginResult)</ID>
+    <ID>LongMethod:GrokDeviceCodeLoginController.kt$GrokDeviceCodeLoginController$override suspend fun pollLatest(): DeviceCodeLoginResult</ID>
+    <ID>LongMethod:HomeHeroGlassLayer.kt$@Composable internal fun HomeHeroGlassLayer(uiState: HomeUiState)</ID>
+    <ID>LongMethod:HomeQuotaCards.kt$@Composable private fun BalanceQuotaCard(card: HomeQuotaCardUi)</ID>
+    <ID>LongMethod:HomeQuotaCards.kt$@Composable private fun StatusDot(tone: HomeStatusTone)</ID>
+    <ID>LongMethod:HomeScreen.kt$@Composable private fun HomeAccountSelector( uiState: HomeUiState, onAccountSelected: (ProviderId, LocalAccountId) -&gt; Unit, )</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( uiState: HomeUiState, modifier: Modifier = Modifier, onRefreshClick: () -&gt; Unit = {}, onLoginClick: () -&gt; Unit = {}, onAccountSelected: (ProviderId, LocalAccountId) -&gt; Unit = { _, _ -&gt; }, )</ID>
+    <ID>LongMethod:HomeStatusCards.kt$@Composable private fun TrendBarChart(points: List&lt;HomeTrendPointUi&gt;)</ID>
+    <ID>LongMethod:HomeViewModel.kt$HomeViewModel$fun mapToUiState( state: CurrentQuotaState, isRefreshing: Boolean = false, ): HomeUiState</ID>
+    <ID>LongMethod:QmLiquidGlassSurface.kt$@Composable private fun LiquidGlassFallback( role: LiquidGlassSurfaceRole, radiusPx: Float, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$fun configure( role: LiquidGlassSurfaceRole, cornerRadiusPx: Float, isDark: Boolean, )</ID>
+    <ID>LongMethod:SettingsCards.kt$@Composable internal fun AppUpdateCard( update: SettingsUpdateUi, onCheckClick: () -&gt; Unit, onAvailableUpdateClick: () -&gt; Unit, onAutoCheckChanged: (Boolean) -&gt; Unit, onNotifyOnUpdateChanged: (Boolean) -&gt; Unit, )</ID>
+    <ID>LongMethod:SettingsCards.kt$@Composable private fun ThemeModeSegmentedControl( selected: ThemeMode, onSelected: (ThemeMode) -&gt; Unit, )</ID>
+    <ID>LongMethod:SettingsDiagnosticsRepository.kt$SettingsDiagnosticsRepository$override suspend fun diagnosticsInput(): SettingsDiagnosticsInput</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsRoute( modifier: Modifier = Modifier, accountListUseCase: AccountListUseCase = NoopAccountListUseCase, retentionPreferenceStore: RetentionPreferenceStore = InMemoryRetentionPreferenceStore(), notificationPreferenceStore: NotificationPreferenceStore = InMemoryNotificationPreferenceStore(), backgroundRefreshStatusReader: SettingsBackgroundRefreshStatusReader = InMemoryBackgroundRefreshStatusReader(), diagnosticsReader: SettingsDiagnosticsReader = DefaultSettingsDiagnosticsReader, quotaHistoryClearUseCase: QuotaHistoryClearUseCase = NoopQuotaHistoryClearUseCase, appUpdateChecker: AppUpdateCheckUseCase = NoopAppUpdateCheckUseCase, appUpdateDownloader: AppUpdateDownloadUseCase = NoopAppUpdateDownloadUseCase, backgroundRefreshScheduler: BackgroundRefreshScheduler = NoopBackgroundRefreshScheduler, notificationWindowChoicesLoader: NotificationWindowChoicesLoader = NotificationWindowChoicesLoader { _, _ -&gt; emptyList() }, currencyPreferenceStore: CurrencyPreferenceStore = NoopCurrencyPreferenceStore, appearancePreferenceStore: AppearancePreferenceStore = NoopAppearancePreferenceStore, updatePreferenceStore: UpdatePreferenceStore = NoopUpdatePreferenceStore, updateCheckScheduler: UpdateCheckScheduler = NoopUpdateCheckScheduler, openUpdateDialogOnLaunch: Boolean = false, viewModel: SettingsViewModel = viewModel( factory = SettingsViewModel.factory( accountListUseCase = accountListUseCase, retentionPreferenceStore = retentionPreferenceStore, notificationPreferenceStore = notificationPreferenceStore, backgroundRefreshStatusReader = backgroundRefreshStatusReader, diagnosticsReader = diagnosticsReader, quotaHistoryClearUseCase = quotaHistoryClearUseCase, appUpdateChecker = appUpdateChecker, appUpdateDownloader = appUpdateDownloader, backgroundRefreshScheduler = backgroundRefreshScheduler, notificationWindowChoicesLoader = notificationWindowChoicesLoader, currencyPreferenceStore = currencyPreferenceStore, appearancePreferenceStore = appearancePreferenceStore, updatePreferenceStore = updatePreferenceStore, updateCheckScheduler = updateCheckScheduler, ), ), )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( uiState: SettingsUiState, modifier: Modifier = Modifier, onChoiceDialogRequested: (SettingsChoiceDialog) -&gt; Unit = {}, onChoiceDialogDismiss: () -&gt; Unit = {}, onPersistentNotificationAccountSelected: (SettingsNotificationAccountSelection) -&gt; Unit = {}, onPersistentNotificationWindowSelected: (QuotaWindowId) -&gt; Unit = {}, onStatusNotificationChanged: (Boolean) -&gt; Unit = {}, onAccountErrorsChanged: (Boolean) -&gt; Unit = {}, onCautionThresholdChanged: (Int) -&gt; Unit = {}, onWarningThresholdChanged: (Int) -&gt; Unit = {}, onBalanceCautionChanged: (Double) -&gt; Unit = {}, onBalanceWarningChanged: (Double) -&gt; Unit = {}, onBackgroundRefreshChanged: (Boolean) -&gt; Unit = {}, onRefreshIntervalSelected: (SettingsRefreshInterval) -&gt; Unit = {}, onCurrencyTargetSelected: (String) -&gt; Unit = {}, onThemeModeSelected: (ThemeMode) -&gt; Unit = {}, onRetentionSelected: (SettingsRetentionOption) -&gt; Unit = {}, onClearCurrentHistoryClick: () -&gt; Unit = {}, onClearAllHistoryClick: () -&gt; Unit = {}, onDataActionConfirm: () -&gt; Unit = {}, onDataActionDismiss: () -&gt; Unit = {}, onDiagnosticsToggle: () -&gt; Unit = {}, onDiagnosticsCopyClick: () -&gt; Unit = {}, onDiagnosticsRecheckClick: () -&gt; Unit = {}, onAboutRepositoryClick: () -&gt; Unit = {}, onAppUpdateCheckClick: () -&gt; Unit = {}, onAppUpdateDismiss: () -&gt; Unit = {}, onAppUpdateDownloadClick: () -&gt; Unit = {}, onAppUpdateAvailableClick: () -&gt; Unit = {}, onAppUpdateAutoCheckChanged: (Boolean) -&gt; Unit = {}, onAppUpdateNotifyChanged: (Boolean) -&gt; Unit = {}, showBatteryOptimizationHint: Boolean = false, onBatteryOptimizationClick: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun SettingsChoiceDialogContent( dialog: SettingsChoiceDialog, uiState: SettingsUiState, onPersistentNotificationAccountSelected: (SettingsNotificationAccountSelection) -&gt; Unit, onPersistentNotificationWindowSelected: (QuotaWindowId) -&gt; Unit, onRetentionSelected: (SettingsRetentionOption) -&gt; Unit, onRefreshIntervalSelected: (SettingsRefreshInterval) -&gt; Unit, onCurrencyTargetSelected: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>LongMethod:SettingsViewModel.kt$SettingsViewModel$fun buildDiagnosticsCopyModel(input: SettingsDiagnosticsInput): SettingsDiagnosticsCopyModel</ID>
+    <ID>LongMethod:SettingsViewModel.kt$SettingsViewModel$fun loadSettings()</ID>
+    <ID>LongMethod:WebViewAuthScreen.kt$@Composable fun WebViewAuthScreen( config: WebViewAuthConfig, onCredentialExtracted: suspend (credential: String, redirectUri: String?) -&gt; Result&lt;Unit&gt;, onBack: () -&gt; Unit, modifier: Modifier = Modifier, onSaved: () -&gt; Unit = onBack, )</ID>
+    <ID>LongMethod:WebViewAuthScreen.kt$@Composable private fun CookieAuthBody( config: WebViewAuthConfig.Cookie, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onError: (String) -&gt; Unit, onClearAction: (() -&gt; Unit) -&gt; Unit, onConfirmAction: (() -&gt; Unit) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:WebViewAuthScreen.kt$@Composable private fun OAuthInterceptBody( config: WebViewAuthConfig.OAuthIntercept, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onFailure: (AuthFlowFailure) -&gt; Unit, onWebViewReady: (WebView) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:WidgetConfigurationScreen.kt$@Composable private fun WidgetConfigurationScreen( state: WidgetConfigurationScreenState, expandedSection: WidgetConfigurationSection?, isSaving: Boolean, onSectionToggle: (WidgetConfigurationSection) -&gt; Unit, onAccountSelected: (ProviderAccount) -&gt; Unit, onWindowToggled: (String) -&gt; Unit, onCancel: () -&gt; Unit, onSave: () -&gt; Unit, )</ID>
+    <ID>LongMethod:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$fun render( context: Context, tone: WidgetQuotaTone, widthDp: Float = DEFAULT_WIDTH_DP, heightDp: Float = DEFAULT_HEIGHT_DP, ): Bitmap</ID>
+    <ID>LongParameterList:AccountCards.kt$( account: AccountItemUi, animatorsEnabled: Boolean, onRenameClick: (LocalAccountId) -&gt; Unit, onReloginClick: (LocalAccountId) -&gt; Unit, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit, onDeleteClick: (LocalAccountId) -&gt; Unit, )</ID>
+    <ID>LongParameterList:AccountCards.kt$( account: AccountItemUi, onRenameClick: (LocalAccountId) -&gt; Unit, onReloginClick: (LocalAccountId) -&gt; Unit, onQuotaAlertToggle: (LocalAccountId, QuotaWindowId, Boolean) -&gt; Unit, onDeleteClick: (LocalAccountId) -&gt; Unit, onToggleExpanded: (LocalAccountId) -&gt; Unit, )</ID>
+    <ID>LongParameterList:AddAccountScreen.kt$( uiState: DeviceCodeLoginUiState, providerDisplayName: String, onStartLoginClick: () -&gt; Unit, onCopyCodeClick: (String) -&gt; Unit, onOpenVerificationClick: (String) -&gt; Unit, onRetryValidationClick: () -&gt; Unit, onCancelLoginClick: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$( dto: AntigravityQuotaSummaryDto, tier: String?, localAccountId: LocalAccountId, providerAccountId: ProviderAccountId?, fetchedAt: Instant, source: QuotaSnapshotSource, )</ID>
+    <ID>LongParameterList:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$( tier: String?, models: List&lt;AntigravityModelQuota&gt;, localAccountId: LocalAccountId, providerAccountId: ProviderAccountId?, fetchedAt: Instant, source: QuotaSnapshotSource, )</ID>
+    <ID>LongParameterList:AppContainer.kt$AppContainer$( val refreshCoordinator: RefreshCoordinator, val accountListUseCase: AccountListUseCase, val accountDeleteUseCase: AccountDeleteUseCase, val defaultAccountSelectUseCase: DefaultAccountSelectUseCase, val accountRenameUseCase: AccountRenameUseCase, val accountQuotaAlertEvaluationRequester: AccountQuotaAlertEvaluationRequester, val homeCurrentQuotaStateLoader: HomeCurrentQuotaStateLoader, val homeRefreshUseCase: HomeRefreshUseCase, val deviceCodeLoginController: DeviceCodeLoginController, /** Per-provider device-code login controllers; the legacy single property is the codex entry. */ val deviceCodeLoginControllers: Map&lt;ProviderId, DeviceCodeLoginController&gt;, val deviceCodeLoginNotifiers: Map&lt;ProviderId, DeviceCodeLoginNotifier&gt;, val deviceCodeLoginNotifier: DeviceCodeLoginNotifier, val retentionPreferences: RetentionPreferences, val notificationPreferences: NotificationPreferenceStore, val primaryQuotaWindowPreferences: PrimaryQuotaWindowPreferenceStore, val quotaHistoryClearUseCase: QuotaHistoryClearUseCase, val homeTrendHistoryLoader: HomeTrendHistoryLoader, val backgroundRefreshStatusReader: SettingsBackgroundRefreshStatusReader, val settingsDiagnosticsReader: SettingsDiagnosticsReader, val appUpdateChecker: AppUpdateCheckUseCase, val appUpdateDownloader: AppUpdateDownloadUseCase, val updatePreferenceStore: UpdatePreferenceStore, val appUpdateNotifier: AppUpdateNotifier, val widgetQuotaStateLoader: WidgetQuotaStateLoader, val startupMaintenance: StartupMaintenance, val apiKeyLoginUseCase: SessionLoginUseCase, val appearancePreferences: AppearancePreferenceStore, val initialThemeMode: ThemeMode, val currencyPreferences: CurrencyPreferencesDataStore, val exchangeRateRepository: ExchangeRateRepository, private val currentAccountStore: CurrentQuotaRefreshAccountStore, val exchangeRateRefresher: ExchangeRateRefresher, val notificationWindowChoicesLoader: NotificationWindowChoicesLoader, )</ID>
+    <ID>LongParameterList:AppContainer.kt$AppContainer.Companion$( appContext: Context, sharedStateGuard: VersionedStateGuard, database: CodexMeterDatabase, currentAccountReader: CurrentAccountReader, currentAccountPreferences: CurrentAccountPreferences, retentionPreferences: RetentionPreferences, notificationPreferences: NotificationPreferencesDataStore, primaryQuotaWindowPreferences: PrimaryQuotaWindowPreferences, sessionStore: FileSecureSessionStore, sessionCipher: CodexSessionCipher, refreshProvider: RefreshProvider, usageClient: CodexUsageClient, deepseekSessionImporter: DeepSeekSessionImporter, minimaxSessionImporter: MiniMaxSessionImporter, zaiSessionImporter: ZaiSessionImporter, cursorSessionImporter: CursorSessionImporter, kimiSessionImporter: KimiSessionImporter, kimiCodeSessionImporter: KimiCodeSessionImporter, zaiBalanceSessionImporter: ZaiBalanceSessionImporter, claudeSessionImporter: ClaudeSessionImporter, antigravitySessionImporter: AntigravitySessionImporter, deviceCodeLoginNotifier: DeviceCodeLoginNotifier, grokSessionCipher: GrokSessionCipher, grokBillingClient: GrokBillingClient, grokDeviceCodeLoginNotifier: DeviceCodeLoginNotifier, currentQuotaStatePublisher: CurrentQuotaStatePublisher, currentQuotaStateRepository: CurrentQuotaStateRepository, accountListRepository: AccountListRepository, accountDeletionRepository: AccountDeletionRepository, retentionCleanupRepository: RetentionCleanupRepository, quotaHistoryClearRepository: QuotaHistoryClearRepository, currentQuotaStateFactory: CurrentQuotaStateFactory, widgetQuotaStateRepository: WidgetQuotaStateRepository, defaultAccountDisplayName: String, httpClient: ProviderHttpClient, clock: Clock, appearancePreferences: AppearancePreferenceStore, initialThemeMode: ThemeMode, currencyPreferences: CurrencyPreferencesDataStore, exchangeRateRepository: ExchangeRateRepository, exchangeRateRefresher: ExchangeRateRefresher, updatePreferences: UpdatePreferenceStore, appUpdateNotifier: AppUpdateNotifier, )</ID>
+    <ID>LongParameterList:CodexMeterNavHost.kt$( endpoint: String, clientId: String, redirectUri: String, scope: String, codeChallenge: String, state: String, )</ID>
+    <ID>LongParameterList:CodexSessionImporter.kt$CodexSessionImporter$( private val usageClient: UsageClient, private val mapper: CodexUsageMapper, private val importPersistence: ImportPersistence, private val sessionEnvelopeFactory: SessionEnvelopeFactory, private val localAccountIdProvider: LocalAccountIdProvider, private val defaultDisplayName: String, private val clock: Clock, )</ID>
+    <ID>LongParameterList:HomeStatusCards.kt$( left: Float, top: Float, right: Float, bottom: Float, radius: Float, color: Color, )</ID>
+    <ID>LongParameterList:SettingsCards.kt$( alerts: SettingsAlertsUi, targetCurrency: String, onAccountErrorsChanged: (Boolean) -&gt; Unit, onCautionThresholdChanged: (Int) -&gt; Unit, onWarningThresholdChanged: (Int) -&gt; Unit, onBalanceCautionChanged: (Double) -&gt; Unit, onBalanceWarningChanged: (Double) -&gt; Unit, onCurrencyTargetClick: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:SettingsCards.kt$( titleResId: Int, color: Color, currencySymbol: String, value: Double, onDecrement: () -&gt; Unit, onIncrement: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:SettingsDiagnosticsRepository.kt$SettingsDiagnosticsRepository$( private val context: Context, private val currentAccountReader: CurrentAccountReader, private val providerAccountDao: ProviderAccountDao, private val quotaSnapshotDao: QuotaSnapshotDao, private val refreshAttemptDao: RefreshAttemptDao, private val sessionStore: SecureSessionStore, private val deviceCodeLoginDiagnosticsReader: DeviceCodeLoginDiagnosticsReader, private val workManagerStatusReader: WorkManagerStatusReader = AndroidWorkManagerStatusReader(context), private val notificationPermissionReader: NotificationPermissionReader = AndroidNotificationPermissionReader(context), private val notificationPreferenceReader: NotificationPreferenceReader, private val retentionPreferenceReader: RetentionPreferenceReader, private val deviceEnvironmentReader: DeviceEnvironmentReader = AndroidDeviceEnvironmentReader(context), private val widgetCountReader: WidgetCountReader = GlanceWidgetCountReader(context), private val roomSchemaVersion: Int = CODEXMETER_DB_SCHEMA_VERSION, private val nowMillisProvider: () -&gt; Long = { System.currentTimeMillis() }, )</ID>
+    <ID>LongParameterList:SettingsScreen.kt$( dialog: SettingsChoiceDialog, uiState: SettingsUiState, onPersistentNotificationAccountSelected: (SettingsNotificationAccountSelection) -&gt; Unit, onPersistentNotificationWindowSelected: (QuotaWindowId) -&gt; Unit, onRetentionSelected: (SettingsRetentionOption) -&gt; Unit, onRefreshIntervalSelected: (SettingsRefreshInterval) -&gt; Unit, onCurrencyTargetSelected: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:WebViewAuthScreen.kt$( config: WebViewAuthConfig.Cookie, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onError: (String) -&gt; Unit, onClearAction: (() -&gt; Unit) -&gt; Unit, onConfirmAction: (() -&gt; Unit) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:WebViewAuthScreen.kt$( config: WebViewAuthConfig.OAuthIntercept, isVerifying: Boolean, errorMessage: String?, onCredential: (String, String?) -&gt; Unit, onFailure: (AuthFlowFailure) -&gt; Unit, onWebViewReady: (WebView) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:WidgetConfigurationScreen.kt$( state: WidgetConfigurationScreenState, expandedSection: WidgetConfigurationSection?, isSaving: Boolean, onSectionToggle: (WidgetConfigurationSection) -&gt; Unit, onAccountSelected: (ProviderAccount) -&gt; Unit, onWindowToggled: (String) -&gt; Unit, onCancel: () -&gt; Unit, onSave: () -&gt; Unit, )</ID>
+    <ID>MagicNumber:AccountCards.kt$0.56f</ID>
+    <ID>MagicNumber:AccountViewModel.kt$AccountViewModel$100</ID>
+    <ID>MagicNumber:AlertPolicy.kt$AlertPolicy$100</ID>
+    <ID>MagicNumber:AlertPolicy.kt$AlertThresholds$100</ID>
+    <ID>MagicNumber:AntigravityQuotaClient.kt$AntigravityQuotaClient$200</ID>
+    <ID>MagicNumber:AntigravityQuotaClient.kt$AntigravityQuotaClient$299</ID>
+    <ID>MagicNumber:AntigravityQuotaClient.kt$AntigravityQuotaClient$401</ID>
+    <ID>MagicNumber:AntigravityQuotaClient.kt$AntigravityQuotaClient$403</ID>
+    <ID>MagicNumber:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$100</ID>
+    <ID>MagicNumber:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$100.0</ID>
+    <ID>MagicNumber:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$12</ID>
+    <ID>MagicNumber:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$6</ID>
+    <ID>MagicNumber:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$7</ID>
+    <ID>MagicNumber:AuthScaffold.kt$90f</ID>
+    <ID>MagicNumber:BrowserSessionToken.kt$BrowserSessionToken$1000</ID>
+    <ID>MagicNumber:BrowserSessionToken.kt$BrowserSessionToken$443</ID>
+    <ID>MagicNumber:ClaudeUsageClient.kt$ClaudeUsageClient$200</ID>
+    <ID>MagicNumber:ClaudeUsageClient.kt$ClaudeUsageClient$299</ID>
+    <ID>MagicNumber:ClaudeUsageClient.kt$ClaudeUsageClient$401</ID>
+    <ID>MagicNumber:ClaudeUsageClient.kt$ClaudeUsageClient$403</ID>
+    <ID>MagicNumber:ClaudeUsageMapper.kt$ClaudeUsageMapper$100</ID>
+    <ID>MagicNumber:ClaudeUsageMapper.kt$ClaudeUsageMapper$100.0</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF0071E3</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF060810</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF0E1218</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF10151D</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF141B25</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF14271E</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF151821</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF15314F</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF17181C</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF171F2B</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF18A058</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF1C2636</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF28313F</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF2A2012</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF2B1517</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF35C77D</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF3E5A7A</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF4C9EFF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF5DB8FF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF6A7280</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF6B7484</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF7EF4E8</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF8A94A6</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF8AA9D6</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF9AA4B2</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFF9D8CFF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFB9D8FF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFD97706</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFDC2626</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFE5EAF2</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFEAF3FF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFEAF7F0</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFEEF1F6</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFEEF2F8</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFF0A63E</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFF2564B</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFF5F7FB</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFF8FBFF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFFAFCFF</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFFEEDEE</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFFFF4E4</ID>
+    <ID>MagicNumber:CodexMeterColors.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:CodexMeterMotion.kt$CodexMeterMotion$0xFFF5F7FB</ID>
+    <ID>MagicNumber:CodexMeterMotion.kt$CodexMeterMotion$1.06f</ID>
+    <ID>MagicNumber:CodexMeterMotion.kt$CodexMeterMotion$1.8f</ID>
+    <ID>MagicNumber:CodexMeterMotion.kt$CodexMeterMotion$100f</ID>
+    <ID>MagicNumber:CodexMeterNavHost.kt$0.24f</ID>
+    <ID>MagicNumber:CodexMeterNavHost.kt$0.58f</ID>
+    <ID>MagicNumber:CodexMeterNavHost.kt$0.86f</ID>
+    <ID>MagicNumber:CodexMeterNavHost.kt$16</ID>
+    <ID>MagicNumber:CodexMeterNavHost.kt$32</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$0xFF000000</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$0xFF08121F</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$0xFF2B0F0F</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$500</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$720</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$760</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$800</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$850</ID>
+    <ID>MagicNumber:CodexMeterTheme.kt$CodexMeterFontFamilies$850</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x335CF2A6</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x336A86B0</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x3386C5FF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x33B9D8FF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x33FF6B7A</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x33FFC85A</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x556A86B0</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x8C151821</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x99151821</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0x99B9D8FF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xCCFFFFFF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xE6FFFFFF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFF0071E3</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFF151821</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFF18A058</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFF5CF2A6</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFF86C5FF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFFD97706</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFFDC2626</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFFFF6B7A</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFFFFC85A</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:CodexMeterWidget.kt$3</ID>
+    <ID>MagicNumber:CursorUsageClient.kt$CursorUsageClient$200</ID>
+    <ID>MagicNumber:CursorUsageClient.kt$CursorUsageClient$299</ID>
+    <ID>MagicNumber:CursorUsageClient.kt$CursorUsageClient$401</ID>
+    <ID>MagicNumber:CursorUsageClient.kt$CursorUsageClient$403</ID>
+    <ID>MagicNumber:CursorUsageMapper.kt$CursorUsageMapper$100</ID>
+    <ID>MagicNumber:CursorUsageMapper.kt$CursorUsageMapper$100.0</ID>
+    <ID>MagicNumber:DeepSeekBalanceClient.kt$DeepSeekBalanceClient$200</ID>
+    <ID>MagicNumber:DeepSeekBalanceClient.kt$DeepSeekBalanceClient$299</ID>
+    <ID>MagicNumber:DeepSeekBalanceClient.kt$DeepSeekBalanceClient$401</ID>
+    <ID>MagicNumber:DeepSeekBalanceClient.kt$DeepSeekBalanceClient$403</ID>
+    <ID>MagicNumber:DeviceCodeLoginViewModel.kt$DeviceCodeLoginViewModel$1_000L</ID>
+    <ID>MagicNumber:DiagnosticsAccountAlertConfigBuilder.kt$12</ID>
+    <ID>MagicNumber:DiagnosticsTimeFormatter.kt$DiagnosticsTimeFormatter$1000</ID>
+    <ID>MagicNumber:DiagnosticsTimeFormatter.kt$DiagnosticsTimeFormatter$3600</ID>
+    <ID>MagicNumber:DiagnosticsTimeFormatter.kt$DiagnosticsTimeFormatter$60</ID>
+    <ID>MagicNumber:DiagnosticsTimeFormatter.kt$DiagnosticsTimeFormatter$86_400</ID>
+    <ID>MagicNumber:ExchangeRateClient.kt$ExchangeRateClient$200</ID>
+    <ID>MagicNumber:ExchangeRateClient.kt$ExchangeRateClient$299</ID>
+    <ID>MagicNumber:ExchangeRateRepository.kt$ExchangeRateRepository$12</ID>
+    <ID>MagicNumber:GlassPullToRefreshIndicator.kt$0.3f</ID>
+    <ID>MagicNumber:GlassPullToRefreshIndicator.kt$0.4f</ID>
+    <ID>MagicNumber:GlassPullToRefreshIndicator.kt$0.6f</ID>
+    <ID>MagicNumber:GlassPullToRefreshIndicator.kt$0.7f</ID>
+    <ID>MagicNumber:GrokBillingClient.kt$GrokBillingClient$200</ID>
+    <ID>MagicNumber:GrokBillingClient.kt$GrokBillingClient$299</ID>
+    <ID>MagicNumber:GrokBillingClient.kt$GrokBillingClient$401</ID>
+    <ID>MagicNumber:GrokBillingClient.kt$GrokBillingClient$403</ID>
+    <ID>MagicNumber:GrokMapper.kt$GrokMapper$100.0</ID>
+    <ID>MagicNumber:HomeHeroGlassLayer.kt$0.30f</ID>
+    <ID>MagicNumber:HomeHeroGlassLayer.kt$0.45f</ID>
+    <ID>MagicNumber:HomeHeroGlassLayer.kt$0.52f</ID>
+    <ID>MagicNumber:HomeHeroGlassLayer.kt$0.56f</ID>
+    <ID>MagicNumber:HomeHeroGlassLayer.kt$0.68f</ID>
+    <ID>MagicNumber:HomeUiState.kt$HomeQuotaCardUi$100</ID>
+    <ID>MagicNumber:KimiCodeUsageClient.kt$KimiCodeUsageClient$200</ID>
+    <ID>MagicNumber:KimiCodeUsageClient.kt$KimiCodeUsageClient$299</ID>
+    <ID>MagicNumber:KimiCodeUsageClient.kt$KimiCodeUsageClient$401</ID>
+    <ID>MagicNumber:KimiCodeUsageClient.kt$KimiCodeUsageClient$403</ID>
+    <ID>MagicNumber:KimiCodeUsageMapper.kt$KimiCodeUsageMapper$100</ID>
+    <ID>MagicNumber:KimiCodeUsageMapper.kt$KimiCodeUsageMapper$3600L</ID>
+    <ID>MagicNumber:KimiCodeUsageMapper.kt$KimiCodeUsageMapper$60L</ID>
+    <ID>MagicNumber:KimiCodeUsageMapper.kt$KimiCodeUsageMapper$86400L</ID>
+    <ID>MagicNumber:KimiQuotaClient.kt$KimiQuotaClient$200</ID>
+    <ID>MagicNumber:KimiQuotaClient.kt$KimiQuotaClient$299</ID>
+    <ID>MagicNumber:KimiQuotaClient.kt$KimiQuotaClient$401</ID>
+    <ID>MagicNumber:KimiQuotaClient.kt$KimiQuotaClient$403</ID>
+    <ID>MagicNumber:KimiQuotaMapper.kt$KimiQuotaMapper$100.0</ID>
+    <ID>MagicNumber:KimiQuotaMapper.kt$KimiQuotaMapper$3600L</ID>
+    <ID>MagicNumber:KimiQuotaMapper.kt$KimiQuotaMapper$60L</ID>
+    <ID>MagicNumber:KimiQuotaMapper.kt$KimiQuotaMapper$86400L</ID>
+    <ID>MagicNumber:MiniMaxUsageClient.kt$MiniMaxUsageClient$1004</ID>
+    <ID>MagicNumber:MiniMaxUsageClient.kt$MiniMaxUsageClient$200</ID>
+    <ID>MagicNumber:MiniMaxUsageClient.kt$MiniMaxUsageClient$299</ID>
+    <ID>MagicNumber:MiniMaxUsageClient.kt$MiniMaxUsageClient$401</ID>
+    <ID>MagicNumber:MiniMaxUsageClient.kt$MiniMaxUsageClient$403</ID>
+    <ID>MagicNumber:MiniMaxUsageMapper.kt$MiniMaxUsageMapper$100</ID>
+    <ID>MagicNumber:MiniMaxUsageMapper.kt$MiniMaxUsageMapper$100.0</ID>
+    <ID>MagicNumber:MiniMaxUsageMapper.kt$MiniMaxUsageMapper$1_000_000_000L</ID>
+    <ID>MagicNumber:MiniMaxUsageMapper.kt$MiniMaxUsageMapper$1_000_000_000_000L</ID>
+    <ID>MagicNumber:NeedsReauthPolicy.kt$401</ID>
+    <ID>MagicNumber:NeedsReauthPolicy.kt$403</ID>
+    <ID>MagicNumber:NotificationPreferences.kt$98</ID>
+    <ID>MagicNumber:NotificationPreferences.kt$99</ID>
+    <ID>MagicNumber:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$3</ID>
+    <ID>MagicNumber:OAuthTokenClient.kt$OAuthTokenClient$200</ID>
+    <ID>MagicNumber:OAuthTokenClient.kt$OAuthTokenClient$299</ID>
+    <ID>MagicNumber:OAuthTokenClient.kt$OAuthTokenClient$401</ID>
+    <ID>MagicNumber:OAuthTokenClient.kt$OAuthTokenClient$403</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0x1F1E6</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0x1F1FF</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0x1F3FB</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0x1F3FF</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0xE0100</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0xE01EF</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0xFE00</ID>
+    <ID>MagicNumber:ProviderAccount.kt$ProviderAccount.Companion$0xFE0F</ID>
+    <ID>MagicNumber:ProviderSelectionScreen.kt$90f</ID>
+    <ID>MagicNumber:ProviderSelectionSheet.kt$0.5f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.02f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.03f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.05f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.08f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.12f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.16f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.18f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.22f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.30f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.40f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.44f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.72f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.92f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$0.94f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$1.2f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$2.4f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.22f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.34f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.40f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.52f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.56f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.66f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$0.74f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$126</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$16</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$184</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$20</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$216</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$22</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$232</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$234</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$241</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$243</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$244</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$248</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$251</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$255</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$28</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$34</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$38</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$41</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$46</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$54</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$64</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$76</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$78</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$LiquidGlassSourceView$93</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.10f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.13f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.14f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.15f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.18f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.19f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.22f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.30f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.34f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.38f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.46f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.52f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.54f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.94f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$0.98f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$18f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$20f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$28f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$42f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$5.8f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$50f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$6.4f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$7.2f</ID>
+    <ID>MagicNumber:QmLiquidGlassSurface.kt$QmLiquidGlassHostView$70f</ID>
+    <ID>MagicNumber:QuotaModels.kt$100</ID>
+    <ID>MagicNumber:QuotaModels.kt$QuotaWindow$100</ID>
+    <ID>MagicNumber:RetentionPolicy.kt$RetentionPolicy.Companion$30</ID>
+    <ID>MagicNumber:RetentionPolicy.kt$RetentionPolicy.Companion$7</ID>
+    <ID>MagicNumber:RetentionPolicy.kt$RetentionPolicy.Companion$90</ID>
+    <ID>MagicNumber:SettingsCards.kt$0xFF08121F</ID>
+    <ID>MagicNumber:SettingsDiagnosticsRepository.kt$AndroidWorkManagerStatusReader$750</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsRefreshInterval.Fifteen$15</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsRefreshInterval.Thirty$30</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsRetentionOption.NinetyDays$90</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsRetentionOption.SevenDays$7</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsRetentionOption.ThirtyDays$30</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$0.44f</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$0.46f</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$0.65f</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$0x00FFFFFF</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$1.2f</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$2.2f</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$24</ID>
+    <ID>MagicNumber:WidgetStatusGlowRenderer.kt$WidgetStatusGlowRenderer$255</ID>
+    <ID>MagicNumber:ZaiBalanceClient.kt$ZaiBalanceClient$1000</ID>
+    <ID>MagicNumber:ZaiBalanceClient.kt$ZaiBalanceClient$1001</ID>
+    <ID>MagicNumber:ZaiBalanceClient.kt$ZaiBalanceClient$200</ID>
+    <ID>MagicNumber:ZaiBalanceClient.kt$ZaiBalanceClient$299</ID>
+    <ID>MagicNumber:ZaiBalanceClient.kt$ZaiBalanceClient$401</ID>
+    <ID>MagicNumber:ZaiBalanceClient.kt$ZaiBalanceClient$403</ID>
+    <ID>MagicNumber:ZaiQuotaClient.kt$ZaiQuotaClient$200</ID>
+    <ID>MagicNumber:ZaiQuotaClient.kt$ZaiQuotaClient$299</ID>
+    <ID>MagicNumber:ZaiQuotaClient.kt$ZaiQuotaClient$401</ID>
+    <ID>MagicNumber:ZaiQuotaClient.kt$ZaiQuotaClient$403</ID>
+    <ID>MagicNumber:ZaiQuotaMapper.kt$ZaiQuotaMapper$100</ID>
+    <ID>MagicNumber:ZaiQuotaMapper.kt$ZaiQuotaMapper$100.0</ID>
+    <ID>MagicNumber:ZaiQuotaResponseDto.kt$ZaiQuotaResponseDto$200</ID>
+    <ID>MatchingDeclarationName:ApiKeyAuthScreen.kt$ApiKeyAuthRegion</ID>
+    <ID>MatchingDeclarationName:QmLiquidGlassSurface.kt$LiquidGlassSurfaceRole</ID>
+    <ID>MaxLineLength:AccountDeletionRepositoryTest.kt$AccountDeletionRepositoryTest$fun</ID>
+    <ID>MaxLineLength:AccountScreen.kt$onReloginAccount: (com.kmnexus.codexmeter.domain.model.ProviderId, LocalAccountId, String?) -&gt; Unit = { _, _, _ -&gt; }</ID>
+    <ID>MaxLineLength:AccountViewModel.kt$AccountViewModel$originalValueText = formatProviderBalance(converted.originalBalanceAmount, converted.originalBalanceCurrency)</ID>
+    <ID>MaxLineLength:AccountViewModel.kt$AccountViewModel$percent = if (converted.displayKind == QuotaWindowDisplayKind.Balance) null else converted.displayPercent</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$claudeWindow("claude_7d_opus_window", usedPercent = 40, limitWindowSeconds = 604_800, subLabel = "7 days · Opus")</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$claudeWindow("claude_7d_sonnet_window", usedPercent = 50, limitWindowSeconds = 604_800, subLabel = "7 days · Sonnet")</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$claudeWindow("claude_extra_usage", usedPercent = 90, limitWindowSeconds = null, subLabel = "$90.00 / $100.00")</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$fun</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$listOf(AccountQuotaAlertEvaluationRequest(ProviderId("codex"), localId("local-1"), QuotaWindowId("weekly")))</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$viewModel.setAccounts(accounts = listOf(account("local-1"), account("local-2")), defaultAccountId = localId("local-1"))</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest$viewModel.setAccounts(accounts = listOf(account("local-1", displayName = "Codex Main")), defaultAccountId = localId("local-1"))</ID>
+    <ID>MaxLineLength:AccountViewModelTest.kt$AccountViewModelTest.RecordingAccountRenameUseCase$requests += AccountRenameRequest(providerId = providerId, localAccountId = localAccountId, displayName = displayName)</ID>
+    <ID>MaxLineLength:AddAccountScreen.kt$DeviceCodeLoginUiStatus.AccountMismatchDecision -&gt; stringResource(R.string.add_account_device_code_account_mismatch)</ID>
+    <ID>MaxLineLength:AddAccountScreen.kt$DeviceCodeLoginUiStatus.AwaitingUserAuthorization -&gt; stringResource(R.string.add_account_device_code_waiting)</ID>
+    <ID>MaxLineLength:AddAccountScreen.kt$DeviceCodeLoginUiStatus.ValidationFailed -&gt; stringResource(R.string.add_account_device_code_validation_failed)</ID>
+    <ID>MaxLineLength:AddAccountScreen.kt$connectedAccount != null -&gt; stringResource(R.string.add_account_device_code_connected, connectedAccount.displayName)</ID>
+    <ID>MaxLineLength:AlertPolicyBalanceTest.kt$AlertPolicyBalanceTest$source = QuotaSnapshotSource.ManualRefresh</ID>
+    <ID>MaxLineLength:AlertPolicyBalanceTest.kt$AlertPolicyBalanceTest$val account = ProviderAccount.createNew(LocalAccountId("a1"), ProviderId("deepseek"), null, "Test", Instant.EPOCH)</ID>
+    <ID>MaxLineLength:AndroidKeystoreCodexSessionCipher.kt$AndroidKeystoreCodexSessionCipher$cipher.init(Cipher.DECRYPT_MODE, secretKey(), javax.crypto.spec.GCMParameterSpec(TAG_BITS, envelope.payloadNonce))</ID>
+    <ID>MaxLineLength:AntigravityQuotaClientTest.kt$AntigravityQuotaClientTest$fun</ID>
+    <ID>MaxLineLength:AppContainer.kt$AppContainer.Companion$accountQuotaAlertEvaluationRequester</ID>
+    <ID>MaxLineLength:AppContainer.kt$AppContainer.Companion$exchangeRateRefresher = ExchangeRateRefresher { exchangeRateRepository.refreshIfStale(clock.instant()) }</ID>
+    <ID>MaxLineLength:AppUpdateModels.kt$NoopAppUpdateCheckUseCase$override suspend fun checkForUpdate(currentVersionName: String): AppUpdateCheckResult</ID>
+    <ID>MaxLineLength:AppUpdateNotificationOrchestrator.kt$AppUpdateNotificationOrchestrator.Companion$// Distinct from other notification request codes (11/21/31 NotificationOrchestrator, 41/42 DeviceCodeLogin) so PendingIntents don't collide.</ID>
+    <ID>MaxLineLength:AppVersionComparatorTest.kt$AppVersionComparatorTest$assertFalse(AppVersionComparator.isRemoteVersionNewer(currentVersionName = "0.1.0", remoteVersionName = "latest"))</ID>
+    <ID>MaxLineLength:AppVersionComparatorTest.kt$AppVersionComparatorTest$assertFalse(AppVersionComparator.isRemoteVersionNewer(currentVersionName = "0.1.0-debug", remoteVersionName = "v0.1.0"))</ID>
+    <ID>MaxLineLength:AppVersionComparatorTest.kt$AppVersionComparatorTest$assertTrue(AppVersionComparator.isRemoteVersionNewer(currentVersionName = "0.1.0-debug", remoteVersionName = "v0.1.1"))</ID>
+    <ID>MaxLineLength:BrowserSessionTokenTest.kt$BrowserSessionTokenTest$for</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCase.kt$CodexDeviceCodeLoginUseCase.DeviceCodeClient$suspend fun pollAuthorization(challenge: DeviceCodeChallenge): CodexDeviceCodeClient.Result&lt;DeviceCodeAuthorization&gt;</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$CodexDeviceCodeClient.Result.Success(DeviceCodeAuthorization("authorization-code", "code-verifier"))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$CodexDeviceCodeClient.Result.Success(challenge(userCode = "WXYZ-1234", deviceAuthId = "second-device-auth"))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$CodexOAuthTokenExchanger.Result.Failure(QuotaError.AuthRequired(400, "codex_oauth_auth_required_invalid_grant"))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$CodexSessionImporter.PrepareResult.Failure("error_network", QuotaError.Network("validation_failed"))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$CodexSessionImporter.PrepareResult.Success(importSuccess(QuotaSnapshotSource.DeviceCodeLogin).toPreparedImport())</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$assertEquals(CodexDeviceCodeLoginState.ValidationFailed(DeviceCodeLoginAttemptId("attempt-1"), "error_network"), firstState)</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$assertEquals(CodexDeviceCodeLoginState.ValidationFailed(DeviceCodeLoginAttemptId("attempt-1"), "error_network"), state)</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$firstPrepare.complete(CodexSessionImporter.PrepareResult.Success(importSuccess(QuotaSnapshotSource.DeviceCodeLogin).toPreparedImport()))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$firstResult.complete(CodexDeviceCodeClient.Result.Success(challenge(userCode = "ABCD-EFGH", deviceAuthId = "first-device-auth")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$listOf(CodexDeviceCodeClient.Result.Success(DeviceCodeAuthorization("authorization-code", "code-verifier")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$pollResult.complete(CodexDeviceCodeClient.Result.Success(DeviceCodeAuthorization("authorization-code", "code-verifier")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$requestResults = ArrayDeque(listOf(CodexDeviceCodeClient.Result.Success(challenge(deviceAuthId = "raw-device-auth-id"))))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$requestResults = ArrayDeque(listOf(CodexDeviceCodeClient.Result.Success(challenge(expiresInSeconds = 0))))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$tokenExchanger = RecordingTokenExchanger(CodexOAuthTokenExchanger.Result.Success(session(accountId = "actual-account")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$useCase.startLogin(CodexDeviceCodeLoginMode.Relogin(expectedProviderAccountId = ProviderAccountId("expected-account")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$val sessionImporter = RecordingSessionImporter(CodexSessionImporter.Result.Failure("error_network", QuotaError.Network("validation_failed")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest$val tokenExchanger = RecordingTokenExchanger(CodexOAuthTokenExchanger.Result.Success(session(accountId = "provider-account")))</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.DeferredDeviceCodeClient$override suspend</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.DeferredDeviceCodeClient$override suspend fun requestDeviceCode(): CodexDeviceCodeClient.Result&lt;DeviceCodeChallenge&gt;</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.DeferredPollDeviceCodeClient$override suspend</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.DeferredPrepareSessionImporter$override suspend</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.RecordingDeviceCodeClient$override suspend</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.RecordingDeviceCodeClient$override suspend fun requestDeviceCode(): CodexDeviceCodeClient.Result&lt;DeviceCodeChallenge&gt;</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.RecordingSessionImporter$is CodexSessionImporter.Result.Success -&gt; CodexSessionImporter.PrepareResult.Success(result.toPreparedImport())</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.RecordingSessionImporter$override suspend</ID>
+    <ID>MaxLineLength:CodexDeviceCodeLoginUseCaseTest.kt$CodexDeviceCodeLoginUseCaseTest.RetryingSessionImporter$override suspend</ID>
+    <ID>MaxLineLength:CodexMeterColors.kt$neutral = Color(0xFF0E1218)</ID>
+    <ID>MaxLineLength:CodexMeterColors.kt$neutral = Color(0xFFF5F7FB)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(0f, CodexMeterMotion.trendBarWidth(availableWidth = 0f, barCount = 24, minWidth = 4f, maxWidth = 10f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(1f / 3f, CodexMeterMotion.bottomTabIndicatorOffsetFraction(selectedIndex = 1, tabCount = 3), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(2f / 3f, CodexMeterMotion.bottomTabIndicatorOffsetFraction(selectedIndex = 2, tabCount = 3), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(43.5f, CodexMeterMotion.trendUsageBarY(value = 5f, maxValue = 10f, height = 86f, topInset = 6f, bottomInset = 5f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(4f, CodexMeterMotion.trendBarWidth(availableWidth = 96f, barCount = 24, minWidth = 4f, maxWidth = 10f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(50f, CodexMeterMotion.trendBarCenterX(normalizedX = 0.5f, width = 100f, barWidth = barWidth), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(6f, CodexMeterMotion.trendUsageBarY(value = 10f, maxValue = 10f, height = 86f, topInset = 6f, bottomInset = 5f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(7.4074f, CodexMeterMotion.trendBarWidth(availableWidth = 320f, barCount = 24, minWidth = 4f, maxWidth = 10f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(81f, CodexMeterMotion.trendUsageBarY(value = 0f, maxValue = 0f, height = 86f, topInset = 6f, bottomInset = 5f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(81f, CodexMeterMotion.trendUsageBarY(value = 0f, maxValue = 10f, height = 86f, topInset = 6f, bottomInset = 5f), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertEquals(96f, CodexMeterMotion.trendBarCenterX(normalizedX = 1f, width = 100f, barWidth = barWidth), 0.0001f)</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertFalse(CodexMeterMotion.shouldRunRefreshSweep(previousSuccessCount = 0, nextSuccessCount = 1, animatorsEnabled = false))</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertFalse(CodexMeterMotion.shouldRunRefreshSweep(previousSuccessCount = 1, nextSuccessCount = 1, animatorsEnabled = true))</ID>
+    <ID>MaxLineLength:CodexMeterMotionTest.kt$CodexMeterMotionTest$assertTrue(CodexMeterMotion.shouldRunRefreshSweep(previousSuccessCount = 0, nextSuccessCount = 1, animatorsEnabled = true))</ID>
+    <ID>MaxLineLength:CodexMeterNavHost.kt$"https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email"</ID>
+    <ID>MaxLineLength:CodexMeterWidget.kt$Column</ID>
+    <ID>MaxLineLength:CodexMeterWidget.kt$style = TextStyle(color = field.tone.percentProvider(), fontSize = 30.sp, fontWeight = FontWeight.Bold)</ID>
+    <ID>MaxLineLength:CodexMeterWidget.kt$style = TextStyle(color = field.tone.percentProvider(), fontSize = valueSizeSp.sp, fontWeight = FontWeight.Bold)</ID>
+    <ID>MaxLineLength:CodexMeterWidget.kt$style = TextStyle(color = state.tone.statusAccentProvider(), fontSize = 10.sp, fontWeight = FontWeight.Medium)</ID>
+    <ID>MaxLineLength:CodexSessionImporterTest.kt$CodexSessionImporterTest$usageClient = RecordingUsageClient(CodexUsageClient.Result.Failure(QuotaError.Network("validation_failed")))</ID>
+    <ID>MaxLineLength:CompositeRefreshProviderTest.kt$CompositeRefreshProviderTest$val account = ProviderAccount.createNew(LocalAccountId("a1"), ProviderId("deepseek"), null, "Test", Instant.EPOCH)</ID>
+    <ID>MaxLineLength:CurrentAccountQuotaStateRepublisherTest.kt$CurrentAccountQuotaStateRepublisherTest$windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":62,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]"""</ID>
+    <ID>MaxLineLength:CurrentQuotaStateRepositoryTest.kt$CurrentQuotaStateRepositoryTest$windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":62,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]"""</ID>
+    <ID>MaxLineLength:DeepSeekDtoTest.kt$DeepSeekDtoTest$val json = """{"is_available":true,"balance_infos":[{"currency":"CNY","total_balance":"9.49","granted_balance":"0.00","topped_up_balance":"9.49"}]}"""</ID>
+    <ID>MaxLineLength:DefaultNotificationWindowChoicesLoaderTest.kt$DefaultNotificationWindowChoicesLoaderTest$block: suspend (CodexMeterDatabase, InMemoryCurrentAccountReader, DefaultNotificationWindowChoicesLoader) -&gt; Unit</ID>
+    <ID>MaxLineLength:DefaultNotificationWindowChoicesLoaderTest.kt$DefaultNotificationWindowChoicesLoaderTest$windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":null,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Missing"}]"""</ID>
+    <ID>MaxLineLength:DeviceCodeLoginNotificationOrchestratorTest.kt$DeviceCodeLoginNotificationOrchestratorTest$fun</ID>
+    <ID>MaxLineLength:DiagnosticsAccountAlertConfigBuilderTest.kt$DiagnosticsAccountAlertConfigBuilderTest$assertEquals(configs.map { it.providerId to it.enabledWindowIds }, again.map { it.providerId to it.enabledWindowIds })</ID>
+    <ID>MaxLineLength:DiagnosticsRedactor.kt$DiagnosticsRedactor$"(?=[^\\s]*(?&lt;![A-Za-z0-9_])(code|access_token|refresh_token|id_token)=)([A-Za-z_][A-Za-z0-9_]*=[^&amp;\\s]+&amp;?)+"</ID>
+    <ID>MaxLineLength:DiagnosticsRedactor.kt$DiagnosticsRedactor$"\\\"(access_token|refresh_token|id_token|accessToken|refreshToken|idToken|code|cookie)\\\"\\s*:\\s*\\\"[^\\\"]*\\\""</ID>
+    <ID>MaxLineLength:DiagnosticsRedactorTest.kt$DiagnosticsRedactorTest$"""auth.json: {"access_token":"dummy-access","refresh_token":"dummy-refresh","account_id":"dummy-account"}"""</ID>
+    <ID>MaxLineLength:DiagnosticsRedactorTest.kt$DiagnosticsRedactorTest$"""{"providerId":"codex","localAccountIdHash":"acct_hash","currentState":"authRequired","lastSuccessfulRefreshAt":"2026-05-22T00:00:00Z","lastRefreshStatus":"failed","appVersion":"0.1.0","buildType":"debug","diagnosticId":"diag-1","retryable":false,"userActionRequired":true}"""</ID>
+    <ID>MaxLineLength:DiagnosticsRedactorTest.kt$DiagnosticsRedactorTest$"""{"tokens":{"access_token":"dummy-access","refresh_token":"dummy-refresh"},"account_id":"dummy-account","email":"dummy@example.test"}"""</ID>
+    <ID>MaxLineLength:DiagnosticsRedactorTest.kt$DiagnosticsRedactorTest$val redacted = DiagnosticsRedactor.redact(oauthQuery(ERROR_KEY to ACCESS_DENIED_ERROR, STATE_KEY to DUMMY_STATE))</ID>
+    <ID>MaxLineLength:GrokDeviceCodeLoginControllerTest.kt$GrokDeviceCodeLoginControllerTest.Companion$fun</ID>
+    <ID>MaxLineLength:HomeQuotaCards.kt$val granted = com.kmnexus.codexmeter.ui.quota.formatProviderBalance(card.grantedBalance, nativeCurrency).orEmpty()</ID>
+    <ID>MaxLineLength:HomeQuotaCards.kt$val toppedUp = com.kmnexus.codexmeter.ui.quota.formatProviderBalance(card.toppedUpBalance, nativeCurrency).orEmpty()</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$"""[{"windowId":"antigravity_claude_window","titleKey":"k","usedPercent":10,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Available","displayKind":"MultiModelFraction","usesModelBucketSum":true,"modelBuckets":[{"modelId":"claude","displayName":"Claude","remainingFraction":$claudeRemaining},{"modelId":"gemini","displayName":"Gemini","remainingFraction":$geminiRemaining}]}]"""</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$"""[{"windowId":"balance","titleKey":"k","usedPercent":null,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Available","displayKind":"Balance","balanceAmount":"$balance"}]"""</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$"""[{"windowId":"five_hour","titleKey":"k","usedPercent":$used,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"$availability"}]"""</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$"""{"windowId":"antigravity_claude_window","titleKey":"k","usedPercent":10,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Available","displayKind":"MultiModelFraction","usesModelBucketSum":true,"modelBuckets":[{"modelId":"claude","displayName":"Claude","remainingFraction":$claudeRemaining}]},"""</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$"""{"windowId":"antigravity_gemini_pro_window","titleKey":"k","usedPercent":10,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":false,"availability":"$geminiAvailability","displayKind":"MultiModelFraction","usesModelBucketSum":true,"modelBuckets":[{"modelId":"gemini","displayName":"Gemini","remainingFraction":$geminiRemaining}]}"""</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$HomeTrendQuery("antigravity_claude_window", QuotaWindowDisplayKind.MultiModelFraction, useModelBucketSum = true)</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$bucketSnapshot("a", Instant.parse("2026-05-24T10:00:00Z"), claudeRemaining = 0.9, geminiRemaining = 0.5)</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$bucketSnapshot("b", Instant.parse("2026-05-24T11:00:00Z"), claudeRemaining = 0.7, geminiRemaining = 0.6)</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$multiWindowBucketSnapshot("a", Instant.parse("2026-05-24T10:00:00Z"), claudeRemaining = 0.5, geminiRemaining = 0.3)</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$multiWindowBucketSnapshot("a", Instant.parse("2026-05-24T10:00:00Z"), claudeRemaining = 0.9, geminiRemaining = 0.6)</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$multiWindowBucketSnapshot("b", Instant.parse("2026-05-24T11:00:00Z"), claudeRemaining = 0.8, geminiRemaining = 0.5)</ID>
+    <ID>MaxLineLength:HomeTrendHistoryRepositoryTest.kt$HomeTrendHistoryRepositoryTest$private</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$NoopHomeTrendHistoryLoader$override suspend fun loadTrend(accountId: LocalAccountId?, query: HomeTrendQuery): List&lt;HomeTrendPointUi&gt;</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt$HomeViewModelTest$fun</ID>
+    <ID>MaxLineLength:KimiCodeUsageMapperTest.kt$KimiCodeUsageMapperTest$/** Ratio windows win per slot: a present limit_5h blocks the rate window, a missing limit_7d falls back to `usage`. */</ID>
+    <ID>MaxLineLength:KimiCodeUsageMapperTest.kt$KimiCodeUsageMapperTest$assertEquals(Instant.parse("2026-09-16T19:15:44Z"), countWindows.first { it.windowId.value == "kimi_code_rate" }.resetAt)</ID>
+    <ID>MaxLineLength:KimiCodeUsageMapperTest.kt$KimiCodeUsageMapperTest$assertEquals(Instant.parse("2026-09-19T16:45:59Z"), countWindows.first { it.windowId.value == "kimi_code_usage" }.resetAt)</ID>
+    <ID>MaxLineLength:KimiUsageMappingTest.kt$KimiUsageMappingTest$listOf(reset.minusSeconds(30L * 86400), reset.minusSeconds(7L * 86400), reset.minusSeconds(60), reset.plusSeconds(60))</ID>
+    <ID>MaxLineLength:KimiUsageMappingTest.kt$KimiUsageMappingTest$val cycle = KimiQuotaMapper.map(dto, LocalAccountId("kimi-test"), null, now, QuotaSnapshotSource.CookieAuth).windows.single()</ID>
+    <ID>MaxLineLength:KimiUsageMappingTest.kt$KimiUsageMappingTest$val rate = KimiQuotaMapper.map(dto, LocalAccountId("kimi-test"), null, Instant.EPOCH, QuotaSnapshotSource.CookieAuth).windows.single()</ID>
+    <ID>MaxLineLength:MainActivityFontPolicyTest.kt$MainActivityFontPolicyTest$source.contains("CodexMeterTheme(themeMode = themeMode, fontScheme = CodexMeterFontScheme.MonoFocusGeistMono)")</ID>
+    <ID>MaxLineLength:NotificationOrchestrator.kt$NotificationOrchestrator$AccountErrorNotificationReason.RepeatedRefreshFailure -&gt; R.string.notification_account_error_body_refresh_failed</ID>
+    <ID>MaxLineLength:NotificationOrchestratorTest.kt$NotificationOrchestratorTest$val accountErrorChannel = notificationManager.getNotificationChannel(NotificationChannels.ACCOUNT_ERRORS_CHANNEL_ID)</ID>
+    <ID>MaxLineLength:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$balanceCautionThreshold = (preferences[Keys.BALANCE_CAUTION_THRESHOLD] ?: DEFAULT_BALANCE_CAUTION_THRESHOLD.toFloat()).toDouble()</ID>
+    <ID>MaxLineLength:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$balanceWarningThreshold = (preferences[Keys.BALANCE_WARNING_THRESHOLD] ?: DEFAULT_BALANCE_WARNING_THRESHOLD.toFloat()).toDouble()</ID>
+    <ID>MaxLineLength:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$val encodedAlertSettings = preferences.accountQuotaAlertSettings.map(::encodeAccountQuotaAlertSetting).toSet()</ID>
+    <ID>MaxLineLength:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$val localAccountId = this[Keys.PERSISTENT_NOTIFICATION_LOCAL_ACCOUNT_ID]?.takeIf { it.isNotBlank() } ?: return null</ID>
+    <ID>MaxLineLength:NotificationPreferencesTest.kt$NotificationPreferencesTest.&lt;no name provided&gt;$this[NotificationPreferencesDataStore.Keys.PERSISTENT_NOTIFICATION_LOCAL_ACCOUNT_ID] = "explicit-9"</ID>
+    <ID>MaxLineLength:NotificationPrimaryWindowResolutionTest.kt$NotificationPrimaryWindowResolutionTest$val missingCandidate = makeWindow("weekly", isPrimaryCandidate = true, availability = QuotaWindowAvailability.Missing)</ID>
+    <ID>MaxLineLength:ProviderAccountDao.kt$ProviderAccountDao$" AND "</ID>
+    <ID>MaxLineLength:QmLiquidGlassSurface.kt$LiquidGlassSourceView$drawLens(canvas, width * 0.22f, height * 0.34f, height * 0.66f, android.graphics.Color.argb(22, 93, 184, 255))</ID>
+    <ID>MaxLineLength:QmLiquidGlassSurface.kt$LiquidGlassSourceView$drawLens(canvas, width * 0.74f, height * 0.40f, height * 0.52f, android.graphics.Color.argb(16, 126, 244, 232))</ID>
+    <ID>MaxLineLength:QuotaModelsTest.kt$QuotaModelsTest$assertFalse(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.DecodeFailed).hasDisplayableValue())</ID>
+    <ID>MaxLineLength:QuotaModelsTest.kt$QuotaModelsTest$assertFalse(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.Unsupported).hasDisplayableValue())</ID>
+    <ID>MaxLineLength:QuotaModelsTest.kt$QuotaModelsTest$assertFalse(quotaWindow(usedPercent = null, availability = QuotaWindowAvailability.Depleted).hasDisplayableValue())</ID>
+    <ID>MaxLineLength:QuotaModelsTest.kt$QuotaModelsTest$assertTrue(quotaWindow(usedPercent = 100, availability = QuotaWindowAvailability.Depleted).hasDisplayableValue())</ID>
+    <ID>MaxLineLength:QuotaModelsTest.kt$QuotaModelsTest$assertTrue(quotaWindow(usedPercent = 50, availability = QuotaWindowAvailability.Available).hasDisplayableValue())</ID>
+    <ID>MaxLineLength:QuotaModelsTest.kt$QuotaModelsTest$fun</ID>
+    <ID>MaxLineLength:QuotaRefreshWorker.kt$QuotaRefreshWorker$return</ID>
+    <ID>MaxLineLength:QuotaWindowLabelsTest.kt$QuotaWindowLabelsTest$assertEquals(R.string.window_label_family_claude_gpt, quotaWindowLabelRes("antigravity_claude_gpt_window", null))</ID>
+    <ID>MaxLineLength:RefreshAttemptDaoTest.kt$RefreshAttemptDaoTest$dao.insert(attempt(id = "local-1-failure-1", status = "failed", startedAt = 1_000, localAccountId = "local-1"))</ID>
+    <ID>MaxLineLength:RefreshAttemptDaoTest.kt$RefreshAttemptDaoTest$dao.insert(attempt(id = "local-1-failure-2", status = "failed", startedAt = 2_000, localAccountId = "local-1"))</ID>
+    <ID>MaxLineLength:RefreshAttemptDaoTest.kt$RefreshAttemptDaoTest$dao.insert(attempt(id = "local-2-failure-1", status = "failed", startedAt = 3_000, localAccountId = "local-2"))</ID>
+    <ID>MaxLineLength:RefreshWorkSchedulerTest.kt$RefreshWorkSchedulerTest.EmptySnapshotStore$override suspend fun latestFor(account: ProviderAccount): com.kmnexus.codexmeter.domain.quota.QuotaSnapshot?</ID>
+    <ID>MaxLineLength:SettingsAboutCopyTest.kt$SettingsAboutCopyTest$"Login credentials are stored locally on this device. Apart from calling official provider APIs, CodexMeter does not include any remote-connection feature."</ID>
+    <ID>MaxLineLength:SettingsAboutCopyTest.kt$SettingsAboutCopyTest$assertEquals("Open GitHub repository", context.getString(R.string.settings_about_repository_content_description))</ID>
+    <ID>MaxLineLength:SettingsBackgroundRefreshStatusRepositoryTest.kt$SettingsBackgroundRefreshStatusRepositoryTest$block: suspend (CodexMeterDatabase, InMemoryCurrentAccountReader, SettingsBackgroundRefreshStatusRepository) -&gt; Unit</ID>
+    <ID>MaxLineLength:SettingsCards.kt$if (update.isChecking) R.string.settings_update_checking else R.string.settings_update_check</ID>
+    <ID>MaxLineLength:SettingsCards.kt$text = stringResource(titleResId) + " " + stringResource(R.string.settings_balance_amount_format, currencySymbol, value.toInt())</ID>
+    <ID>MaxLineLength:SettingsDiagnosticsRepository.kt$SettingsDiagnosticsRepository$accountDiagnosticId = selectedLocalAccountId?.let { "sha256:${it.diagnosticsSafeHash()}" } ?: "not_connected"</ID>
+    <ID>MaxLineLength:SettingsDiagnosticsRepository.kt$SettingsDiagnosticsRepository$private val notificationPermissionReader: NotificationPermissionReader = AndroidNotificationPermissionReader(context)</ID>
+    <ID>MaxLineLength:SettingsHiddenEntryPolicyTest.kt$SettingsHiddenEntryPolicyTest$"Background refresh card should be status-only plus the background switch; immediate check belongs to diagnostics."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text(text = stringResource(descriptionResId), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text(text = stringResource(resId), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text(text = stringResource(titleResId), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$internal</ID>
+    <ID>MaxLineLength:SettingsViewModel.kt$SettingsViewModel$persistNotificationPreferences(releasesLocalEdit = true) { it.copy(backgroundRefreshIntervalMinutes = interval.minutes) }</ID>
+    <ID>MaxLineLength:SettingsViewModel.kt$SettingsViewModel$persistNotificationPreferences(releasesLocalEdit = true) { it.copy(balanceCautionThreshold = safeCaution, balanceWarningThreshold = safeWarning) }</ID>
+    <ID>MaxLineLength:SettingsViewModel.kt$SettingsViewModel$persistNotificationPreferences(releasesLocalEdit = true) { it.copy(persistentNotificationAccount = selection.toNotificationAccountSelection()) }</ID>
+    <ID>MaxLineLength:SettingsViewModel.kt$SettingsViewModel$persistNotificationPreferences(releasesLocalEdit = true) { it.copy(persistentNotificationWindowId = windowId) }</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$"codex/sha256:abcdef123456 status=active lastAttempt=failed(error_network, 3h ago) lastSuccess=1d ago snapshot=1d ago"</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$assertEquals(accountA.localAccountId, store.notificationPreferences().persistentNotificationAccount?.localAccountId)</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$assertEquals(accountB.localAccountId, store.notificationPreferences().persistentNotificationAccount?.localAccountId)</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$assertEquals(com.kmnexus.codexmeter.domain.model.QuotaWindowId("weekly"), persistentNotification.selectedWindowId)</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$assertEquals(com.kmnexus.codexmeter.domain.settings.DEFAULT_NOTIFICATION_WINDOW_ID, uiState.persistentNotification.selectedWindowId)</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$assertEquals(listOf("local-2"), settings.uiState.value.persistentNotification.accountChoices.map { it.stableId })</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$persistentNotificationAccount = NotificationAccountSelection(accountA.providerId, accountA.localAccountId)</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$val accountB = account(localAccountId = "local-2", displayName = "Personal").copy(providerId = ProviderId("deepseek"))</ID>
+    <ID>MaxLineLength:SettingsViewModelTest.kt$SettingsViewModelTest$val viewModel = SettingsViewModel(retentionPreferenceStore = RecordingRetentionPreferenceStore(RetentionPreference.Forever))</ID>
+    <ID>MaxLineLength:WidgetConfigurationScreen.kt$"${stringResource(option.labelResId)} · ${stringResource(R.string.home_quota_status_exhausted)}"</ID>
+    <ID>MaxLineLength:WidgetConfigurationScreen.kt$listOfNotNull(available.firstOrNull { it == currentState.defaultWindowId } ?: available.firstOrNull())</ID>
+    <ID>MaxLineLength:WidgetQuotaStatePreferences.kt$putOrRemove(WidgetQuotaPreferenceKeys.configLocalAccountId, configuration.localAccountId?.takeIf { it.isNotBlank() })</ID>
+    <ID>MaxLineLength:WidgetQuotaStatePreferencesTest.kt$WidgetQuotaStatePreferencesTest$WidgetField("five_hour", false, 87, null, null, Instant.parse("2026-06-02T14:30:00Z"), WidgetQuotaTone.Success, limitWindowSeconds = 604800)</ID>
+    <ID>MaxLineLength:WidgetQuotaStateRepository.kt$WidgetQuotaStateRepository$secondaryWindows = state.secondaryWindows.map { it.withConvertedBalance(currency.targetCurrency, rates) }</ID>
+    <ID>MaxLineLength:WidgetQuotaStateRepositoryTest.kt$WidgetQuotaStateRepositoryTest$windowsJson = """[{"windowId":"balance","titleKey":"quota_window_balance","usedPercent":null,"resetAt":null,"limitWindowSeconds":null,"isPrimaryCandidate":true,"availability":"Available","displayKind":"Balance","balanceAmount":"$amount","balanceCurrency":"$currency"}]"""</ID>
+    <ID>MaxLineLength:WidgetQuotaStateRepositoryTest.kt$WidgetQuotaStateRepositoryTest$windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":$fiveHourUsed,"resetAt":1779555600000,"limitWindowSeconds":$fiveHourWindowSeconds,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":$weeklyUsed,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]"""</ID>
+    <ID>MaxLineLength:WidgetQuotaStatusLabelTest.kt$WidgetQuotaStatusLabelTest$assertEquals(R.string.widget_status_possibly_stale, stateWith(WidgetQuotaStatus.PossiblyStale).statusLabelResId())</ID>
+    <ID>MaxLineLength:WidgetQuotaStatusLabelTest.kt$WidgetQuotaStatusLabelTest$assertEquals(R.string.widget_status_refresh_failed, stateWith(WidgetQuotaStatus.ErrorWithLastKnownGood).statusLabelResId())</ID>
+    <ID>NewLineAtEndOfFile:AppLocaleControllerTest.kt$com.kmnexus.codexmeter.core.i18n.AppLocaleControllerTest.kt</ID>
+    <ID>ReturnCount:AccountDeletionRepository.kt$AccountDeletionRepository$private suspend fun nextCurrentSelectionAfterDeleting( providerId: ProviderId, deletedLocalAccountId: LocalAccountId, currentSelection: CurrentAccountSelection?, ): CurrentAccountSelection?</ID>
+    <ID>ReturnCount:AccountMutationRepository.kt$AccountMutationRepository$override suspend fun renameAccount( providerId: ProviderId, localAccountId: LocalAccountId, displayName: String, ): ProviderAccount?</ID>
+    <ID>ReturnCount:AccountViewModel.kt$AccountViewModel$suspend fun confirmDelete()</ID>
+    <ID>ReturnCount:AccountViewModel.kt$AccountViewModel$suspend fun renameAccount(id: LocalAccountId, newName: String)</ID>
+    <ID>ReturnCount:AlertPolicy.kt$AlertPolicy$private fun evaluateBalanceWindow( account: ProviderAccount, window: QuotaWindow, alreadyNotified: Set&lt;AlertDedupeKey&gt;, thresholds: AlertThresholds, ): QuotaAlertEvent?</ID>
+    <ID>ReturnCount:AlertPolicy.kt$AlertPolicy$private fun evaluateCountWindow( account: ProviderAccount, window: QuotaWindow, alreadyNotified: Set&lt;AlertDedupeKey&gt;, thresholds: AlertThresholds, ): QuotaAlertEvent?</ID>
+    <ID>ReturnCount:AlertPolicy.kt$AlertPolicy$private fun evaluatePercentWindow( account: ProviderAccount, window: QuotaWindow, alreadyNotified: Set&lt;AlertDedupeKey&gt;, thresholds: AlertThresholds, ): QuotaAlertEvent?</ID>
+    <ID>ReturnCount:AlertPolicy.kt$AlertPolicy$private fun evaluateWindow( state: CurrentQuotaState, window: QuotaWindow, enabledWindowIds: Set&lt;QuotaWindowId&gt;, alreadyNotified: Set&lt;AlertDedupeKey&gt;, thresholds: AlertThresholds, ): QuotaAlertEvent?</ID>
+    <ID>ReturnCount:AntigravityQuotaClient.kt$AntigravityQuotaClient$private suspend fun fetchPerModelQuota( project: String?, tier: String?, headers: Map&lt;String, String&gt;, ): Result</ID>
+    <ID>ReturnCount:AntigravityQuotaClient.kt$AntigravityQuotaClient$private suspend fun resolveProject( codeAssist: CodeAssistResponse?, headers: Map&lt;String, String&gt;, ): ProjectResolution</ID>
+    <ID>ReturnCount:AntigravityQuotaClient.kt$AntigravityQuotaClient$suspend fun fetchQuota(accessToken: String): Result</ID>
+    <ID>ReturnCount:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$private fun familyOf(modelId: String): Family?</ID>
+    <ID>ReturnCount:AntigravityQuotaMapper.kt$AntigravityQuotaMapper$private fun laneOf( window: String?, bucketId: String?, displayName: String?, fetchedAt: Instant, resetAt: Instant?, ): Lane</ID>
+    <ID>ReturnCount:AntigravityRefreshProvider.kt$AntigravityRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:AppVersionComparator.kt$AppVersion.Companion$fun parse(rawVersionName: String): AppVersion?</ID>
+    <ID>ReturnCount:AppVersionComparator.kt$AppVersionComparator$fun isRemoteVersionNewer(currentVersionName: String, remoteVersionName: String): Boolean</ID>
+    <ID>ReturnCount:BalanceConversion.kt$fun QuotaWindow.withConvertedBalance( targetCurrency: String, rates: ExchangeRates?, ): QuotaWindow</ID>
+    <ID>ReturnCount:ClaudeRefreshProvider.kt$ClaudeRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:ClaudeUsageMapper.kt$ClaudeUsageMapper$private fun extraUsageWindow(extra: ClaudeUsageResponseDto.ExtraUsage?): QuotaWindow?</ID>
+    <ID>ReturnCount:CodexDeviceCodeClient.kt$CodexDeviceCodeClient$private fun validatedEndpoint( endpointUrl: String, invalidDigest: String, insecureDigest: String, ): String?</ID>
+    <ID>ReturnCount:CodexDeviceCodeClient.kt$CodexDeviceCodeClient$private fun validatedVerificationUri(candidate: String): String?</ID>
+    <ID>ReturnCount:CodexDeviceCodeClient.kt$CodexDeviceCodeClient$suspend fun pollAuthorization(challenge: DeviceCodeChallenge): Result&lt;DeviceCodeAuthorization&gt;</ID>
+    <ID>ReturnCount:CodexDeviceCodeClient.kt$CodexDeviceCodeClient$suspend fun requestDeviceCode(): Result&lt;DeviceCodeChallenge&gt;</ID>
+    <ID>ReturnCount:CodexDeviceCodeLoginUseCase.kt$CodexDeviceCodeLoginUseCase$private suspend fun exchangeAndValidate( attempt: ActiveAttempt.Awaiting, authorization: DeviceCodeAuthorization, ): CodexDeviceCodeLoginState</ID>
+    <ID>ReturnCount:CodexDeviceCodeLoginUseCase.kt$CodexDeviceCodeLoginUseCase$suspend fun pollLatest(): CodexDeviceCodeLoginState</ID>
+    <ID>ReturnCount:CodexDeviceCodeLoginUseCase.kt$CodexDeviceCodeLoginUseCase$suspend fun startLogin( mode: CodexDeviceCodeLoginMode = CodexDeviceCodeLoginMode.AddAccount, ): CodexDeviceCodeLoginState</ID>
+    <ID>ReturnCount:CodexJwtClaims.kt$CodexJwtClaims$private fun rootClaims(jwt: String?): JsonObject?</ID>
+    <ID>ReturnCount:CodexMeterMotion.kt$CodexMeterMotion$fun trendBarWidth( availableWidth: Float, barCount: Int, minWidth: Float, maxWidth: Float, ): Float</ID>
+    <ID>ReturnCount:CodexOAuthTokenExchanger.kt$CodexOAuthTokenExchanger$private fun decodeFailure( statusCode: Int, body: String, ): Result</ID>
+    <ID>ReturnCount:CodexOAuthTokenExchanger.kt$CodexOAuthTokenExchanger$suspend fun exchange(request: CodexOAuthTokenExchangeRequest): Result</ID>
+    <ID>ReturnCount:CodexRefreshProvider.kt$CodexRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:CodexRefreshProvider.kt$CodexRefreshProvider$private suspend fun retryAfterAuthFailure( session: CodexSessionPayload, envelope: ProviderSessionEnvelope, account: ProviderAccount, trigger: RefreshTrigger, authError: QuotaError, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:CodexTokenRefresher.kt$CodexTokenRefresher$private fun decodeFailure( statusCode: Int, body: String, ): Result</ID>
+    <ID>ReturnCount:CodexTokenRefresher.kt$CodexTokenRefresher$suspend fun refresh(session: CodexSessionPayload): Result</ID>
+    <ID>ReturnCount:CodexUsageClient.kt$CodexUsageClient$suspend fun fetchUsage( accessToken: String, accountId: String?, ): Result</ID>
+    <ID>ReturnCount:CodexUsageMapper.kt$CodexUsageMapper$private fun CodexCreditsDto.toCredits(): Credits?</ID>
+    <ID>ReturnCount:CodexUsageResponseDto.kt$private fun &lt;T&gt; JsonObject.scalarField( key: String, allowString: Boolean, parser: (String) -&gt; T?, ): ScalarDecodeResult&lt;T&gt;</ID>
+    <ID>ReturnCount:CodexUsageResponseDto.kt$private fun JsonObject.creditsDecodeResult(key: String): CreditsDecodeResult</ID>
+    <ID>ReturnCount:CodexUsageResponseDto.kt$private fun JsonObject.rateLimitDecodeResult(key: String): RateLimitDecodeResult</ID>
+    <ID>ReturnCount:CodexUsageResponseDto.kt$private fun JsonObject.windowDecodeResult(key: String): WindowDecodeResult</ID>
+    <ID>ReturnCount:CurrencyPreferencesDataStore.kt$CurrencyPreferencesDataStore$override suspend fun read(): ExchangeRates?</ID>
+    <ID>ReturnCount:CurrentAccountQuotaStateRepublisher.kt$CurrentAccountQuotaStateRepublisher$override suspend fun republishCurrentAccountState(account: ProviderAccount)</ID>
+    <ID>ReturnCount:CurrentQuotaRefreshAccountStore.kt$CurrentQuotaRefreshAccountStore$suspend fun currentAccount(): ProviderAccount?</ID>
+    <ID>ReturnCount:CurrentQuotaStateRepository.kt$CurrentQuotaStateRepository$override suspend fun loadCurrentState(): CurrentQuotaState</ID>
+    <ID>ReturnCount:CursorRefreshProvider.kt$CursorRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:CursorUsageMapper.kt$CursorUsageMapper$fun map( dto: CursorUsageResponseDto, localAccountId: LocalAccountId, providerAccountId: ProviderAccountId?, fetchedAt: Instant, source: QuotaSnapshotSource, ): QuotaSnapshot</ID>
+    <ID>ReturnCount:DeepSeekRefreshProvider.kt$DeepSeekRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:DeviceCodeLoginCopyCodeReceiver.kt$DeviceCodeLoginCopyCodeReceiver$override fun onReceive(context: Context, intent: Intent)</ID>
+    <ID>ReturnCount:DeviceEnvironmentReader.kt$AndroidDeviceEnvironmentReader$private fun ConnectivityManager?.networkType(): String</ID>
+    <ID>ReturnCount:DiagnosticsRedactor.kt$DiagnosticsRedactor$fun redact(input: String): String</ID>
+    <ID>ReturnCount:DiagnosticsRedactor.kt$DiagnosticsRedactor$private fun Map&lt;String, String&gt;.isSafeOperationalStateQuery(): Boolean</ID>
+    <ID>ReturnCount:DiagnosticsRedactor.kt$DiagnosticsRedactor$private fun String.isSafeOperationalJsonPayload(): Boolean</ID>
+    <ID>ReturnCount:DiagnosticsRedactor.kt$DiagnosticsRedactor$private fun String.isSensitiveRawStateCallbackQuery(): Boolean</ID>
+    <ID>ReturnCount:DiagnosticsRedactor.kt$DiagnosticsRedactor$private fun String.parseAmpersandParameters(): Map&lt;String, String&gt;?</ID>
+    <ID>ReturnCount:DiagnosticsTimeFormatter.kt$DiagnosticsTimeFormatter$fun render(epochMillisText: String?, nowMillis: Long?): String?</ID>
+    <ID>ReturnCount:DiagnosticsTimeFormatter.kt$DiagnosticsTimeFormatter$fun renderAgeOnly(epochMillisText: String?, nowMillis: Long?): String?</ID>
+    <ID>ReturnCount:ExchangeRateClient.kt$ExchangeRateClient$suspend fun fetchRates(now: Instant): ExchangeRates?</ID>
+    <ID>ReturnCount:ExchangeRates.kt$CurrencyConverter$fun convert(amount: Double, from: String?, to: String?, rates: ExchangeRates): Double?</ID>
+    <ID>ReturnCount:GitHubReleaseAppUpdateChecker.kt$GitHubReleaseAppUpdateChecker$override suspend fun checkForUpdate(currentVersionName: String): AppUpdateCheckResult</ID>
+    <ID>ReturnCount:GrokDeviceCodeClient.kt$GrokDeviceCodeClient$private fun trustedVerificationUri(candidate: String): String?</ID>
+    <ID>ReturnCount:GrokDeviceCodeClient.kt$GrokDeviceCodeClient$private fun validatedEndpoint( endpointUrl: String, invalidDigest: String, insecureDigest: String, ): String?</ID>
+    <ID>ReturnCount:GrokDeviceCodeClient.kt$GrokDeviceCodeClient$private suspend fun pollAuthorizationLoop( challenge: GrokDeviceCodeChallenge, tokenEndpoint: String, ): Result&lt;GrokOAuthToken&gt;</ID>
+    <ID>ReturnCount:GrokDeviceCodeClient.kt$GrokDeviceCodeClient$suspend fun requestDeviceCode(deviceAuthorizationEndpointUrl: String): Result&lt;GrokDeviceCodeChallenge&gt;</ID>
+    <ID>ReturnCount:GrokDeviceCodeLoginController.kt$GrokDeviceCodeLoginController$override suspend fun pollLatest(): DeviceCodeLoginResult</ID>
+    <ID>ReturnCount:GrokDeviceCodeLoginController.kt$GrokDeviceCodeLoginController$private suspend fun start(mode: GrokDeviceCodeLoginMode): GrokDeviceCodeLoginState</ID>
+    <ID>ReturnCount:GrokDeviceCodeLoginController.kt$GrokDeviceCodeLoginController$private suspend fun validateAndCommit( attemptId: GrokDeviceCodeLoginAttemptId, oauthToken: GrokOAuthToken, identity: GrokLoginIdentity, tokenEndpoint: String, ): GrokDeviceCodeLoginState</ID>
+    <ID>ReturnCount:GrokJwtClaims.kt$GrokJwtClaims$private fun rootClaims(jwt: String?): JsonObject?</ID>
+    <ID>ReturnCount:GrokOAuthDiscoveryClient.kt$GrokOAuthDiscoveryClient$private fun isTrustedEndpointUrl(candidate: String): Boolean</ID>
+    <ID>ReturnCount:GrokOAuthDiscoveryClient.kt$GrokOAuthDiscoveryClient$private fun validatedDiscoveryUrl(): String?</ID>
+    <ID>ReturnCount:GrokOAuthDiscoveryClient.kt$GrokOAuthDiscoveryClient$suspend fun fetchEndpoints(): Result&lt;GrokOAuthEndpoints&gt;</ID>
+    <ID>ReturnCount:GrokRefreshProvider.kt$GrokRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:GrokRefreshProvider.kt$GrokRefreshProvider$private suspend fun retryAfterAuthFailure( session: GrokSessionPayload, envelope: ProviderSessionEnvelope, account: ProviderAccount, trigger: RefreshTrigger, authError: QuotaError, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:GrokTokenRefresher.kt$GrokTokenRefresher$private fun decodeFailure( statusCode: Int, body: String, ): Result</ID>
+    <ID>ReturnCount:GrokTokenRefresher.kt$GrokTokenRefresher$private fun validatedEndpoint(endpointUrl: String): String?</ID>
+    <ID>ReturnCount:GrokTokenRefresher.kt$GrokTokenRefresher$suspend fun refresh(session: GrokSessionPayload): Result</ID>
+    <ID>ReturnCount:HomeTrendHistoryRepository.kt$HomeTrendHistoryRepository$override suspend fun loadTrend(accountId: LocalAccountId?, query: HomeTrendQuery): List&lt;HomeTrendPointUi&gt;</ID>
+    <ID>ReturnCount:HomeViewModel.kt$HomeViewModel$private fun QuotaWindow.toQuotaStatus(): HomeQuotaStatus</ID>
+    <ID>ReturnCount:KimiCodeRefreshProvider.kt$KimiCodeRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:KimiCodeUsageMapper.kt$KimiCodeUsageMapper$private fun WindowDto.windowSeconds(): Int?</ID>
+    <ID>ReturnCount:KimiCodeUsageMapper.kt$KimiCodeUsageMapper$private fun countWindow( detail: UsageDetailDto, windowId: String, limitWindowSeconds: Int?, isPrimary: Boolean, ): QuotaWindow?</ID>
+    <ID>ReturnCount:KimiJwtClaims.kt$KimiJwtClaims$private fun rootClaims(jwt: String?): JsonObject?</ID>
+    <ID>ReturnCount:KimiQuotaMapper.kt$KimiQuotaMapper$fun map( dto: KimiQuotaResponseDto, localAccountId: LocalAccountId, providerAccountId: ProviderAccountId?, fetchedAt: Instant, source: QuotaSnapshotSource, ): QuotaSnapshot</ID>
+    <ID>ReturnCount:KimiQuotaMapper.kt$KimiQuotaMapper$private fun windowSeconds(duration: Int?, timeUnit: String?): Int?</ID>
+    <ID>ReturnCount:KimiRefreshProvider.kt$KimiRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:LoopbackCallbackServer.kt$LoopbackCallbackServer.Companion$fun parseQuery(requestLine: String): Map&lt;String, String&gt;</ID>
+    <ID>ReturnCount:MiniMaxRefreshProvider.kt$MiniMaxRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:MiniMaxUsageMapper.kt$MiniMaxUsageMapper$fun map( dto: MiniMaxUsageResponseDto, localAccountId: LocalAccountId, providerAccountId: ProviderAccountId?, fetchedAt: Instant, source: QuotaSnapshotSource, ): QuotaSnapshot</ID>
+    <ID>ReturnCount:MiniMaxUsageMapper.kt$MiniMaxUsageMapper$private fun buildSecondaryWindow(textGenModels: List&lt;ModelRemain&gt;): QuotaWindow?</ID>
+    <ID>ReturnCount:NeedsReauthPolicy.kt$internal fun needsReauthAfterAuthFailure( previousAttempt: RefreshAttempt?, error: QuotaError, ): Boolean</ID>
+    <ID>ReturnCount:NotificationOrchestrator.kt$NotificationOrchestrator$private fun quotaText(state: CurrentQuotaState): NotificationText?</ID>
+    <ID>ReturnCount:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$private fun Preferences.toPersistentNotificationAccount(): NotificationAccountSelection?</ID>
+    <ID>ReturnCount:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$private fun decodeAccountQuotaAlertSetting(encoded: String): Pair&lt;AccountQuotaAlertKey, Boolean&gt;?</ID>
+    <ID>ReturnCount:NotificationPreferencesDataStore.kt$NotificationPreferencesDataStore$private suspend fun migrateNotificationAccountSelection(stored: Preferences): Preferences</ID>
+    <ID>ReturnCount:NotificationWindowChoicesLoader.kt$DefaultNotificationWindowChoicesLoader$override suspend fun windowChoices( providerId: ProviderId?, localAccountId: LocalAccountId?, ): List&lt;NotificationWindowChoice&gt;</ID>
+    <ID>ReturnCount:ProviderAccount.kt$ProviderAccount.Companion$private fun String.firstDisplayCharacter(): String</ID>
+    <ID>ReturnCount:ProviderAccountDao.kt$ProviderAccountDao$@Transaction open suspend fun upsert(account: ProviderAccountEntity)</ID>
+    <ID>ReturnCount:QuotaWindowLabels.kt$@StringRes fun quotaWindowLabelRes(windowId: String, limitWindowSeconds: Int? = null): Int</ID>
+    <ID>ReturnCount:SessionLoginUseCase.kt$SessionLoginUseCase$private suspend fun reloginAndPersist( localAccountId: LocalAccountId, importFn: suspend (ProviderAccount) -&gt; Result&lt;com.kmnexus.codexmeter.domain.quota.QuotaSnapshot&gt;, ): Result&lt;ProviderAccount&gt;</ID>
+    <ID>ReturnCount:SettingsBackgroundRefreshStatusRepository.kt$SettingsBackgroundRefreshStatusRepository$override suspend fun latestBackgroundRefreshStatus(): SettingsBackgroundRefreshStatus</ID>
+    <ID>ReturnCount:UpdateCheckOutcome.kt$UpdateCheckOutcome.Companion$suspend fun run(provider: UpdateCheckDependenciesProvider?): UpdateCheckOutcome</ID>
+    <ID>ReturnCount:WebViewAuthScreen.kt$internal fun evaluateOAuthCallback( url: String, redirectUriPrefix: String, expectedState: String, appendStateToCode: Boolean, ): OAuthCallbackDecision</ID>
+    <ID>ReturnCount:WebViewAuthScreen.kt$internal fun parseManualAuthCode(input: String, expectedState: String): String?</ID>
+    <ID>ReturnCount:WidgetQuotaStateRepository.kt$WidgetQuotaStateRepository$override suspend fun loadWidgetQuotaState(configuration: WidgetQuotaConfiguration): WidgetQuotaState</ID>
+    <ID>ReturnCount:ZaiBalanceClient.kt$ZaiBalanceClient$private fun decodeSuccess(body: String): Result</ID>
+    <ID>ReturnCount:ZaiBalanceRefreshProvider.kt$ZaiBalanceRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>ReturnCount:ZaiQuotaClient.kt$ZaiQuotaClient$private fun decodeSuccess(body: String): Result</ID>
+    <ID>ReturnCount:ZaiRefreshProvider.kt$ZaiRefreshProvider$override suspend fun refresh( account: ProviderAccount, trigger: RefreshTrigger, ): ProviderRefreshResult</ID>
+    <ID>SpreadOperator:AndroidNotificationSink.kt$( resourceId, *formatArgs.map { arg -&gt; if (arg is NotificationText) arg.resolve(context) else arg }.toTypedArray(), )</ID>
+    <ID>SpreadOperator:CodexMeterTheme.kt$CodexMeterFontFamilies$(*weights.map { weight -&gt; Font(resourceId, weight = weight) }.toTypedArray())</ID>
+    <ID>ThrowsCount:AccountViewModel.kt$AccountViewModel$suspend fun setQuotaAlertEnabled( id: LocalAccountId, windowId: QuotaWindowId, enabled: Boolean, )</ID>
+    <ID>TooGenericExceptionCaught:AccountDeletionRepository.kt$AccountDeletionRepository$throwable: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ApiKeyAuthScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FileSecureSessionStore.kt$throwable: Throwable</ID>
+    <ID>TooGenericExceptionCaught:LoopbackCallbackServer.kt$LoopbackCallbackServer$exception: Exception</ID>
+    <ID>TooGenericExceptionCaught:RefreshCoordinator.kt$RefreshCoordinator$throwable: Throwable</ID>
+    <ID>TooGenericExceptionCaught:RoomQuotaStores.kt$RoomCodexSessionImportPersistence$throwable: Throwable</ID>
+    <ID>TooManyFunctions:AccountCards.kt$com.kmnexus.codexmeter.ui.account.AccountCards.kt</ID>
+    <ID>TooManyFunctions:AccountViewModel.kt$AccountViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:AntigravityQuotaClient.kt$AntigravityQuotaClient</ID>
+    <ID>TooManyFunctions:CodexDeviceCodeClient.kt$CodexDeviceCodeClient</ID>
+    <ID>TooManyFunctions:CodexDeviceCodeLoginUseCase.kt$CodexDeviceCodeLoginUseCase</ID>
+    <ID>TooManyFunctions:CodexMeterMotion.kt$CodexMeterMotion</ID>
+    <ID>TooManyFunctions:CodexMeterWidget.kt$com.kmnexus.codexmeter.widget.CodexMeterWidget.kt</ID>
+    <ID>TooManyFunctions:CodexUsageResponseDto.kt$com.kmnexus.codexmeter.providers.codex.dto.CodexUsageResponseDto.kt</ID>
+    <ID>TooManyFunctions:DiagnosticsRedactor.kt$DiagnosticsRedactor</ID>
+    <ID>TooManyFunctions:GrokDeviceCodeClient.kt$GrokDeviceCodeClient</ID>
+    <ID>TooManyFunctions:GrokDeviceCodeLoginController.kt$GrokDeviceCodeLoginController : DeviceCodeLoginControllerDeviceCodeLoginDiagnosticsReader</ID>
+    <ID>TooManyFunctions:HomeViewModel.kt$HomeViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:NotificationOrchestrator.kt$NotificationOrchestrator</ID>
+    <ID>TooManyFunctions:RoomQuotaStores.kt$com.kmnexus.codexmeter.data.repository.RoomQuotaStores.kt</ID>
+    <ID>TooManyFunctions:SettingsCards.kt$com.kmnexus.codexmeter.ui.settings.SettingsCards.kt</ID>
+    <ID>TooManyFunctions:SettingsScreen.kt$com.kmnexus.codexmeter.ui.settings.SettingsScreen.kt</ID>
+    <ID>TooManyFunctions:SettingsViewModel.kt$SettingsViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:WebViewAuthScreen.kt$com.kmnexus.codexmeter.ui.auth.WebViewAuthScreen.kt</ID>
+    <ID>TooManyFunctions:WidgetConfigurationScreen.kt$com.kmnexus.codexmeter.widget.WidgetConfigurationScreen.kt</ID>
+    <ID>TooManyFunctions:WidgetQuotaStatePreferences.kt$com.kmnexus.codexmeter.widget.WidgetQuotaStatePreferences.kt</ID>
+    <ID>UnusedParameter:ClaudeRefreshProvider.kt$ClaudeRefreshProvider$account: ProviderAccount</ID>
+    <ID>UnusedParameter:CodexMeterWidget.kt$widgetSize: DpSize</ID>
+    <ID>UnusedParameter:DeviceCodeLoginNotificationOrchestrator.kt$DeviceCodeLoginNotificationOrchestrator$userCode: String</ID>
+    <ID>UseCheckOrError:CodexRefreshProviderTest.kt$CodexRefreshProviderTest.ThrowingSaveSecureSessionStore$throw IllegalStateException("disk unavailable")</ID>
+    <ID>UseCheckOrError:CodexSessionImporterTest.kt$CodexSessionImporterTest.ThrowingPersistence$throw IllegalStateException("unsafe persistence detail")</ID>
+    <ID>UseCheckOrError:CompositeCurrentQuotaStatePublisherTest.kt$CompositeCurrentQuotaStatePublisherTest.ThrowingPublisher$throw IllegalStateException("presentation failed")</ID>
+    <ID>UseCheckOrError:CurrentQuotaNotificationPublisherTest.kt$CurrentQuotaNotificationPublisherTest.ThrowingAfterAlertNotificationSink$throw IllegalStateException("later request failed")</ID>
+    <ID>UseCheckOrError:GrokRefreshProviderTest.kt$GrokRefreshProviderTest.ThrowingSaveSecureSessionStore$throw IllegalStateException("disk unavailable")</ID>
+    <ID>UseCheckOrError:GrokSessionImporterTest.kt$GrokSessionImporterTest.ThrowingBillingClient$throw IllegalStateException("unsafe billing detail")</ID>
+    <ID>UseCheckOrError:GrokSessionImporterTest.kt$GrokSessionImporterTest.ThrowingPersistence$throw IllegalStateException("unsafe persistence detail")</ID>
+    <ID>UseCheckOrError:HomeViewModelTest.kt$HomeViewModelTest.&lt;no name provided&gt;$throw IllegalStateException("persist failed")</ID>
+    <ID>UseCheckOrError:ProviderAccountDao.kt$ProviderAccountDao$throw IllegalStateException("Provider account local identity conflict")</ID>
+    <ID>UseCheckOrError:RepublishingAccountDeleteUseCaseTest.kt$RepublishingAccountDeleteUseCaseTest.&lt;no name provided&gt;$throw IllegalStateException("publish failed")</ID>
+    <ID>UseCheckOrError:RoomCodexSessionImportPersistenceTest.kt$RoomCodexSessionImportPersistenceTest.ThrowingCurrentAccountStore$throw IllegalStateException("current account store unavailable")</ID>
+    <ID>UseCheckOrError:RoomCodexSessionImportPersistenceTest.kt$RoomCodexSessionImportPersistenceTest.ThrowingSecureSessionStore$throw IllegalStateException("session store unavailable")</ID>
+    <ID>UseCheckOrError:StartupMaintenanceTest.kt$StartupMaintenanceTest.ThrowingRetentionCleanup$throw IllegalStateException("cleanup failed")</ID>
+    <ID>WildcardImport:AlertPolicyBalanceTest.kt$import com.kmnexus.codexmeter.domain.model.*</ID>
+    <ID>WildcardImport:AlertPolicyBalanceTest.kt$import com.kmnexus.codexmeter.domain.quota.*</ID>
+    <ID>WildcardImport:BrowserSessionTokenTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:CompositeRefreshProviderTest.kt$import com.kmnexus.codexmeter.domain.model.*</ID>
+    <ID>WildcardImport:CompositeRefreshProviderTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.data.repository
 
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.data.local.dao.ProviderAccountDao
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountSelection
 import com.kmnexus.codexmeter.data.preferences.CurrentAccountStore
@@ -24,6 +25,7 @@ class AccountMutationRepository(
     private val currentAccountStateRepublisher: CurrentAccountStateRepublisher = NoopCurrentAccountStateRepublisher,
     private val clock: Clock,
     private val refreshScope: CoroutineScope? = null,
+    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
 ) : DefaultAccountSelectUseCase, AccountRenameUseCase {
     /**
      * Completes once the chosen account is durably in the default-account slot — the single source
@@ -36,18 +38,27 @@ class AccountMutationRepository(
         providerId: ProviderId,
         localAccountId: LocalAccountId,
     ): Boolean {
-        val account = providerAccountDao.getById(localAccountId.value)
-            ?.takeIf { it.providerId == providerId.value }
-            ?.toDomain()
-            ?: return false
+        // beginEdit advances the generation BEFORE the durable write: any refresh epoch captured
+        // earlier is stale the moment the switch starts, and a commit landing mid-switch is dropped
+        // because inFlightEdits > 0. The epoch's account check (re-read at commit time) is the
+        // second, independent layer that discards the write even after the edit completes.
+        stateGuard.beginEdit()
+        try {
+            val account = providerAccountDao.getById(localAccountId.value)
+                ?.takeIf { it.providerId == providerId.value }
+                ?.toDomain()
+                ?: return false
 
-        currentAccountStore.updateCurrentAccountSelection(
-            CurrentAccountSelection(
-                providerId = account.providerId,
-                localAccountId = account.localAccountId,
-            ),
-        )
-        return true
+            currentAccountStore.updateCurrentAccountSelection(
+                CurrentAccountSelection(
+                    providerId = account.providerId,
+                    localAccountId = account.localAccountId,
+                ),
+            )
+            return true
+        } finally {
+            stateGuard.endEdit()
+        }
     }
 
     /**
@@ -81,21 +92,29 @@ class AccountMutationRepository(
         localAccountId: LocalAccountId,
         displayName: String,
     ): ProviderAccount? {
-        val existing = providerAccountDao.getById(localAccountId.value)
-            ?.takeIf { it.providerId == providerId.value }
-            ?: return null
-        val renamed = existing.toDomain().renamedTo(displayName = displayName, updatedAt = clock.instant())
-        val updatedRows = providerAccountDao.updateDisplayName(
-            providerId = renamed.providerId.value,
-            localAccountId = renamed.localAccountId.value,
-            displayName = renamed.displayName,
-            avatarInitial = renamed.avatarInitial,
-            updatedAt = renamed.updatedAt.toEpochMilli(),
-        )
-        if (updatedRows == 0) return null
+        // The generation advance invalidates every refresh epoch captured before the rename: a
+        // provider response landing now would carry the pre-rename account object and must not be
+        // published over the edited state. The republish below then re-reads the durable rows.
+        stateGuard.beginEdit()
+        val renamedAccount = try {
+            val existing = providerAccountDao.getById(localAccountId.value)
+                ?.takeIf { it.providerId == providerId.value }
+                ?: return null
+            val renamed = existing.toDomain().renamedTo(displayName = displayName, updatedAt = clock.instant())
+            val updatedRows = providerAccountDao.updateDisplayName(
+                providerId = renamed.providerId.value,
+                localAccountId = renamed.localAccountId.value,
+                displayName = renamed.displayName,
+                avatarInitial = renamed.avatarInitial,
+                updatedAt = renamed.updatedAt.toEpochMilli(),
+            )
+            if (updatedRows == 0) return null
 
-        val renamedAccount = providerAccountDao.getById(localAccountId.value)?.toDomain()
-            ?: return null
+            providerAccountDao.getById(localAccountId.value)?.toDomain()
+                ?: return null
+        } finally {
+            stateGuard.endEdit()
+        }
         val currentSelection = currentAccountStore.currentAccountSelection()
         if (currentSelection?.providerId == providerId && currentSelection.localAccountId == localAccountId) {
             runPostMutationEffect {

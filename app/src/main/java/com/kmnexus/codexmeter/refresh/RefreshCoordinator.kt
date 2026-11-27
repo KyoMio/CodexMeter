@@ -1,5 +1,7 @@
 package com.kmnexus.codexmeter.refresh
 
+import com.kmnexus.codexmeter.core.concurrency.SnapshotEpoch
+import com.kmnexus.codexmeter.core.concurrency.VersionedStateGuard
 import com.kmnexus.codexmeter.domain.model.AccountStatus
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
@@ -16,6 +18,7 @@ import com.kmnexus.codexmeter.domain.settings.DefaultPrimaryQuotaWindowPreferenc
 import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceReader
 import java.time.Clock
 import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
@@ -40,6 +43,9 @@ class RefreshCoordinator(
         DefaultPrimaryQuotaWindowPreferenceReader,
     private val attemptIdProvider: AttemptIdProvider,
     private val clock: Clock,
+    private val stateGuard: VersionedStateGuard = VersionedStateGuard(),
+    private val selectedAccountReader: SelectedAccountReader? = null,
+    private val perAccountEffectsPublisher: PerAccountQuotaEffectPublisher = NoopPerAccountQuotaEffectPublisher,
 ) {
     private val inFlightMutex = Mutex()
     private val inFlight = mutableMapOf<RefreshKey, CompletableDeferred<RefreshResult>>()
@@ -65,8 +71,12 @@ class RefreshCoordinator(
             return flight.deferred.await()
         }
 
+        // Capture the version token BEFORE any provider I/O. If the user renames, switches or
+        // deletes the account while the network call is in flight, commitIfFresh will discard the
+        // late write-back deterministically instead of clobbering the newer state (rule A8).
+        val epoch = stateGuard.captureReadToken(account.localAccountId)
         try {
-            val result = executeRefresh(account = account, trigger = trigger)
+            val result = executeRefresh(account = account, trigger = trigger, epoch = epoch)
             completeFlight(key = key, deferred = flight.deferred, result = result)
             return result
         } catch (throwable: Throwable) {
@@ -112,6 +122,7 @@ class RefreshCoordinator(
     private suspend fun executeRefresh(
         account: ProviderAccount,
         trigger: RefreshTrigger,
+        epoch: SnapshotEpoch,
     ): RefreshResult {
         val startedAt = clock.instant()
         return when (val providerResult = provider.refresh(account = account, trigger = trigger)) {
@@ -120,6 +131,7 @@ class RefreshCoordinator(
                 trigger = trigger,
                 startedAt = startedAt,
                 snapshot = providerResult.snapshot,
+                epoch = epoch,
             )
 
             is ProviderRefreshResult.Failure -> recordFailure(
@@ -127,6 +139,7 @@ class RefreshCoordinator(
                 trigger = trigger,
                 startedAt = startedAt,
                 error = providerResult.error,
+                epoch = epoch,
             )
         }
     }
@@ -136,6 +149,7 @@ class RefreshCoordinator(
         trigger: RefreshTrigger,
         startedAt: Instant,
         snapshot: QuotaSnapshot,
+        epoch: SnapshotEpoch,
     ): RefreshResult.Success {
         snapshotStore.save(snapshot)
         val finishedAt = clock.instant()
@@ -166,6 +180,7 @@ class RefreshCoordinator(
             account = recoveredAccount,
             latestSnapshot = snapshot,
             latestAttempt = attempt,
+            epoch = epoch,
         )
         return RefreshResult.Success(snapshot = snapshot)
     }
@@ -175,6 +190,7 @@ class RefreshCoordinator(
         trigger: RefreshTrigger,
         startedAt: Instant,
         error: QuotaError,
+        epoch: SnapshotEpoch,
     ): RefreshResult.Failure {
         val lastKnownGood = snapshotStore.latestFor(account)
         // Read the previous attempt before saving this one, so the auth-failure streak can be seen.
@@ -202,6 +218,7 @@ class RefreshCoordinator(
             account = account,
             latestSnapshot = lastKnownGood,
             latestAttempt = attempt,
+            epoch = epoch,
         )
         return RefreshResult.Failure(error = error, lastKnownGood = lastKnownGood)
     }
@@ -210,16 +227,45 @@ class RefreshCoordinator(
         account: ProviderAccount,
         latestSnapshot: QuotaSnapshot?,
         latestAttempt: RefreshAttempt,
+        epoch: SnapshotEpoch,
     ) {
-        currentQuotaStatePublisher.publish(
-            currentQuotaStateFactory.create(
-                account = account,
-                latestSnapshot = latestSnapshot,
-                latestAttempt = latestAttempt,
-                now = clock.instant(),
-                primaryWindowId = primaryQuotaWindowPreferenceReader.primaryQuotaWindowId(),
-            ),
+        val state = currentQuotaStateFactory.create(
+            account = account,
+            latestSnapshot = latestSnapshot,
+            latestAttempt = latestAttempt,
+            now = clock.instant(),
+            primaryWindowId = primaryQuotaWindowPreferenceReader.primaryQuotaWindowId(),
         )
+
+        // Per-account effects (quota alerts, widget state) belong to the refreshed account itself:
+        // they fire for EVERY successful refresh regardless of which account is selected. Only the
+        // "current account" presentation write-back below is epoch-guarded. Spec: any alert-enabled
+        // account window can trigger threshold alerts (docs/SPEC.md alert rules).
+        try {
+            perAccountEffectsPublisher.publishAccountEffects(state)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            // Presentation effects must not turn a successful refresh into a refresh failure.
+        }
+
+        // The durable snapshot/attempt writes above are keyed per account and always correct;
+        // what must be defended is the "current state" write-back to the status notification. The
+        // selection is re-read HERE, at commit time, so an account switch that happened while the
+        // network call was in flight is observed even if it never touched the guard's generation.
+        // A missing reader means the account dimension cannot be checked (tests that predate the
+        // guard) — fall back to the epoch's own account so generation/edit protection still applies.
+        // A reader that answers null means "no account selected": the commit correctly mismatches.
+        // All preparatory reads (state construction above, selection here) are done BEFORE entering
+        // commitIfFresh so its serialized critical section covers only validation + the write.
+        val selectedAccountId = if (selectedAccountReader != null) {
+            selectedAccountReader.selectedAccountId()
+        } else {
+            epoch.accountId
+        }
+        stateGuard.commitIfFresh(epoch = epoch, selectedAccountId = selectedAccountId) {
+            currentQuotaStatePublisher.publish(state)
+        }
     }
 
     private data class RefreshKey(
@@ -232,6 +278,29 @@ class RefreshCoordinator(
         val owner: Boolean,
     )
 
+}
+
+/**
+ * Reads the currently selected account fresh at commit time. Kept as a tiny refresh-local seam so
+ * the coordinator does not depend on the data layer; AppContainer adapts CurrentAccountPreferences.
+ * When null (tests that predate the guard), only generation/edit protection applies.
+ */
+fun interface SelectedAccountReader {
+    suspend fun selectedAccountId(): LocalAccountId?
+}
+
+/**
+ * Per-account effects of a completed refresh: threshold alerts and widget updates belong to the
+ * account that was refreshed, not to whichever account is currently selected. Implementations must
+ * never use this channel to overwrite current-account presentation state — that path is the
+ * epoch-guarded [CurrentQuotaStatePublisher].
+ */
+fun interface PerAccountQuotaEffectPublisher {
+    suspend fun publishAccountEffects(state: CurrentQuotaState)
+}
+
+private object NoopPerAccountQuotaEffectPublisher : PerAccountQuotaEffectPublisher {
+    override suspend fun publishAccountEffects(state: CurrentQuotaState) = Unit
 }
 
 fun interface RefreshProvider {
