@@ -186,9 +186,14 @@ BeginEdit ==
                  maxSnapA, maxSnapB, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
 
 \* 编辑窗口内的 DataStore 写（AccountMutationRepository.kt:52）
-\* CM-10 R1：写进 NotificationTargetBoundary（持久写是唯一临界内容，锁内
+\* CM-10 R1/R2：写进 NotificationTargetBoundary（持久写是唯一临界内容，锁内
 \* 无嵌套等待——写后立刻释放）。锁被 post 侧持有时 write 排队：判决要求的
 \* 「B 的写入应排在该发布之后」在此形式化。
+\* ★ 证明范围显式声明：SwitchSelection 抽象代表「一切改变有效通知目标的写」
+\* （切号/pin/删除回退选号/删除行删除/导入改选/登录改选/各失败恢复）——
+\* 它们共享同一互斥纪律，模型只证明互斥语义的正确性；逐路径覆盖完备性由
+\* 写路径枚举清单（cm10r2-proof.md §2）与 Robolectric probe 场景实证，
+\* 不由本模型逐路径建模。
 SwitchSelection(acct) ==
   /\ editing
   /\ acct # selected

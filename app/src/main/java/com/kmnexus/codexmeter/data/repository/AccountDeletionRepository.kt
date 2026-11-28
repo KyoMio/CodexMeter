@@ -74,7 +74,13 @@ class AccountDeletionRepository(
                 providerId = providerValue,
                 localAccountId = localValue,
             )
-            localDataDeleter.deleteLocalData(providerId = providerId, localAccountId = localAccountId)
+            // CM-10 R2: the Room row deletion decides pin liveness — the resolver falls back the
+            // moment the row is gone. Serialize against the posting boundary: either the post
+            // completes first (correct for the then-live pin) or the row is already gone when
+            // the post re-checks (stale pinned frame dropped).
+            notificationTargetBoundary.serialize {
+                localDataDeleter.deleteLocalData(providerId = providerId, localAccountId = localAccountId)
+            }
         } catch (throwable: Throwable) {
             deletedAccountStateCleanup?.let { cleanup ->
                 runCatching { cleanup.restore() }
@@ -83,7 +89,13 @@ class AccountDeletionRepository(
                 runCatching { secureSessionStore.save(sessionBeforeDelete) }
             }
             if (shouldUpdateCurrentSelection) {
-                runCatching { currentAccountStore.updateCurrentAccountSelection(previousSelection) }
+                // CM-10 R2: rollback restores the target — serialize against posts, or a frame
+                // built for the abandoned fallback lands after the restore.
+                runCatching {
+                    notificationTargetBoundary.serialize {
+                        currentAccountStore.updateCurrentAccountSelection(previousSelection)
+                    }
+                }
             }
             throw throwable
         }
@@ -106,12 +118,16 @@ class AccountDeletionRepository(
     ) {
         val store = notificationPreferenceStore ?: return
         runCatching {
-            val preferences = store.notificationPreferences()
-            val bound = preferences.persistentNotificationAccount
-            if (bound?.providerId != providerId || bound.localAccountId != localAccountId) return
-            val fallback = currentAccountStore.currentAccountSelection()
-            // CM-10 R1: rebind moves the notification target — serialize against posts.
+            // CM-10 R2: re-read the pin INSIDE the lock and decide there. Reading outside and
+            // writing inside still lets a concurrent pin write slip between the two — the
+            // decision would rebind a pin the user just changed.
             notificationTargetBoundary.serialize {
+                val preferences = store.notificationPreferences()
+                val bound = preferences.persistentNotificationAccount
+                if (bound?.providerId != providerId || bound.localAccountId != localAccountId) {
+                    return@serialize
+                }
+                val fallback = currentAccountStore.currentAccountSelection()
                 store.updateNotificationPreferences(
                     preferences.copy(
                         persistentNotificationAccount = fallback?.let {

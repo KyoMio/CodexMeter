@@ -34,6 +34,8 @@ class SessionLoginUseCase(
     private val currentAccountStore: CurrentAccountStore,
     private val stateGuard: VersionedStateGuard,
     private val clock: Clock = Clock.systemUTC(),
+    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
+        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
 ) {
     suspend fun importApiKey(
         providerId: ProviderId,
@@ -159,12 +161,15 @@ class SessionLoginUseCase(
             // Only the first connected account becomes current; later additions never steal the
             // user's selected current account.
             if (currentAccountStore.currentAccountSelection() == null) {
-                currentAccountStore.updateCurrentAccountSelection(
-                    CurrentAccountSelection(
-                        providerId = providerId,
-                        localAccountId = localAccountId,
-                    ),
-                )
+                // CM-10 R2: first login selects the default — target moves; serialize against posts.
+                notificationTargetBoundary.serialize {
+                    currentAccountStore.updateCurrentAccountSelection(
+                        CurrentAccountSelection(
+                            providerId = providerId,
+                            localAccountId = localAccountId,
+                        ),
+                    )
+                }
             }
         } finally {
             stateGuard.endEdit()

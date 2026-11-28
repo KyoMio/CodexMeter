@@ -102,6 +102,8 @@ class RoomCodexSessionImportPersistence(
     private val currentAccountStore: CurrentAccountStore,
     private val stateGuard: VersionedStateGuard,
     private val beforeRoomCommit: suspend () -> Unit = {},
+    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
+        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
 ) : CodexSessionImporter.ImportPersistence {
     override suspend fun save(
         account: ProviderAccount,
@@ -144,20 +146,27 @@ class RoomCodexSessionImportPersistence(
 
         try {
             sessionStore.save(committed.sessionEnvelope)
-            currentAccountStore.updateCurrentAccountSelection(
-                CurrentAccountSelection(
-                    providerId = committed.account.providerId,
-                    localAccountId = committed.account.localAccountId,
-                ),
-            )
+            // CM-10 R2: import re-selects the default account — the notification target moves
+            // (when the pin is dead/absent). Serialize against the posting boundary.
+            notificationTargetBoundary.serialize {
+                currentAccountStore.updateCurrentAccountSelection(
+                    CurrentAccountSelection(
+                        providerId = committed.account.providerId,
+                        localAccountId = committed.account.localAccountId,
+                    ),
+                )
+            }
             database.withTransaction {
                 database.providerAccountDao().upsert(committed.account.toEntity())
                 beforeRoomCommit()
                 database.quotaSnapshotDao().insert(committed.snapshot.toEntity())
             }
         } catch (throwable: Throwable) {
+            // CM-10 R2: rollback restores the target — serialize against posts.
             runCatching {
-                currentAccountStore.updateCurrentAccountSelection(previousSelection)
+                notificationTargetBoundary.serialize {
+                    currentAccountStore.updateCurrentAccountSelection(previousSelection)
+                }
             }
             runCatching {
                 if (previousEnvelope == null) {

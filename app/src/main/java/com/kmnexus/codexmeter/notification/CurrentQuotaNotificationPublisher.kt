@@ -47,16 +47,13 @@ class CurrentQuotaNotificationPublisher(
         // CM-10: re-resolve the notification target immediately before posting. Loading the
         // status state above is a suspendable chain, and an account switch can complete while it
         // is in flight — the epoch guard clears the write, but the notification content is
-        // re-targeted at the selection, so validation alone cannot see the drift. Dropping here
-        // is safe: the switch's own republish posts the correct target right after.
+        // re-targeted at the selection, so validation alone cannot see the drift.
         //
         // CM-10 R1: the re-check and the system post share ONE mutex with every target-changing
-        // write (selection, pin, deletion fallback). Without this, the write can still commit
-        // after the re-check passed — the CM10-R1 probe interleaving — and the stale title lands.
-        // Inside the boundary: either the write already committed (re-check sees the new target
-        // and drops) or the write still waits for the mutex (post is correct for the target at
-        // post time). Target writers never hold this lock while re-entering this publisher, so
-        // the boundary cannot deadlock against the post.
+        // write. Inside the boundary: either the write already committed (re-check sees the new
+        // target and drops) or the write still waits for the mutex (post is correct for the
+        // target at post time). Target writers never hold this lock while re-entering this
+        // publisher, so the boundary cannot deadlock against the post.
         notificationTargetBoundary.serialize {
             if (!notificationTargetMatchesSelection(statusState)) {
                 return@serialize

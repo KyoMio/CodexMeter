@@ -18,6 +18,8 @@ class ApiKeyLoginUseCase(
     private val snapshotDao: QuotaSnapshotDao,
     private val currentAccountStore: CurrentAccountPreferences,
     private val clock: Clock = Clock.systemUTC(),
+    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
+        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
 ) {
     suspend fun importApiKey(
         providerId: ProviderId,
@@ -45,12 +47,15 @@ class ApiKeyLoginUseCase(
 
         accountDao.upsert(account.toEntity())
         snapshotDao.insert(snapshot.toEntity())
-        currentAccountStore.updateCurrentAccountSelection(
-            CurrentAccountSelection(
-                providerId = providerId,
-                localAccountId = localAccountId,
-            ),
-        )
+        // CM-10 R2: API-key login selects the account — target moves; serialize against posts.
+        notificationTargetBoundary.serialize {
+            currentAccountStore.updateCurrentAccountSelection(
+                CurrentAccountSelection(
+                    providerId = providerId,
+                    localAccountId = localAccountId,
+                ),
+            )
+        }
 
         return Result.success(account)
     }

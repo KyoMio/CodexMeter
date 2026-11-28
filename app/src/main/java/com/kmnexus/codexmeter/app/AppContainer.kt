@@ -651,6 +651,7 @@ class AppContainer private constructor(
                     sessionStore = sessionStore,
                     currentAccountStore = currentAccountPreferences,
                     stateGuard = sharedStateGuard,
+                    notificationTargetBoundary = notificationTargetBoundary,
                 ),
                 sessionEnvelopeFactory = CodexSessionEnvelopeFactory(sessionCipher),
                 localAccountIdProvider = CodexSessionImporter.LocalAccountIdProvider {
@@ -666,6 +667,7 @@ class AppContainer private constructor(
                 sessionStore = sessionStore,
                 currentAccountStore = currentAccountPreferences,
                 stateGuard = sharedStateGuard,
+                notificationTargetBoundary = notificationTargetBoundary,
             )
             val grokSessionImporter = GrokSessionImporter(
                 billingClient = GrokSessionImporter.BillingClient(grokBillingClient::fetchBilling),
@@ -707,6 +709,7 @@ class AppContainer private constructor(
                 currentAccountStore = currentAccountPreferences,
                 stateGuard = sharedStateGuard,
                 clock = clock,
+                notificationTargetBoundary = notificationTargetBoundary,
             )
             val codexDeviceCodeClient = CodexDeviceCodeClient(httpClient)
             val codexDeviceCodeLoginUseCase = CodexDeviceCodeLoginUseCase(
