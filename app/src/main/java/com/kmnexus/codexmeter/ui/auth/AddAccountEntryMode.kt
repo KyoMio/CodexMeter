@@ -14,7 +14,11 @@ sealed class AddAccountEntryMode {
      * Codex device-code re-login for an existing account. [expectedProviderAccountId] is the account's
      * chatgpt_account_id, used to detect when the user signs into a different Codex account.
      */
-    data class CodexRelogin(val expectedProviderAccountId: String?) : AddAccountEntryMode()
+    data class CodexRelogin(
+        val expectedProviderAccountId: String?,
+        /** Original local account id — the re-login generation binding (CM-10 R5). */
+        val reloginAccountId: LocalAccountId? = null,
+    ) : AddAccountEntryMode()
 
     /**
      * API key import for the given provider. When [reloginAccountId] is set the credential overwrites
@@ -53,7 +57,7 @@ sealed class AddAccountEntryMode {
         get() = when (this) {
             is ProviderSelection -> "select"
             is LoginToCodex -> "login"
-            is CodexRelogin -> "codexrelogin:${expectedProviderAccountId.orEmpty()}"
+            is CodexRelogin -> "codexrelogin:${expectedProviderAccountId.orEmpty()}".withReloginSuffix(reloginAccountId)
             is ApiKeyInput -> "apikey:${providerId.value}".withReloginSuffix(reloginAccountId)
             is WebViewCookieAuth -> "cookie:${providerId.value}".withReloginSuffix(reloginAccountId)
             is WebViewOAuthPkce -> "pkce:${providerId.value}".withReloginSuffix(reloginAccountId)
@@ -77,8 +81,13 @@ sealed class AddAccountEntryMode {
             return when {
                 routeValue == "select" -> ProviderSelection
                 routeValue == "login" -> LoginToCodex
-                routeValue.startsWith("codexrelogin:") ->
-                    CodexRelogin(routeValue.removePrefix("codexrelogin:").takeIf { it.isNotBlank() })
+                routeValue.startsWith("codexrelogin:") -> {
+                    val segments = routeValue.removePrefix("codexrelogin:").split(":", limit = 2)
+                    CodexRelogin(
+                        expectedProviderAccountId = segments[0].takeIf { it.isNotBlank() },
+                        reloginAccountId = segments.getOrNull(1)?.takeIf { it.isNotBlank() }?.let(::LocalAccountId),
+                    )
+                }
                 routeValue.startsWith("apikey:") ->
                     routeValue.removePrefix("apikey:").splitProviderAndRelogin { providerId, relogin ->
                         ApiKeyInput(providerId, relogin)

@@ -2,12 +2,12 @@ package com.kmnexus.codexmeter.providers.minimax.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.minimax.mapper.MiniMaxUsageMapper
 import com.kmnexus.codexmeter.providers.minimax.network.MiniMaxUsageClient
 import com.kmnexus.codexmeter.providers.minimax.session.MiniMaxSessionPayload
@@ -16,7 +16,6 @@ import kotlinx.serialization.json.Json
 
 class MiniMaxSessionImporter(
     private val usageClient: MiniMaxUsageClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -26,7 +25,7 @@ class MiniMaxSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         val baseUrl = apiBaseUrl ?: MiniMaxUsageClient.DEFAULT_BASE_URL
         val usageResult = usageClient.fetchUsage(apiKey, baseUrl)
 
@@ -59,8 +58,6 @@ class MiniMaxSessionImporter(
                     updatedAt = now.toString(),
                 )
 
-                sessionStore.save(envelope)
-
                 val snapshot = MiniMaxUsageMapper.map(
                     dto = usageResult.dto,
                     localAccountId = account.localAccountId,
@@ -69,7 +66,7 @@ class MiniMaxSessionImporter(
                     source = QuotaSnapshotSource.ApiKeyImport,
                 )
 
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -77,7 +74,7 @@ class MiniMaxSessionImporter(
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("MiniMax does not support cookie auth"),
         )
@@ -87,7 +84,7 @@ class MiniMaxSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("MiniMax does not support OAuth PKCE auth"),
         )

@@ -530,6 +530,7 @@ class CodexDeviceCodeLoginUseCaseTest {
 
         override suspend fun commitPreparedDeviceCodeSession(
             preparedImport: CodexSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): CodexSessionImporter.Result {
             committedImports += preparedImport
             return result
@@ -550,6 +551,7 @@ class CodexDeviceCodeLoginUseCaseTest {
 
         override suspend fun commitPreparedDeviceCodeSession(
             preparedImport: CodexSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): CodexSessionImporter.Result {
             committedImports += preparedImport
             return commitResult
@@ -566,6 +568,7 @@ class CodexDeviceCodeLoginUseCaseTest {
 
         override suspend fun commitPreparedDeviceCodeSession(
             preparedImport: CodexSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): CodexSessionImporter.Result {
             committedImports += preparedImport
             return importSuccess(QuotaSnapshotSource.DeviceCodeLogin)

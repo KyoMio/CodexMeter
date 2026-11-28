@@ -340,6 +340,7 @@ class GrokDeviceCodeLoginControllerTest {
 
         override suspend fun commitPreparedDeviceCodeSession(
             preparedImport: GrokSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): GrokSessionImporter.Result {
             committedImports += preparedImport
             return result
@@ -365,6 +366,7 @@ class GrokDeviceCodeLoginControllerTest {
 
         override suspend fun commitPreparedDeviceCodeSession(
             preparedImport: GrokSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): GrokSessionImporter.Result {
             committedImports += preparedImport
             return commitResults.removeFirst()

@@ -41,8 +41,8 @@ class CurrentQuotaStateRepositoryTest {
     @Test
     fun `current account loads latest successful snapshot`() = runTest {
         withRepository { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(account(status = "active"))
-            db.quotaSnapshotDao().insert(snapshot(fetchedAt = Instant.parse("2026-05-23T11:50:00Z")))
+            db.providerAccountDao().upsert(FixtureAccounts.account(status = "active"))
+            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(fetchedAt = Instant.parse("2026-05-23T11:50:00Z")))
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadCurrentState()
@@ -56,8 +56,8 @@ class CurrentQuotaStateRepositoryTest {
     @Test
     fun `current account uses persisted primary quota window`() = runTest {
         withRepository(primaryWindowId = QuotaWindowId("weekly")) { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(account(status = "active"))
-            db.quotaSnapshotDao().insert(snapshot(fetchedAt = Instant.parse("2026-05-23T11:50:00Z")))
+            db.providerAccountDao().upsert(FixtureAccounts.account(status = "active"))
+            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(fetchedAt = Instant.parse("2026-05-23T11:50:00Z")))
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadCurrentState()
@@ -71,7 +71,7 @@ class CurrentQuotaStateRepositoryTest {
     @Test
     fun `needs reauth current account loads auth required state`() = runTest {
         withRepository { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(account(status = "needs_reauth"))
+            db.providerAccountDao().upsert(FixtureAccounts.account(status = "needs_reauth"))
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadCurrentState()
@@ -91,10 +91,10 @@ class CurrentQuotaStateRepositoryTest {
                 persistentNotificationWindowId = QuotaWindowId("weekly"),
             ),
         ) { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(account(localAccountId = "local-1", displayName = "Current"))
-            db.providerAccountDao().upsert(account(localAccountId = "local-2", displayName = "Configured"))
-            db.quotaSnapshotDao().insert(snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"))
-            db.quotaSnapshotDao().insert(snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"))
+            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-1", displayName = "Current"))
+            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-2", displayName = "Configured"))
+            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"))
+            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"))
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadStatusNotificationState(refreshedState = repository.loadCurrentState())
@@ -108,10 +108,10 @@ class CurrentQuotaStateRepositoryTest {
     @Test
     fun `requested account state uses supplied account and window`() = runTest {
         withRepository { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(account(localAccountId = "local-1", displayName = "Current"))
-            db.providerAccountDao().upsert(account(localAccountId = "local-2", displayName = "Requested"))
-            db.quotaSnapshotDao().insert(snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"))
-            db.quotaSnapshotDao().insert(snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"))
+            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-1", displayName = "Current"))
+            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-2", displayName = "Requested"))
+            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"))
+            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"))
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadAccountState(
@@ -171,37 +171,4 @@ class CurrentQuotaStateRepositoryTest {
         override suspend fun notificationPreferences(): NotificationPreferences = notificationPreferences
     }
 
-    private fun account(
-        status: String = "active",
-        localAccountId: String = "local-1",
-        displayName: String = "Work",
-    ) = ProviderAccountEntity(
-        localAccountId = localAccountId,
-        providerId = "codex",
-        providerAccountId = "acct-$localAccountId",
-        displayName = displayName,
-        avatarInitial = displayName.first().uppercase(),
-        avatarColorKey = localAccountId,
-        status = status,
-        createdAt = Instant.parse("2026-05-23T11:00:00Z").toEpochMilli(),
-        updatedAt = Instant.parse("2026-05-23T11:30:00Z").toEpochMilli(),
-        lastSuccessfulRefreshAt = null,
-    )
-
-    private fun snapshot(
-        fetchedAt: Instant = Instant.parse("2026-05-23T11:50:00Z"),
-        snapshotId: String = "snapshot-1",
-        localAccountId: String = "local-1",
-    ) = QuotaSnapshotEntity(
-        snapshotId = snapshotId,
-        providerId = "codex",
-        localAccountId = localAccountId,
-        providerAccountId = "acct-$localAccountId",
-        fetchedAt = fetchedAt.toEpochMilli(),
-        source = "manualRefresh",
-        planType = "plus",
-        windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":62,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]""",
-        creditsJson = null,
-        responseDigest = "safe-digest",
-    )
 }

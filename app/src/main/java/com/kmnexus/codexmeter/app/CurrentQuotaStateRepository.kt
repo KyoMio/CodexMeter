@@ -40,6 +40,7 @@ internal class CurrentQuotaStateRepository(
     private val clock: Clock,
     private val currencyPreferenceReader: CurrencyPreferenceReader = DefaultCurrencyPreferenceReader,
     private val exchangeRateReader: ExchangeRateReader = DefaultExchangeRateReader,
+    private val notificationTargetResolver: com.kmnexus.codexmeter.notification.NotificationAccountTargetResolver? = null,
 ) : HomeCurrentQuotaStateLoader, StatusNotificationStateLoader {
     override suspend fun loadCurrentState(): CurrentQuotaState {
         val selection = currentAccountReader.currentAccountSelection()
@@ -54,19 +55,25 @@ internal class CurrentQuotaStateRepository(
 
     override suspend fun loadStatusNotificationState(refreshedState: CurrentQuotaState): CurrentQuotaState {
         val preferences = notificationPreferenceReader.notificationPreferences()
-        val configuredAccount = preferences.persistentNotificationAccount
-            ?.let { selection ->
-                loadAccount(
-                    CurrentAccountSelection(
-                        providerId = selection.providerId,
-                        localAccountId = selection.localAccountId,
-                    ),
-                )
-            }
-        val fallbackSelection = currentAccountReader.currentAccountSelection()
-        val account = configuredAccount
-            ?: fallbackSelection?.let { loadAccount(it) }
-            ?: return unauthenticatedState()
+        // CM-10: when a shared resolver is wired, resolution MUST come from the same
+        // implementation the publisher validates against — drifting duplicates are how the
+        // stale-title race survived the epoch guard.
+        val account = notificationTargetResolver?.let { resolver ->
+            resolver.resolveTargetSelection()?.let { loadAccount(it) }
+        } ?: run {
+            val configuredAccount = preferences.persistentNotificationAccount
+                ?.let { selection ->
+                    loadAccount(
+                        CurrentAccountSelection(
+                            providerId = selection.providerId,
+                            localAccountId = selection.localAccountId,
+                        ),
+                    )
+                }
+            val fallbackSelection = currentAccountReader.currentAccountSelection()
+            configuredAccount
+                ?: fallbackSelection?.let { loadAccount(it) }
+        } ?: return unauthenticatedState()
 
         val state = loadState(
             account = account,

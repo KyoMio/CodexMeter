@@ -2,7 +2,6 @@ package com.kmnexus.codexmeter.providers
 
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
-import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 
 class SessionImportRouter(
     private val importers: Map<ProviderId, SessionImporter>,
@@ -11,10 +10,10 @@ class SessionImportRouter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String? = null,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         resolve(account.providerId).importFromApiKey(apiKey, account, apiBaseUrl)
 
-    suspend fun importCookie(cookieJson: String, account: ProviderAccount): Result<QuotaSnapshot> =
+    suspend fun importCookie(cookieJson: String, account: ProviderAccount): Result<ValidatedSessionImport> =
         resolve(account.providerId).importFromCookie(cookieJson, account)
 
     suspend fun importOAuthPkce(
@@ -22,7 +21,7 @@ class SessionImportRouter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         resolve(account.providerId).importFromOAuthPkce(code, verifier, redirectUri, account)
 
     private fun resolve(providerId: ProviderId): SessionImporter =

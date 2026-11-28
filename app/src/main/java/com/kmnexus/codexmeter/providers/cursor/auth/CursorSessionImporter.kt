@@ -2,12 +2,12 @@ package com.kmnexus.codexmeter.providers.cursor.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.cursor.mapper.CursorUsageMapper
 import com.kmnexus.codexmeter.providers.cursor.network.CursorUsageClient
 import com.kmnexus.codexmeter.providers.cursor.session.CursorSessionPayload
@@ -16,7 +16,6 @@ import kotlinx.serialization.json.Json
 
 class CursorSessionImporter(
     private val usageClient: CursorUsageClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -25,7 +24,7 @@ class CursorSessionImporter(
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         val usageResult = usageClient.fetchUsage(cookieJson)
 
         return when (usageResult) {
@@ -56,8 +55,6 @@ class CursorSessionImporter(
                     updatedAt = now.toString(),
                 )
 
-                sessionStore.save(envelope)
-
                 val snapshot = CursorUsageMapper.map(
                     dto = usageResult.dto,
                     localAccountId = account.localAccountId,
@@ -66,7 +63,7 @@ class CursorSessionImporter(
                     source = QuotaSnapshotSource.CookieAuth,
                 )
 
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -75,7 +72,7 @@ class CursorSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("Cursor does not support API key auth"),
         )
@@ -85,7 +82,7 @@ class CursorSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("Cursor does not support OAuth PKCE auth"),
         )

@@ -68,7 +68,15 @@ class GrokSessionImporter(
      * Validates the prepared session against the billing endpoint, then persists account, envelope
      * and first snapshot atomically. Nothing is written when validation or persistence fails.
      */
-    suspend fun commitPreparedDeviceCodeSession(preparedImport: PreparedImport): Result {
+    /**
+     * [allowNewRow] carries the re-login intent through to persistence, mirroring the Codex path:
+     * re-login targets an existing account, so when its row was deleted while the credential
+     * validated the late result must be discarded — never recreated as a new row.
+     */
+    suspend fun commitPreparedDeviceCodeSession(
+        preparedImport: PreparedImport,
+        allowNewRow: Boolean = true,
+    ): Result {
         val billingResult = try {
             billingClient.fetchBilling(preparedImport.session.accessToken)
         } catch (exception: CancellationException) {
@@ -91,6 +99,7 @@ class GrokSessionImporter(
             is GrokBillingClient.Result.Success -> persistValidatedSession(
                 preparedImport = preparedImport,
                 billingResult = billingResult,
+                allowNewRow = allowNewRow,
             )
         }
     }
@@ -98,6 +107,7 @@ class GrokSessionImporter(
     private suspend fun persistValidatedSession(
         preparedImport: PreparedImport,
         billingResult: GrokBillingClient.Result.Success,
+        allowNewRow: Boolean,
     ): Result =
         try {
             val fetchedAt = clock.instant()
@@ -134,6 +144,8 @@ class GrokSessionImporter(
                 account = account,
                 sessionEnvelope = envelope,
                 snapshot = snapshot,
+                allowNewRow = allowNewRow,
+                expectedLocalAccountId = preparedImport.expectedLocalAccountId,
             )
 
             Result.Success(
@@ -165,6 +177,8 @@ class GrokSessionImporter(
             account: ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: QuotaSnapshot,
+            allowNewRow: Boolean,
+            expectedLocalAccountId: LocalAccountId?,
         ): CommittedImport
     }
 
@@ -195,6 +209,8 @@ class GrokSessionImporter(
 
     data class PreparedImport(
         val session: GrokSessionPayload,
+        /** Re-login generation binding, injected by the login controller after prepare. */
+        val expectedLocalAccountId: LocalAccountId? = null,
     ) {
         override fun toString(): String = "PreparedImport(session=[REDACTED])"
     }
@@ -217,10 +233,10 @@ class GrokSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): kotlin.Result<QuotaSnapshot> =
+    ): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Grok does not support API key auth"))
 
-    override suspend fun importFromCookie(cookieJson: String, account: ProviderAccount): kotlin.Result<QuotaSnapshot> =
+    override suspend fun importFromCookie(cookieJson: String, account: ProviderAccount): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Grok does not support cookie auth"))
 
     override suspend fun importFromOAuthPkce(
@@ -228,7 +244,7 @@ class GrokSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): kotlin.Result<QuotaSnapshot> =
+    ): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Grok does not support OAuth PKCE auth"))
 
     private companion object {

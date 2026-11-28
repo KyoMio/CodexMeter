@@ -2,11 +2,11 @@ package com.kmnexus.codexmeter.providers.zai.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.zai.mapper.ZaiQuotaMapper
 import com.kmnexus.codexmeter.providers.zai.network.ZaiQuotaClient
 import com.kmnexus.codexmeter.providers.zai.session.ZaiSessionPayload
@@ -15,7 +15,6 @@ import kotlinx.serialization.json.Json
 
 class ZaiSessionImporter(
     private val client: ZaiQuotaClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -25,7 +24,7 @@ class ZaiSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         val baseUrl = apiBaseUrl ?: ZaiQuotaClient.DEFAULT_BASE_URL
         return when (val result = client.fetchQuota(apiKey, baseUrl)) {
             is ZaiQuotaClient.Result.Failure ->
@@ -57,7 +56,6 @@ class ZaiSessionImporter(
                 )
 
                 // Save to session store
-                sessionStore.save(envelope)
 
                 // Map response via ZaiQuotaMapper with source=ApiKeyImport
                 val snapshot = ZaiQuotaMapper.map(
@@ -68,7 +66,7 @@ class ZaiSessionImporter(
                     source = QuotaSnapshotSource.ApiKeyImport,
                 )
 
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -76,7 +74,7 @@ class ZaiSessionImporter(
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("Zai does not support cookie auth"))
 
     override suspend fun importFromOAuthPkce(
@@ -84,6 +82,6 @@ class ZaiSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("Zai does not support OAuth PKCE auth"))
 }

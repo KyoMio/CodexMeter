@@ -172,6 +172,8 @@ class CodexSessionImporterTest {
             account: ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: QuotaSnapshot,
+            allowNewRow: Boolean,
+            expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId?,
         ): CodexSessionImporter.CommittedImport {
             val committed = CodexSessionImporter.CommittedImport(
                 account = account,
@@ -188,6 +190,8 @@ class CodexSessionImporterTest {
             account: ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: QuotaSnapshot,
+            allowNewRow: Boolean,
+            expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId?,
         ): CodexSessionImporter.CommittedImport {
             throw IllegalStateException("unsafe persistence detail")
         }

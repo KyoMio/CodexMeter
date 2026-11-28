@@ -2,12 +2,12 @@ package com.kmnexus.codexmeter.providers.antigravity.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.antigravity.mapper.AntigravityQuotaMapper
 import com.kmnexus.codexmeter.providers.antigravity.network.AntigravityQuotaClient
 import com.kmnexus.codexmeter.providers.antigravity.session.AntigravitySessionPayload
@@ -18,7 +18,6 @@ import kotlinx.serialization.json.Json
 class AntigravitySessionImporter(
     private val tokenClient: OAuthTokenClient,
     private val client: AntigravityQuotaClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -29,7 +28,7 @@ class AntigravitySessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         // Google returns an authorization code; exchange it (with client_secret) for tokens first.
         val tokens = when (val result = tokenClient.exchangeAuthorizationCode(code, verifier, redirectUri)) {
             is OAuthTokenClient.Result.Failure ->
@@ -53,17 +52,17 @@ class AntigravitySessionImporter(
                 )
                 val jsonBytes = json.encodeToString(AntigravitySessionPayload.serializer(), payload).encodeToByteArray()
                 val encrypted = payloadCipher.encrypt(jsonBytes)
-                sessionStore.save(
-                    ProviderSessionEnvelope(
-                        providerId = ANTIGRAVITY_PROVIDER_ID.value,
-                        localAccountId = account.localAccountId.value,
-                        providerAccountId = account.providerAccountId?.value,
-                        schemaVersion = 1,
-                        payloadCiphertext = encrypted.ciphertext,
-                        payloadNonce = encrypted.nonce,
-                        createdAt = now.toString(),
-                        updatedAt = now.toString(),
-                    ),
+                // CM-10 R4: encrypt-and-prepare only — the caller commits the envelope inside the
+                // shared delete/commit boundary after re-checking the account is still alive.
+                val envelope = ProviderSessionEnvelope(
+                    providerId = ANTIGRAVITY_PROVIDER_ID.value,
+                    localAccountId = account.localAccountId.value,
+                    providerAccountId = account.providerAccountId?.value,
+                    schemaVersion = 1,
+                    payloadCiphertext = encrypted.ciphertext,
+                    payloadNonce = encrypted.nonce,
+                    createdAt = now.toString(),
+                    updatedAt = now.toString(),
                 )
                 val snapshot = if (quotaResult.summary != null) {
                     AntigravityQuotaMapper.mapSummary(
@@ -84,7 +83,7 @@ class AntigravitySessionImporter(
                         source = QuotaSnapshotSource.OAuthPkceLogin,
                     )
                 }
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -93,13 +92,13 @@ class AntigravitySessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("Antigravity does not support API key auth"))
 
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("Antigravity does not support cookie auth"))
 
     private companion object {

@@ -28,6 +28,8 @@ sealed interface GrokDeviceCodeLoginMode {
 
     data class Relogin(
         val expectedProviderAccountId: ProviderAccountId,
+        /** Original local account id captured at re-login start: the account generation binding. */
+        val expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId? = null,
     ) : GrokDeviceCodeLoginMode
 }
 
@@ -140,6 +142,18 @@ class GrokDeviceCodeLoginController(
             GrokDeviceCodeLoginMode.Relogin(ProviderAccountId(expectedProviderAccountId)),
         ).toDeviceCodeLoginResult(onSaved)
 
+    override suspend fun startRelogin(
+        expectedProviderAccountId: String,
+        expectedLocalAccountId: String?,
+    ): DeviceCodeLoginResult =
+        start(
+            GrokDeviceCodeLoginMode.Relogin(
+                expectedProviderAccountId = ProviderAccountId(expectedProviderAccountId),
+                expectedLocalAccountId = expectedLocalAccountId
+                    ?.let { com.kmnexus.codexmeter.domain.model.LocalAccountId(it) },
+            ),
+        ).toDeviceCodeLoginResult(onSaved)
+
     /**
      * Resolves an [GrokDeviceCodeLoginState.AccountMismatchDecision] by importing the held token as
      * a new account: the importer reconciles by the JWT `sub`, so this connects the account the
@@ -154,6 +168,8 @@ class GrokDeviceCodeLoginController(
             oauthToken = pending.oauthToken,
             identity = pending.identity,
             tokenEndpoint = pending.tokenEndpoint,
+            allowNewRow = true,
+            expectedLocalAccountId = null,
         ).toDeviceCodeLoginResult(onSaved)
     }
 
@@ -242,6 +258,8 @@ class GrokDeviceCodeLoginController(
                     oauthToken = oauthToken,
                     identity = identity,
                     tokenEndpoint = awaiting.tokenEndpoint,
+                    allowNewRow = awaiting.mode !is GrokDeviceCodeLoginMode.Relogin,
+                    expectedLocalAccountId = (awaiting.mode as? GrokDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId,
                 )
             }.toDeviceCodeLoginResult(onSaved)
         } finally {
@@ -262,6 +280,8 @@ class GrokDeviceCodeLoginController(
             oauthToken = ready.oauthToken,
             identity = ready.identity,
             tokenEndpoint = ready.tokenEndpoint,
+            allowNewRow = ready.mode !is GrokDeviceCodeLoginMode.Relogin,
+            expectedLocalAccountId = (ready.mode as? GrokDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId,
         ).toDeviceCodeLoginResult(onSaved)
     }
 
@@ -365,6 +385,8 @@ class GrokDeviceCodeLoginController(
         oauthToken: GrokOAuthToken,
         identity: GrokLoginIdentity,
         tokenEndpoint: String,
+        allowNewRow: Boolean,
+        expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId?,
     ): GrokDeviceCodeLoginState {
         stateMutex.withLock {
             if (!isLatestLocked(attemptId)) {
@@ -394,7 +416,10 @@ class GrokDeviceCodeLoginController(
         // holding the lock across it would block cancelLatest until the call finishes and let a
         // late cancel land as Saved instead of Cancelled. Only the resulting state write is locked.
         val commitResult = try {
-            sessionImporter.commitPreparedDeviceCodeSession(prepared)
+            sessionImporter.commitPreparedDeviceCodeSession(
+                prepared.copy(expectedLocalAccountId = expectedLocalAccountId),
+                allowNewRow,
+            )
         } catch (exception: CancellationException) {
             throw exception
         } catch (_: Exception) {
@@ -520,6 +545,7 @@ class GrokDeviceCodeLoginController(
 
         suspend fun commitPreparedDeviceCodeSession(
             preparedImport: GrokSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): GrokSessionImporter.Result
     }
 

@@ -2,11 +2,11 @@ package com.kmnexus.codexmeter.providers.zaibalance.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.zaibalance.mapper.ZaiBalanceMapper
 import com.kmnexus.codexmeter.providers.zaibalance.network.ZaiBalanceClient
 import com.kmnexus.codexmeter.providers.zaibalance.session.ZaiBalanceSessionPayload
@@ -15,7 +15,6 @@ import kotlinx.serialization.json.Json
 
 class ZaiBalanceSessionImporter(
     private val client: ZaiBalanceClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -26,7 +25,7 @@ class ZaiBalanceSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         return when (val result = client.fetchBalance(apiKey)) {
             is ZaiBalanceClient.Result.Failure ->
                 Result.failure(
@@ -49,7 +48,6 @@ class ZaiBalanceSessionImporter(
                     createdAt = nowStr,
                     updatedAt = nowStr,
                 )
-                sessionStore.save(envelope)
                 val snapshot = ZaiBalanceMapper.map(
                     dto = result.dto,
                     localAccountId = account.localAccountId,
@@ -57,7 +55,7 @@ class ZaiBalanceSessionImporter(
                     fetchedAt = now,
                     source = QuotaSnapshotSource.ApiKeyImport,
                 )
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -65,7 +63,7 @@ class ZaiBalanceSessionImporter(
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("z.ai API does not support cookie auth"))
 
     override suspend fun importFromOAuthPkce(
@@ -73,6 +71,6 @@ class ZaiBalanceSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("z.ai API does not support OAuth PKCE auth"))
 }

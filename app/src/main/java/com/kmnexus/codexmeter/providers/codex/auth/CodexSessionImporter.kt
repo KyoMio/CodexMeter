@@ -35,8 +35,17 @@ class CodexSessionImporter(
             source = QuotaSnapshotSource.DeviceCodeLogin,
         )
 
-    suspend fun commitPreparedDeviceCodeSession(preparedImport: PreparedImport): Result =
-        savePreparedImport(preparedImport)
+    /**
+     * Commits a validated import. [allowNewRow] carries the re-login intent through to
+     * persistence: re-login targets an existing account, so when its row was deleted while the
+     * credential validated the late result must be discarded — never recreated as a new row.
+     * Explicit new-account imports (including mismatch-confirmed additions) pass true.
+     */
+    suspend fun commitPreparedDeviceCodeSession(
+        preparedImport: PreparedImport,
+        allowNewRow: Boolean = true,
+    ): Result =
+        savePreparedImport(preparedImport, allowNewRow)
 
     private suspend fun prepareSessionPayload(
         payload: CodexSessionPayload,
@@ -122,12 +131,17 @@ class CodexSessionImporter(
             )
         }
 
-    private suspend fun savePreparedImport(preparedImport: PreparedImport): Result =
+    private suspend fun savePreparedImport(
+        preparedImport: PreparedImport,
+        allowNewRow: Boolean,
+    ): Result =
         try {
             val committed = importPersistence.save(
                 account = preparedImport.account,
                 sessionEnvelope = preparedImport.sessionEnvelope,
                 snapshot = preparedImport.snapshot,
+                allowNewRow = allowNewRow,
+                expectedLocalAccountId = preparedImport.expectedLocalAccountId,
             )
 
             Result.Success(
@@ -150,11 +164,19 @@ class CodexSessionImporter(
          * Saves a validated import atomically and returns the actual committed records.
          * Implementations that reconcile an existing provider account must canonicalize
          * every local-account-derived field, including snapshot IDs.
+         *
+         * [allowNewRow] = false carries re-login intent: only an in-place update of the still
+         * alive matched row is permitted; anything else discards the late result.
+         * [expectedLocalAccountId] binds the re-login to the original account generation: a
+         * matched row with a different local id is a re-added replacement, not the original
+         * account, and the late result must be discarded rather than overwrite it.
          */
         suspend fun save(
             account: ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: QuotaSnapshot,
+            allowNewRow: Boolean,
+            expectedLocalAccountId: LocalAccountId?,
         ): CommittedImport
     }
 
@@ -169,6 +191,8 @@ class CodexSessionImporter(
         val displayNameSuggestion: String,
         val sessionEnvelope: ProviderSessionEnvelope,
         val snapshot: QuotaSnapshot,
+        /** Re-login generation binding, injected by the login use case after prepare. */
+        val expectedLocalAccountId: LocalAccountId? = null,
     )
 
     sealed interface PrepareResult {
@@ -226,10 +250,10 @@ class CodexSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): kotlin.Result<QuotaSnapshot> =
+    ): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Codex does not support API key auth"))
 
-    override suspend fun importFromCookie(cookieJson: String, account: ProviderAccount): kotlin.Result<QuotaSnapshot> =
+    override suspend fun importFromCookie(cookieJson: String, account: ProviderAccount): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Codex does not support cookie auth"))
 
     override suspend fun importFromOAuthPkce(
@@ -237,7 +261,7 @@ class CodexSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): kotlin.Result<QuotaSnapshot> =
+    ): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Codex does not support OAuth PKCE auth"))
 
     private companion object {

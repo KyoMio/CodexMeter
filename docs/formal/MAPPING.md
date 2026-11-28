@@ -82,3 +82,7 @@
 - 变异回归：rollback-delete / cancel-delete / no-consumed 三个变异在修复后规约下仍全部被抓。
 
 **CM-8 R1 窄修（2026-11-28）**：`cfMitigatedLoop` 影子从手工置位改为 `ProcessResponse` 公共出口按终态派生（`fresh ∧ r=cfMitigated ∧ ¬(ctrl'="Failed" ∧ ui'="Failed")`）。原因：初版交付的「回滚变异复红」无效——行为回滚时手工标记跟着回滚，exit 12 证明不了行为修复是反例消失的原因。派生后双向验证：正确版 exit 0（1491 distinct/深度 21 不变）；纯行为回滚（只改 ctrl/ui 回 Awaiting）exit 12，第 6 状态 ProcessResponse 复现继续等待——轨迹与御史独立验证一致。证据 `Shared/Transfers/cm8-evidence/cm8r1-*.log`。
+
+## 六、CM-10 R1 同步（2026-11-28）
+
+NotificationTargetBoundary 落地——target-recheck 与系统 post 拆分为 `CheckTarget`/`PostPublish` 两步（判决强制要求，忠实「重核与落地非原子」的实现形态），两步共享 `targetHeld` 互斥；`SwitchSelection` 写侧同样在互斥内（`~targetHeld` 前置）。拆步全不变量翻绿：7,236,915 distinct / 深度 35 / exit 0。反向变异（写侧摘掉 `~targetHeld`）第 9 状态 `InvNoCrossAccountPollution` 违规 exit 12——证明绿是互斥语义的绿而非模型形状。锁序约束：commitMutex → boundary（生产实现）；写侧持 boundary 期间不嵌套 commitMutex。

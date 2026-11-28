@@ -187,6 +187,8 @@ class GrokSessionImporterTest {
             account: com.kmnexus.codexmeter.domain.model.ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: com.kmnexus.codexmeter.domain.quota.QuotaSnapshot,
+            allowNewRow: Boolean,
+            expectedLocalAccountId: LocalAccountId?,
         ): GrokSessionImporter.CommittedImport {
             val committed = GrokSessionImporter.CommittedImport(
                 account = account,
@@ -203,6 +205,8 @@ class GrokSessionImporterTest {
             account: com.kmnexus.codexmeter.domain.model.ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: com.kmnexus.codexmeter.domain.quota.QuotaSnapshot,
+            allowNewRow: Boolean,
+            expectedLocalAccountId: LocalAccountId?,
         ): GrokSessionImporter.CommittedImport = throw IllegalStateException("unsafe persistence detail")
     }
 

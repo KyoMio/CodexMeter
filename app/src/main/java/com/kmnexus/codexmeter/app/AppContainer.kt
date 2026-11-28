@@ -62,6 +62,8 @@ import com.kmnexus.codexmeter.notification.AndroidNotificationSink
 import com.kmnexus.codexmeter.notification.AccountErrorEventReader
 import com.kmnexus.codexmeter.notification.AccountErrorPolicy
 import com.kmnexus.codexmeter.notification.CurrentQuotaNotificationPublisher
+import com.kmnexus.codexmeter.notification.NotificationAccountTargetResolver
+import com.kmnexus.codexmeter.notification.NotificationTargetBoundary
 import com.kmnexus.codexmeter.notification.NotificationPreferenceAlertThresholdsReader
 import com.kmnexus.codexmeter.notification.NotificationPreferenceQuotaAlertWindowReader
 import com.kmnexus.codexmeter.providers.SessionImportRouter
@@ -278,6 +280,17 @@ class AppContainer private constructor(
                 exchangeRateReader = exchangeRateRepository,
                 clock = clock,
             )
+            // CM-10 R1: one shared target-write serialization boundary — every writer that
+            // moves the notification target (selection, pin, deletion fallback) and the posting
+            // re-check+post pair must share this instance, or the mutex does not serialize them.
+            val notificationTargetBoundary = NotificationTargetBoundary()
+            // CM-10: one shared resolver — the loader builds content from it and the publisher
+            // validates against the same implementation at the posting boundary.
+            val notificationTargetResolver = NotificationAccountTargetResolver(
+                notificationPreferenceReader = notificationPreferences,
+                providerAccountDao = database.providerAccountDao(),
+                currentAccountReader = currentAccountPreferences,
+            )
             val currentQuotaStateRepository = CurrentQuotaStateRepository(
                 currentAccountReader = currentAccountPreferences,
                 providerAccountDao = database.providerAccountDao(),
@@ -289,6 +302,7 @@ class AppContainer private constructor(
                 clock = clock,
                 currencyPreferenceReader = currencyPreferences,
                 exchangeRateReader = exchangeRateRepository,
+                notificationTargetResolver = notificationTargetResolver,
             )
             val accountErrorPolicy = AccountErrorPolicy()
 
@@ -413,57 +427,48 @@ class AppContainer private constructor(
             )
             val deepseekSessionImporter = DeepSeekSessionImporter(
                 balanceClient = deepseekBalanceClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val minimaxSessionImporter = MiniMaxSessionImporter(
                 usageClient = minimaxUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val zaiSessionImporter = ZaiSessionImporter(
                 client = zaiQuotaClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val cursorSessionImporter = CursorSessionImporter(
                 usageClient = cursorUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val kimiSessionImporter = KimiSessionImporter(
                 client = kimiQuotaClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val kimiCodeSessionImporter = KimiCodeSessionImporter(
                 usageClient = kimiCodeUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val zaiBalanceSessionImporter = ZaiBalanceSessionImporter(
                 client = zaiBalanceClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val claudeSessionImporter = ClaudeSessionImporter(
                 tokenClient = claudeTokenClient,
                 client = claudeUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val antigravitySessionImporter = AntigravitySessionImporter(
                 tokenClient = antigravityTokenClient,
                 client = antigravityQuotaClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
@@ -472,6 +477,7 @@ class AppContainer private constructor(
             return fromDatabase(
                 appContext = appContext,
                 sharedStateGuard = sharedStateGuard,
+                notificationTargetBoundary = notificationTargetBoundary,
                 database = database,
                 currentAccountReader = currentAccountPreferences,
                 currentAccountPreferences = currentAccountPreferences,
@@ -521,6 +527,8 @@ class AppContainer private constructor(
                                 notificationPreferenceReader = notificationPreferences,
                             ),
                             statusNotificationStateLoader = currentQuotaStateRepository,
+                            notificationTargetResolver = notificationTargetResolver,
+                            notificationTargetBoundary = notificationTargetBoundary,
                             accountErrorEventReader = AccountErrorEventReader { state ->
                                 val account = state.account
                                 val consecutiveFailureCount = if (account == null) {
@@ -557,6 +565,7 @@ class AppContainer private constructor(
                     // Shared across coordinator/mutation/deletion/republisher: one generation
                     // timeline for every async write-back defense decision.
                     stateGuard = sharedStateGuard,
+                    notificationTargetBoundary = notificationTargetBoundary,
                 ),
                 retentionCleanupRepository = RetentionCleanupRepository(database),
                 quotaHistoryClearRepository = QuotaHistoryClearRepository(
@@ -582,6 +591,7 @@ class AppContainer private constructor(
         private fun fromDatabase(
             appContext: Context,
             sharedStateGuard: VersionedStateGuard,
+            notificationTargetBoundary: NotificationTargetBoundary,
             database: CodexMeterDatabase,
             currentAccountReader: CurrentAccountReader,
             currentAccountPreferences: CurrentAccountPreferences,
@@ -632,6 +642,7 @@ class AppContainer private constructor(
                     sessionStore = sessionStore,
                     currentAccountStore = currentAccountPreferences,
                     stateGuard = sharedStateGuard,
+                    notificationTargetBoundary = notificationTargetBoundary,
                 ),
                 sessionEnvelopeFactory = CodexSessionEnvelopeFactory(sessionCipher),
                 localAccountIdProvider = CodexSessionImporter.LocalAccountIdProvider {
@@ -647,11 +658,12 @@ class AppContainer private constructor(
                 sessionStore = sessionStore,
                 currentAccountStore = currentAccountPreferences,
                 stateGuard = sharedStateGuard,
+                notificationTargetBoundary = notificationTargetBoundary,
             )
             val grokSessionImporter = GrokSessionImporter(
                 billingClient = GrokSessionImporter.BillingClient(grokBillingClient::fetchBilling),
-                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot ->
-                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot)
+                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot, allowNewRow, expectedLocalAccountId ->
+                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot, allowNewRow, expectedLocalAccountId)
                     GrokSessionImporter.CommittedImport(
                         account = committed.account,
                         sessionEnvelope = committed.sessionEnvelope,
@@ -688,6 +700,8 @@ class AppContainer private constructor(
                 currentAccountStore = currentAccountPreferences,
                 stateGuard = sharedStateGuard,
                 clock = clock,
+                notificationTargetBoundary = notificationTargetBoundary,
+                secureSessionStore = sessionStore,
             )
             val codexDeviceCodeClient = CodexDeviceCodeClient(httpClient)
             val codexDeviceCodeLoginUseCase = CodexDeviceCodeLoginUseCase(
@@ -709,8 +723,9 @@ class AppContainer private constructor(
 
                     override suspend fun commitPreparedDeviceCodeSession(
                         preparedImport: CodexSessionImporter.PreparedImport,
+                        allowNewRow: Boolean,
                     ): CodexSessionImporter.Result =
-                        sessionImporter.commitPreparedDeviceCodeSession(preparedImport)
+                        sessionImporter.commitPreparedDeviceCodeSession(preparedImport, allowNewRow)
                 },
                 attemptIdProvider = {
                     DeviceCodeLoginAttemptId("device-${UUID.randomUUID()}")
@@ -742,8 +757,9 @@ class AppContainer private constructor(
 
                     override suspend fun commitPreparedDeviceCodeSession(
                         preparedImport: GrokSessionImporter.PreparedImport,
+                        allowNewRow: Boolean,
                     ): GrokSessionImporter.Result =
-                        grokSessionImporter.commitPreparedDeviceCodeSession(preparedImport)
+                        grokSessionImporter.commitPreparedDeviceCodeSession(preparedImport, allowNewRow)
                 },
                 attemptIdProvider = {
                     GrokDeviceCodeLoginAttemptId("device-${UUID.randomUUID()}")
@@ -835,6 +851,7 @@ class AppContainer private constructor(
                 clock = clock,
                 refreshScope = postSelectionRefreshScope,
                 stateGuard = sharedStateGuard,
+                notificationTargetBoundary = notificationTargetBoundary,
             )
             val homeRefreshUseCase = HomeRefreshCoordinatorUseCase(
                 currentAccountStore = currentQuotaRefreshAccountStore,
@@ -922,6 +939,7 @@ class AppContainer private constructor(
                     currentQuotaStatePublisher = currentQuotaStatePublisher,
                     perAccountEffectsPublisher = notificationOnlyPublisher,
                     stateGuard = sharedStateGuard,
+                    notificationTargetBoundary = notificationTargetBoundary,
                 ),
                 primaryQuotaWindowPreferences = primaryQuotaWindowPreferences,
                 quotaHistoryClearUseCase = RepublishingQuotaHistoryClearUseCase(
