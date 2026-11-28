@@ -1,0 +1,79 @@
+---
+title: "刷新协调器ﬂ°°183¶ß账号切换ﬂ°°183¶ß本地编辑"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: editing
+    lg1: normal
+  }
+  class lg0 yellow
+  class lg1 blue
+  s0: 空闲#183;选中A
+  s1: 编辑中#183;选中A
+  s2: 刷新在飞#183;选中A
+  s3: 刷新写库#183;选中A
+  s4: 编辑中#183;刷新在飞#183;选中A
+  s5: 编辑中#183;选中B
+  s6: 编辑中#183;刷新写库#183;选中A
+  s7: 空闲#183;选中B
+  s8: 编辑中#183;刷新在飞#183;选中B
+  s9: 刷新校验#183;持锁#183;选中A
+  s10: 编辑中#183;刷新写库#183;选中B
+  s11: 刷新在飞#183;选中B
+  s12: 编辑中#183;刷新校验#183;持锁#183;选中A
+  s13: 刷新写库#183;选中B
+  s14: 编辑中#183;刷新校验#183;持锁#183;选中B
+  s15: 刷新校验#183;持锁#183;选中B
+  [*] --> s0
+  s0 --> s1: 编辑开始
+  s0 --> s2: 开始刷新
+  s1 --> s0: 编辑结束
+  s1 --> s4: 开始刷新
+  s1 --> s5: 切换选中账号
+  s2 --> s3: Next
+  s2 --> s4: 编辑开始
+  s3 --> s6: 编辑开始
+  s3 --> s9: Next
+  s4 --> s6: Next
+  s4 --> s2: 编辑结束
+  s4 --> s8: 切换选中账号
+  s5 --> s1: 切换选中账号
+  s5 --> s7: 编辑结束
+  s5 --> s8: 开始刷新
+  s6 --> s3: 编辑结束
+  s6 --> s10: 切换选中账号
+  s6 --> s12: Next
+  s7 --> s11: 开始刷新
+  s8 --> s4: 切换选中账号
+  s8 --> s10: Next
+  s8 --> s11: 编辑结束
+  s9 --> s0: Next
+  s9 --> s12: 编辑开始
+  s10 --> s6: 切换选中账号
+  s10 --> s13: 编辑结束
+  s10 --> s14: Next
+  s11 --> s13: Next
+  s12 --> s1: Next
+  s12 --> s9: 编辑结束
+  s12 --> s14: 切换选中账号
+  s13 --> s15: Next
+  s14 --> s12: 切换选中账号
+  s14 --> s5: Next
+  s14 --> s15: 编辑结束
+  s15 --> s7: Next
+  class s0 blue
+  class s1 yellow
+  class s2 blue
+  class s3 blue
+  class s4 yellow
+  class s5 yellow
+  class s6 yellow
+  class s7 blue
+  class s8 yellow
+  class s9 blue
+  class s10 yellow
+  class s11 blue
+  class s12 yellow
+  class s13 blue
+  class s14 yellow
+  class s15 blue

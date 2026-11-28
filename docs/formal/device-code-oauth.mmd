@@ -1,0 +1,84 @@
+---
+title: "Codex device-code 登录轮询"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: active
+    lg1: terminal
+    lg2: done
+    lg3: Breaks InvCfBlockedTerminates or NoDeadlock in some cases
+    lg4: Path to the InvCfBlockedTerminates or NoDeadlock bug
+  }
+  class lg0 blue
+  class lg1 orange
+  class lg2 teal
+  class lg3 mayBreak
+  class lg4 bugPath
+  s0: 未开始
+  s1: 申请设备码
+  s2: 等待用户授权
+  s3: 已取消
+  s4: 已失败
+  s5: 已过期
+  s6: 轮询在飞
+  s7: 校验令牌
+  s8: 待落库
+  s9: 校验失败(可重试)
+  s10: 落库写入
+  s11: 已保存
+  [*] --> s0
+  s0 --> s1: 用户点登录
+  s1 --> s2: 拿到设备码
+  s1 --> s3: 用户取消
+  s1 --> s4: 设备码申请失败
+  s2 --> s3: 用户取消
+  s2 --> s5: 设备码过期
+  s2 --> s6: 发起一次轮询
+  s3 --> s1: 用户点登录
+  s4 --> s1: 用户点登录
+  s5 --> s1: 用户点登录
+  s6 --> s3: 用户取消
+  s6 --> s6: 响应送达
+  s4 --> s4: 提交凭据 or 校验成功
+  s6 --> s4: 轮询响应返回
+  s6 --> s2: 轮询响应返回
+  s6 --> s7: 轮询响应返回
+  s7 --> s3: 用户取消
+  s7 --> s8: 校验通过
+  s7 --> s9: 校验失败
+  s8 --> s3: 用户取消
+  s8 --> s10: 开始落库
+  s9 --> s3: 用户取消
+  s9 --> s1: 用户点登录
+  s9 --> s7: 用户点重试
+  s10 --> s11: 落库完成
+  s11 --> s1: 用户点登录
+  classDef mayBreak fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06
+  class s0 blue
+  class s0 bugPath
+  class s1 blue
+  class s1 mayBreak
+  class s1 bugPath
+  class s2 blue
+  class s2 mayBreak
+  class s2 bugPath
+  class s3 orange
+  class s3 mayBreak
+  class s3 bugPath
+  class s4 mayBreak
+  class s4 bugPath
+  class s5 orange
+  class s5 mayBreak
+  class s6 blue
+  class s6 mayBreak
+  class s6 bugPath
+  class s7 blue
+  class s7 mayBreak
+  class s8 blue
+  class s8 mayBreak
+  class s9 blue
+  class s9 mayBreak
+  class s10 blue
+  class s10 mayBreak
+  class s11 teal
+  class s11 mayBreak
