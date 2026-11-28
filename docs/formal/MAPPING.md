@@ -80,3 +80,5 @@
 - **TLA+ 同步结果**：`DeviceCodeOAuth-finding.cfg`（含不变量①）修复后 exit 0——**反例消失翻绿**，1491 distinct / 深度 21。回滚变异（cfMitigated 改回 Pending）复红 exit 12，证明翻绿不是「路径变死」而是「终结行为真实生效」。
 - **普通 403 显式语义**（测试钉死）：无 cf 质询特征的 403/404 保持 Pending（部分服务端部署以此承载 authorization_pending）；任何 cf 特征终结。`CodexDeviceCodeClientTest` 六场景钉死。
 - 变异回归：rollback-delete / cancel-delete / no-consumed 三个变异在修复后规约下仍全部被抓。
+
+**CM-8 R1 窄修（2026-11-28）**：`cfMitigatedLoop` 影子从手工置位改为 `ProcessResponse` 公共出口按终态派生（`fresh ∧ r=cfMitigated ∧ ¬(ctrl'="Failed" ∧ ui'="Failed")`）。原因：初版交付的「回滚变异复红」无效——行为回滚时手工标记跟着回滚，exit 12 证明不了行为修复是反例消失的原因。派生后双向验证：正确版 exit 0（1491 distinct/深度 21 不变）；纯行为回滚（只改 ctrl/ui 回 Awaiting）exit 12，第 6 状态 ProcessResponse 复现继续等待——轨迹与御史独立验证一致。证据 `Shared/Transfers/cm8-evidence/cm8r1-*.log`。

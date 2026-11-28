@@ -198,31 +198,28 @@ ProcessResponse ==
        /\ IF ~fresh
           THEN /\ ctrl' = ctrl
                /\ ui' = ui
-               /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE IF r \in {"pending", "transient"}
           THEN /\ ctrl' = "Awaiting"
                /\ ui' = "AwaitingUserAuthorization"
-               /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE IF r = "cfMitigated"
           THEN \* CM-8 修复后：cf-mitigated 质询（任何状态码、header 或 body
                \* 特征）立即终结进 Failed——isCloudflareChallenge 双通道检测。
-               \* cfMitigatedLoop 影子永不置位（置位即未终结，修复后无此路径）。
                /\ ctrl' = "Failed"
                /\ ui' = "Failed"
-               /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE IF r = "cfMarker"
           THEN \* body 命中 cf 标记：立即终结（cloudflareBlockedError → 195-198）
                /\ ctrl' = "Failed"
                /\ ui' = "Failed"
-               /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE IF r = "fatal"
           THEN /\ ctrl' = "Failed"
                /\ ui' = "Failed"
-               /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE \* success
                /\ ctrl' = "Validating"
                /\ ui' = "ExchangingToken"
-               /\ cfMitigatedLoop' = cfMitigatedLoop
+       \* CM-8 R1：影子标记不再手工置位，在公共出口按终态派生——
+       \* 当前代次收到 cf 质询而处理后未双双进入 Failed 即「未终结」。
+       \* 手工置位的问题：行为回滚时标记跟着回滚，反例消失证明不了行为修复。
+       /\ cfMitigatedLoop' = (cfMitigatedLoop \/ (fresh /\ r = "cfMitigated" /\ ~(ctrl' = "Failed" /\ ui' = "Failed")))
        /\ UNCHANGED <<attemptEpoch, staleEpoch, staleResp, staleDiscarded,
                       storedSession, startedValid, everValid, hadValidOnCommit,
                       consumed, verifyActive, verifyCount>>
