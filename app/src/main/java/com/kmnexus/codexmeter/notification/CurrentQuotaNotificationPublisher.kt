@@ -25,6 +25,7 @@ class CurrentQuotaNotificationPublisher(
     private val statusNotificationStateLoader: StatusNotificationStateLoader =
         PassthroughStatusNotificationStateLoader,
     private val notificationTargetResolver: NotificationAccountTargetResolver? = null,
+    private val notificationTargetBoundary: NotificationTargetBoundary = NotificationTargetBoundary(),
     private val accountErrorEventReader: AccountErrorEventReader = NoopAccountErrorEventReader,
     private val clock: Clock,
     private val currencyPreferenceReader: CurrencyPreferenceReader = NoopCurrencyPreferenceReader,
@@ -48,17 +49,27 @@ class CurrentQuotaNotificationPublisher(
         // is in flight — the epoch guard clears the write, but the notification content is
         // re-targeted at the selection, so validation alone cannot see the drift. Dropping here
         // is safe: the switch's own republish posts the correct target right after.
-        if (!notificationTargetMatchesSelection(statusState)) {
-            return
+        //
+        // CM-10 R1: the re-check and the system post share ONE mutex with every target-changing
+        // write (selection, pin, deletion fallback). Without this, the write can still commit
+        // after the re-check passed — the CM10-R1 probe interleaving — and the stale title lands.
+        // Inside the boundary: either the write already committed (re-check sees the new target
+        // and drops) or the write still waits for the mutex (post is correct for the target at
+        // post time). Target writers never hold this lock while re-entering this publisher, so
+        // the boundary cannot deadlock against the post.
+        notificationTargetBoundary.serialize {
+            if (!notificationTargetMatchesSelection(statusState)) {
+                return@serialize
+            }
+            val statusRequests = orchestrator.buildRequests(
+                state = statusState,
+                options = options.copy(
+                    quotaAlertsEnabled = false,
+                    accountErrorsEnabled = false,
+                ),
+            )
+            statusRequests.forEach(notificationSink::post)
         }
-        val statusRequests = orchestrator.buildRequests(
-            state = statusState,
-            options = options.copy(
-                quotaAlertsEnabled = false,
-                accountErrorsEnabled = false,
-            ),
-        )
-        statusRequests.forEach(notificationSink::post)
     }
 
     /**

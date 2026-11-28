@@ -26,6 +26,8 @@ class AccountMutationRepository(
     private val clock: Clock,
     private val refreshScope: CoroutineScope? = null,
     private val stateGuard: VersionedStateGuard,
+    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
+        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
 ) : DefaultAccountSelectUseCase, AccountRenameUseCase {
     /**
      * Completes once the chosen account is durably in the default-account slot — the single source
@@ -49,12 +51,19 @@ class AccountMutationRepository(
                 ?.toDomain()
                 ?: return false
 
-            currentAccountStore.updateCurrentAccountSelection(
-                CurrentAccountSelection(
-                    providerId = account.providerId,
-                    localAccountId = account.localAccountId,
-                ),
-            )
+            // CM-10 R1: the target write is serialized against the notification posting boundary
+            // (re-check + system post) — a post that already passed the re-check finishes BEFORE
+            // this write proceeds, so a stale-target notification can never land after the
+            // selection commits. Only the write itself is locked; the post-switch refresh runs
+            // after this function returns and never nests commitMutex inside the boundary.
+            notificationTargetBoundary.serialize {
+                currentAccountStore.updateCurrentAccountSelection(
+                    CurrentAccountSelection(
+                        providerId = account.providerId,
+                        localAccountId = account.localAccountId,
+                    ),
+                )
+            }
             return true
         } finally {
             stateGuard.endEdit()

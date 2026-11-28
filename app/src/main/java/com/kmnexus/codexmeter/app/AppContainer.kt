@@ -63,6 +63,7 @@ import com.kmnexus.codexmeter.notification.AccountErrorEventReader
 import com.kmnexus.codexmeter.notification.AccountErrorPolicy
 import com.kmnexus.codexmeter.notification.CurrentQuotaNotificationPublisher
 import com.kmnexus.codexmeter.notification.NotificationAccountTargetResolver
+import com.kmnexus.codexmeter.notification.NotificationTargetBoundary
 import com.kmnexus.codexmeter.notification.NotificationPreferenceAlertThresholdsReader
 import com.kmnexus.codexmeter.notification.NotificationPreferenceQuotaAlertWindowReader
 import com.kmnexus.codexmeter.providers.SessionImportRouter
@@ -279,6 +280,10 @@ class AppContainer private constructor(
                 exchangeRateReader = exchangeRateRepository,
                 clock = clock,
             )
+            // CM-10 R1: one shared target-write serialization boundary — every writer that
+            // moves the notification target (selection, pin, deletion fallback) and the posting
+            // re-check+post pair must share this instance, or the mutex does not serialize them.
+            val notificationTargetBoundary = NotificationTargetBoundary()
             // CM-10: one shared resolver — the loader builds content from it and the publisher
             // validates against the same implementation at the posting boundary.
             val notificationTargetResolver = NotificationAccountTargetResolver(
@@ -481,6 +486,7 @@ class AppContainer private constructor(
             return fromDatabase(
                 appContext = appContext,
                 sharedStateGuard = sharedStateGuard,
+                notificationTargetBoundary = notificationTargetBoundary,
                 database = database,
                 currentAccountReader = currentAccountPreferences,
                 currentAccountPreferences = currentAccountPreferences,
@@ -531,6 +537,7 @@ class AppContainer private constructor(
                             ),
                             statusNotificationStateLoader = currentQuotaStateRepository,
                             notificationTargetResolver = notificationTargetResolver,
+                            notificationTargetBoundary = notificationTargetBoundary,
                             accountErrorEventReader = AccountErrorEventReader { state ->
                                 val account = state.account
                                 val consecutiveFailureCount = if (account == null) {
@@ -567,6 +574,7 @@ class AppContainer private constructor(
                     // Shared across coordinator/mutation/deletion/republisher: one generation
                     // timeline for every async write-back defense decision.
                     stateGuard = sharedStateGuard,
+                    notificationTargetBoundary = notificationTargetBoundary,
                 ),
                 retentionCleanupRepository = RetentionCleanupRepository(database),
                 quotaHistoryClearRepository = QuotaHistoryClearRepository(
@@ -592,6 +600,7 @@ class AppContainer private constructor(
         private fun fromDatabase(
             appContext: Context,
             sharedStateGuard: VersionedStateGuard,
+            notificationTargetBoundary: NotificationTargetBoundary,
             database: CodexMeterDatabase,
             currentAccountReader: CurrentAccountReader,
             currentAccountPreferences: CurrentAccountPreferences,
@@ -845,6 +854,7 @@ class AppContainer private constructor(
                 clock = clock,
                 refreshScope = postSelectionRefreshScope,
                 stateGuard = sharedStateGuard,
+                notificationTargetBoundary = notificationTargetBoundary,
             )
             val homeRefreshUseCase = HomeRefreshCoordinatorUseCase(
                 currentAccountStore = currentQuotaRefreshAccountStore,
@@ -932,6 +942,7 @@ class AppContainer private constructor(
                     currentQuotaStatePublisher = currentQuotaStatePublisher,
                     perAccountEffectsPublisher = notificationOnlyPublisher,
                     stateGuard = sharedStateGuard,
+                    notificationTargetBoundary = notificationTargetBoundary,
                 ),
                 primaryQuotaWindowPreferences = primaryQuotaWindowPreferences,
                 quotaHistoryClearUseCase = RepublishingQuotaHistoryClearUseCase(

@@ -21,6 +21,8 @@ class AccountDeletionRepository(
     private val localDataDeleter: AccountLocalDataDeleter = RoomAccountLocalDataDeleter(database),
     private val notificationPreferenceStore: NotificationPreferenceStore? = null,
     private val stateGuard: VersionedStateGuard,
+    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
+        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
 ) {
     suspend fun deleteAccount(
         providerId: ProviderId,
@@ -59,7 +61,10 @@ class AccountDeletionRepository(
 
         try {
             if (shouldUpdateCurrentSelection) {
-                currentAccountStore.updateCurrentAccountSelection(nextSelection)
+                // CM-10 R1: deletion moves the notification target — serialize against posts.
+                notificationTargetBoundary.serialize {
+                    currentAccountStore.updateCurrentAccountSelection(nextSelection)
+                }
             }
             deletedAccountStateCleanup = deletedAccountStateCleaner.clearDeletedAccountState(
                 providerId = providerId,
@@ -105,16 +110,19 @@ class AccountDeletionRepository(
             val bound = preferences.persistentNotificationAccount
             if (bound?.providerId != providerId || bound.localAccountId != localAccountId) return
             val fallback = currentAccountStore.currentAccountSelection()
-            store.updateNotificationPreferences(
-                preferences.copy(
-                    persistentNotificationAccount = fallback?.let {
-                        NotificationAccountSelection(
-                            providerId = it.providerId,
-                            localAccountId = it.localAccountId,
-                        )
-                    },
-                ),
-            )
+            // CM-10 R1: rebind moves the notification target — serialize against posts.
+            notificationTargetBoundary.serialize {
+                store.updateNotificationPreferences(
+                    preferences.copy(
+                        persistentNotificationAccount = fallback?.let {
+                            NotificationAccountSelection(
+                                providerId = it.providerId,
+                                localAccountId = it.localAccountId,
+                            )
+                        },
+                    ),
+                )
+            }
         }
     }
 

@@ -28,6 +28,7 @@ VARIABLES
   snapA, snapB,    \* 各账号 last-known-good 快照版本（0=无；append-only 只增）
   published,       \* 呈现层最后一帧 [src, ver, kind, gen, capGen]
   commitHeld,      \* commitMutex 持有标志
+  targetHeld,      \* CM-10 R1: NotificationTargetBoundary 持有标志
   maxSnapA,        \* 影子历史：snapA 峰值（不变量③）
   maxSnapB,        \* 影子历史：snapB 峰值
   maxPubGen,       \* 影子历史：published 帧 gen 水位
@@ -36,7 +37,7 @@ VARIABLES
   pubViolations    \* 影子计数：stale/错账号写入被拦截次数（佐证丢弃路径真实存在）
 
 vars == <<gen, inFlightEdits, selected, editing, sessions, nextVer, snapA, snapB,
-          published, commitHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
+          published, commitHeld, targetHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
           lastWriteSel, pubViolations>>
 
 Init ==
@@ -49,6 +50,7 @@ Init ==
   /\ snapA = 0 /\ snapB = 0
   /\ published = [src |-> "A", ver |-> 0, kind |-> "none", gen |-> 0, capGen |-> 0]
   /\ commitHeld = FALSE
+  /\ targetHeld = FALSE
   /\ maxSnapA = 0 /\ maxSnapB = 0
   /\ maxPubGen = 0
   /\ maxPubEditGen = 0
@@ -68,7 +70,7 @@ StartRefresh(acct) ==
                                  phase |-> "io", validated |-> FALSE]}
   /\ nextVer' = nextVer + 1
   /\ UNCHANGED <<gen, inFlightEdits, selected, editing, snapA, snapB, published,
-                 commitHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
+                 commitHeld, targetHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
                  lastWriteSel, pubViolations>>
 
 \* provider I/O 完成 → 耐久层写（recordSuccess:147-190 / recordFailure:192-232）。
@@ -94,7 +96,7 @@ FinishIO(s) ==
                /\ sessions' = (sessions \ {s}) \cup
                               {[s EXCEPT !.phase = "durable", !.ver = SnapOf(s.account)]}
        /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, published,
-                      commitHeld, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
+                      commitHeld, targetHeld, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
 
 \* 耐久写完 → 进入发布段，先抢 commitMutex（publishCurrentState，234-274 行）。
 \* commitMutex 只串行化发布者之间——编辑不抢锁（见 ValidateEpoch/WritePublish）。
@@ -105,7 +107,7 @@ EnterValidate(s) ==
   /\ commitHeld' = TRUE
   /\ sessions' = (sessions \ {s}) \cup {[s EXCEPT !.phase = "validating"]}
   /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, snapA, snapB,
-                 published, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
+                 published, targetHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
                  lastWriteSel, pubViolations>>
 
 \* R1 ② 核心修正：授权时刻与生效时刻分离。
@@ -121,7 +123,7 @@ ValidateEpoch(s) ==
      IN sessions' = (sessions \ {s}) \cup
                     {[s EXCEPT !.phase = "writing", !.validated = fresh]}
   /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, snapA, snapB,
-                 published, commitHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
+                 published, commitHeld, targetHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
                  lastWriteSel, pubViolations>>
 
 \* 生效时刻：write 执行（validated=TRUE）或丢弃（FALSE），随后释放锁。
@@ -131,10 +133,28 @@ ValidateEpoch(s) ==
 \*   呈现帧的内容按通知目标账号重载，落地瞬间目标已漂移则整帧弃发。
 \*   因此落地帧的 src 恒等于落地瞬间的 selected（重核通过才会落地）。
 \* 帧的 capGen 记捕获 epoch（R1 ①修正）；gen 记落地瞬间世界 gen（呈现序观测）。
-WritePublish(s) ==
+\* CM-10 R1：target-recheck 与系统 post 拆分建模——两者在 NotificationTargetBoundary
+\* 互斥内执行（publisher.publish 的 boundary.serialize 段）；SwitchSelection 写侧同样
+\* 在 boundary 内。因此 write 要么先于 CheckTarget（重核看到新目标）要么排在
+\* PostPublish 之后（post 按发布时目标合法落地），永远插不进两步之间。
+\* CheckTarget 进入 boundary（原子步：要求锁空并重核）；
+\* PostPublish 落地或弃发后释放 boundary。
+CheckTarget(s) ==
   /\ s \in sessions
   /\ s.phase = "writing"
-  /\ IF s.validated /\ (s.account = selected)
+  /\ ~targetHeld
+  /\ targetHeld' = TRUE
+  /\ sessions' = (sessions \ {s}) \cup
+                {[s EXCEPT !.phase = "publishing",
+                           !.validated = (s.validated /\ s.account = selected)]}
+  /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, snapA, snapB,
+                 published, commitHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
+                 lastWriteSel, pubViolations>>
+
+PostPublish(s) ==
+  /\ s \in sessions
+  /\ s.phase = "publishing"
+  /\ IF s.validated
      THEN /\ published' = [src |-> s.account, ver |-> s.ver, kind |-> "refresh",
                            gen |-> gen, capGen |-> s.epochGen]
           /\ maxPubGen' = Max({maxPubGen, gen})
@@ -145,6 +165,7 @@ WritePublish(s) ==
           /\ lastWriteSel' = lastWriteSel
           /\ pubViolations' = pubViolations + 1   \* 拦截计数（epoch 校验失败或 CM-10 目标漂移弃发）
   /\ commitHeld' = FALSE
+  /\ targetHeld' = FALSE
   /\ sessions' = sessions \ {s}
   /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, snapA, snapB,
                  maxSnapA, maxSnapB, maxPubEditGen>>
@@ -161,16 +182,20 @@ BeginEdit ==
   /\ gen' = gen + 1
   /\ inFlightEdits' = inFlightEdits + 1
   /\ editing' = TRUE
-  /\ UNCHANGED <<selected, sessions, nextVer, snapA, snapB, published, commitHeld,
+  /\ UNCHANGED <<selected, sessions, nextVer, snapA, snapB, published, commitHeld, targetHeld,
                  maxSnapA, maxSnapB, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
 
 \* 编辑窗口内的 DataStore 写（AccountMutationRepository.kt:52）
+\* CM-10 R1：写进 NotificationTargetBoundary（持久写是唯一临界内容，锁内
+\* 无嵌套等待——写后立刻释放）。锁被 post 侧持有时 write 排队：判决要求的
+\* 「B 的写入应排在该发布之后」在此形式化。
 SwitchSelection(acct) ==
   /\ editing
   /\ acct # selected
+  /\ ~targetHeld
   /\ selected' = acct
   /\ UNCHANGED <<gen, inFlightEdits, editing, sessions, nextVer, snapA, snapB,
-                 published, commitHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
+                 published, commitHeld, targetHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
                  lastWriteSel, pubViolations>>
 
 \* endEdit（87-99 行）：gen 再 +1——窗口内捕获的 epoch 永久 stale（+2 语义）
@@ -179,7 +204,7 @@ EndEdit ==
   /\ gen' = gen + 1
   /\ inFlightEdits' = inFlightEdits - 1
   /\ editing' = FALSE
-  /\ UNCHANGED <<selected, sessions, nextVer, snapA, snapB, published, commitHeld,
+  /\ UNCHANGED <<selected, sessions, nextVer, snapA, snapB, published, commitHeld, targetHeld,
                  maxSnapA, maxSnapB, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
 
 \* 编辑后的补偿重发（RepublishingAccountDeleteUseCase.kt:26-28、
@@ -191,16 +216,17 @@ EndEdit ==
 EditRepublish ==
   /\ ~editing
   /\ ~commitHeld   \* commitSerialized 与 commitIfFresh 共用 commitMutex（147-152 行）
+  /\ ~targetHeld   \* CM-10 R1：publish 经 boundary（commitMutex → boundary 锁序）
   /\ published' = [src |-> selected, ver |-> SnapOf(selected), kind |-> "edit",
                    gen |-> gen, capGen |-> gen]
   /\ maxPubGen' = Max({maxPubGen, gen})
   /\ maxPubEditGen' = Max({maxPubEditGen, gen})
   /\ UNCHANGED <<gen, inFlightEdits, selected, editing, sessions, nextVer, snapA, snapB,
-                 commitHeld, maxSnapA, maxSnapB, lastWriteSel, pubViolations>>
+                 commitHeld, targetHeld, maxSnapA, maxSnapB, lastWriteSel, pubViolations>>
 
 Next ==
   \/ \E acct \in Accounts : StartRefresh(acct)
-  \/ \E s \in sessions : FinishIO(s) \/ EnterValidate(s) \/ ValidateEpoch(s) \/ WritePublish(s)
+  \/ \E s \in sessions : FinishIO(s) \/ EnterValidate(s) \/ ValidateEpoch(s) \/ CheckTarget(s) \/ PostPublish(s)
   \/ BeginEdit
   \/ \E acct \in Accounts : SwitchSelection(acct)
   \/ EndEdit

@@ -15,6 +15,8 @@ internal class RepublishingNotificationPreferenceStore(
     private val perAccountEffectsPublisher: PerAccountQuotaEffectPublisher =
         PerAccountQuotaEffectPublisher { },
     private val stateGuard: VersionedStateGuard,
+    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
+        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
 ) : NotificationPreferenceStore {
     override suspend fun notificationPreferences(): NotificationPreferences =
         delegate.notificationPreferences()
@@ -22,7 +24,14 @@ internal class RepublishingNotificationPreferenceStore(
     override suspend fun updateNotificationPreferences(preferences: NotificationPreferences) {
         stateGuard.beginEdit()
         try {
-            delegate.updateNotificationPreferences(preferences)
+            // CM-10 R1: binding changes (persistentNotificationAccount) move the notification
+            // target. Serialize against the posting boundary so a post that passed its re-check
+            // cannot be interleaved between this write and system notification submission.
+            // The critical section is the DataStore write alone — the republish below runs
+            // after release and (commitSerialized) respects the commitMutex-first lock order.
+            notificationTargetBoundary.serialize {
+                delegate.updateNotificationPreferences(preferences)
+            }
         } finally {
             stateGuard.endEdit()
         }

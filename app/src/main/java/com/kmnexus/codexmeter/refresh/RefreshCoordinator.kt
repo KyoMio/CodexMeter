@@ -269,6 +269,9 @@ class RefreshCoordinator(
                 }
             },
         ) {
+            // CM-10 R1: the posting boundary mutex lives INSIDE the status-notification
+            // publisher (recheck + system post), so every publishing path — refresh commit,
+            // republish, preference republish — is serialized regardless of who calls publish.
             currentQuotaStatePublisher.publish(state)
         }
     }
