@@ -1,13 +1,13 @@
 ---
-title: "Codex device-code 登录轮询"
+title: "Codex device-code 登录轮询（CM-7 R1）"
 ---
 stateDiagram-v2
   state "Legend" as legend {
     lg0: active
     lg1: terminal
     lg2: done
-    lg3: Breaks InvCfBlockedTerminates or NoDeadlock in some cases
-    lg4: Path to the InvCfBlockedTerminates or NoDeadlock bug
+    lg3: Breaks InvCfBlockedTerminates in some cases
+    lg4: Path to the InvCfBlockedTerminates bug
   }
   class lg0 blue
   class lg1 orange
@@ -26,59 +26,55 @@ stateDiagram-v2
   s9: 校验失败(可重试)
   s10: 落库写入
   s11: 已保存
+  s12: 孤儿轮询stale槽
   [*] --> s0
-  s0 --> s1: 用户点登录
+  s0 --> s1: StartLogin
   s1 --> s2: 拿到设备码
   s1 --> s3: 用户取消
   s1 --> s4: 设备码申请失败
+  s1 --> s1: R1③重进startLogin顶掉旧attempt
   s2 --> s3: 用户取消
-  s2 --> s5: 设备码过期
+  s2 --> s5: 设备码过期(入口判)
   s2 --> s6: 发起一次轮询
-  s3 --> s1: 用户点登录
-  s4 --> s1: 用户点登录
-  s5 --> s1: 用户点登录
-  s6 --> s3: 用户取消
-  s6 --> s6: 响应送达
-  s4 --> s4: 提交凭据 or 校验成功
-  s6 --> s4: 轮询响应返回
-  s6 --> s2: 轮询响应返回
-  s6 --> s7: 轮询响应返回
+  s2 --> s1: R1③重进startLogin
+  s3 --> s1: 重新开始
+  s4 --> s1: 重新开始
+  s5 --> s1: 重新开始
+  s6 --> s1: R1③验证/轮询中重进<br/>旧poll移交stale槽
+  s6 --> s2: pending/transient 回等待
+  s6 --> s4: cf标记/fatal 终结
+  s6 --> s7: success 进入校验
+  s7 --> s1: R1③验证中重进
   s7 --> s3: 用户取消
   s7 --> s8: 校验通过
   s7 --> s9: 校验失败
   s8 --> s3: 用户取消
-  s8 --> s10: 开始落库
+  s8 --> s10: CommitWrite(持锁)
+  s9 --> s1: 重新开始
   s9 --> s3: 用户取消
-  s9 --> s1: 用户点登录
-  s9 --> s7: 用户点重试
-  s10 --> s11: 落库完成
-  s11 --> s1: 用户点登录
-  classDef mayBreak fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06
+  s9 --> s7: 重试
+  s10 --> s11: 落库成功(覆盖写)
+  s10 --> s9: R1④落库失败回滚<br/>有旧凭据恢复/无则删除
+  s11 --> s1: 重新开始
+  s6 --> s12: 取消/顶掉时在飞poll移交
+  s12 --> s12: 迟到响应交付
+  s12 --> [*]: ProcessStaleResponse<br/>isLatestLocked失败一字不写
   class s0 blue
-  class s0 bugPath
   class s1 blue
-  class s1 mayBreak
-  class s1 bugPath
   class s2 blue
-  class s2 mayBreak
-  class s2 bugPath
-  class s3 orange
-  class s3 mayBreak
-  class s3 bugPath
-  class s4 mayBreak
-  class s4 bugPath
-  class s5 orange
-  class s5 mayBreak
   class s6 blue
-  class s6 mayBreak
-  class s6 bugPath
   class s7 blue
-  class s7 mayBreak
   class s8 blue
-  class s8 mayBreak
   class s9 blue
-  class s9 mayBreak
   class s10 blue
-  class s10 mayBreak
+  class s3 orange
+  class s4 orange
+  class s5 orange
   class s11 teal
-  class s11 mayBreak
+  class s12 mayBreak
+  note right of s6
+    ★ 命门（CM-7 finding，CM-8 修复）：
+    body 无标记的 cf-mitigated 403
+    走 pending 分流回 s2 继续轮询——
+    InvCfBlockedTerminates 反例轨迹
+  end note
