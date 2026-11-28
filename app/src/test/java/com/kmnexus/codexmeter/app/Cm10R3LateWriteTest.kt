@@ -154,7 +154,7 @@ class Cm10R3LateWriteTest {
                         }
                         RoomCodexSessionImportPersistence(db,ss,store,guard,notificationTargetBoundary=boundary).save(
                             b.toDomain(),ProviderSessionEnvelope("codex","B","acct-B",1,byteArrayOf(1),byteArrayOf(2),"now","now"),
-                            FixtureAccounts.snapshot(localAccountId="B",snapshotId="import-B").toDomain(),allowNewRow=true)
+                            FixtureAccounts.snapshot(localAccountId="B",snapshotId="import-B").toDomain(),allowNewRow=true,expectedLocalAccountId=null)
                     }
                     Case.DELETE -> async(Dispatchers.IO) { deleteA() }
                     Case.ROLLBACK -> { resumeDeletion.complete(Unit); earlyDelete!! }

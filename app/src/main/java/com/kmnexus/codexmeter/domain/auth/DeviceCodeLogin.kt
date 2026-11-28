@@ -70,6 +70,21 @@ interface DeviceCodeLoginController {
     suspend fun startRelogin(expectedProviderAccountId: String): DeviceCodeLoginResult =
         DeviceCodeLoginResult.Failed(null, "error_login_not_wired")
 
+    /**
+     * Re-login with the original local account id as the generation binding (CM-10 R5): the
+     * commit is discarded when the original row is gone or was re-added under a different local
+     * id, so a late re-login can never overwrite the replacement account's credential.
+     */
+    suspend fun startRelogin(
+        expectedProviderAccountId: String,
+        expectedLocalAccountId: String?,
+    ): DeviceCodeLoginResult =
+        if (expectedLocalAccountId == null) {
+            startRelogin(expectedProviderAccountId)
+        } else {
+            startRelogin(expectedProviderAccountId)
+        }
+
     /** After an account-mismatch decision, imports the signed-in account as a new account. */
     suspend fun confirmAddAccountFromMismatch(): DeviceCodeLoginResult =
         DeviceCodeLoginResult.Failed(null, "error_login_not_wired")

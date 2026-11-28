@@ -141,6 +141,7 @@ class CodexSessionImporter(
                 sessionEnvelope = preparedImport.sessionEnvelope,
                 snapshot = preparedImport.snapshot,
                 allowNewRow = allowNewRow,
+                expectedLocalAccountId = preparedImport.expectedLocalAccountId,
             )
 
             Result.Success(
@@ -166,12 +167,16 @@ class CodexSessionImporter(
          *
          * [allowNewRow] = false carries re-login intent: only an in-place update of the still
          * alive matched row is permitted; anything else discards the late result.
+         * [expectedLocalAccountId] binds the re-login to the original account generation: a
+         * matched row with a different local id is a re-added replacement, not the original
+         * account, and the late result must be discarded rather than overwrite it.
          */
         suspend fun save(
             account: ProviderAccount,
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: QuotaSnapshot,
             allowNewRow: Boolean,
+            expectedLocalAccountId: LocalAccountId?,
         ): CommittedImport
     }
 
@@ -186,6 +191,8 @@ class CodexSessionImporter(
         val displayNameSuggestion: String,
         val sessionEnvelope: ProviderSessionEnvelope,
         val snapshot: QuotaSnapshot,
+        /** Re-login generation binding, injected by the login use case after prepare. */
+        val expectedLocalAccountId: LocalAccountId? = null,
     )
 
     sealed interface PrepareResult {

@@ -58,7 +58,7 @@ class Cm10R4OrderTest {
             val repo=CurrentQuotaStateRepository(store,dao,db.quotaSnapshotDao(),db.refreshAttemptDao(),clock=Clock.systemUTC())
             try {
                 val job=async(Dispatchers.IO) { runCatching { imp.save(incoming.toDomain(),env(fresh,9),
-                    FixtureAccounts.snapshot(localAccountId=fresh,snapshotId="new-import").toDomain(), allowNewRow = true) } }
+                    FixtureAccounts.snapshot(localAccountId=fresh,snapshotId="new-import").toDomain(), allowNewRow = true, expectedLocalAccountId = null) } }
                 if(delete) {
                     check(job.await().isSuccess)
                     AccountDeletionRepository(db,vault,store,NoopDeletedAccountStateCleaner,stateGuard=guard,notificationTargetBoundary=boundary).deleteAccount(p,LocalAccountId("A"))

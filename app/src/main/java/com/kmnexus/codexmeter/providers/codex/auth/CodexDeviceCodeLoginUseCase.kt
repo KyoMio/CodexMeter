@@ -21,6 +21,8 @@ sealed interface CodexDeviceCodeLoginMode {
 
     data class Relogin(
         val expectedProviderAccountId: ProviderAccountId,
+        /** Original local account id captured at re-login start: the account generation binding. */
+        val expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId? = null,
     ) : CodexDeviceCodeLoginMode
 }
 
@@ -232,6 +234,7 @@ class CodexDeviceCodeLoginUseCase(
             attemptId = ready.attemptId,
             session = ready.session,
             allowNewRow = ready.mode !is CodexDeviceCodeLoginMode.Relogin,
+            expectedLocalAccountId = (ready.mode as? CodexDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId,
         )
     }
 
@@ -248,6 +251,7 @@ class CodexDeviceCodeLoginUseCase(
             attemptId = pending.attemptId,
             session = pending.session,
             allowNewRow = true,
+            expectedLocalAccountId = null,
         )
     }
 
@@ -316,6 +320,7 @@ class CodexDeviceCodeLoginUseCase(
             attemptId = attempt.attemptId,
             session = session,
             allowNewRow = attempt.mode !is CodexDeviceCodeLoginMode.Relogin,
+            expectedLocalAccountId = (attempt.mode as? CodexDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId,
         )
     }
 
@@ -342,6 +347,7 @@ class CodexDeviceCodeLoginUseCase(
         attemptId: DeviceCodeLoginAttemptId,
         session: CodexSessionPayload,
         allowNewRow: Boolean,
+        expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId?,
     ): CodexDeviceCodeLoginState {
         stateMutex.withLock {
             if (!isLatestLocked(attemptId)) {
@@ -370,6 +376,7 @@ class CodexDeviceCodeLoginUseCase(
                 attemptId = attemptId,
                 preparedImport = prepared.preparedImport,
                 allowNewRow = allowNewRow,
+                expectedLocalAccountId = expectedLocalAccountId,
             )
         }
     }
@@ -378,13 +385,17 @@ class CodexDeviceCodeLoginUseCase(
         attemptId: DeviceCodeLoginAttemptId,
         preparedImport: CodexSessionImporter.PreparedImport,
         allowNewRow: Boolean,
+        expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId?,
     ): CodexDeviceCodeLoginState =
         stateMutex.withLock {
             if (!isLatestLocked(attemptId)) {
                 return@withLock currentState
             }
             try {
-                when (val result = sessionImporter.commitPreparedDeviceCodeSession(preparedImport, allowNewRow)) {
+                when (val result = sessionImporter.commitPreparedDeviceCodeSession(
+                    preparedImport.copy(expectedLocalAccountId = expectedLocalAccountId),
+                    allowNewRow,
+                )) {
                     is CodexSessionImporter.Result.Failure -> {
                         currentState = CodexDeviceCodeLoginState.ValidationFailed(attemptId, result.message)
                         currentState

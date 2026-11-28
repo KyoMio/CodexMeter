@@ -81,7 +81,7 @@ class Cm10R4GapTest {
                     }
                 }
                 val imp=RoomCodexSessionImportPersistence(db,vault,writer,guard,notificationTargetBoundary=boundary)
-                val op=async(Dispatchers.IO) { imp.save(incoming.toDomain(),env(fresh,9),FixtureAccounts.snapshot(localAccountId=fresh,snapshotId="new").toDomain(), allowNewRow = true) }
+                val op=async(Dispatchers.IO) { imp.save(incoming.toDomain(),env(fresh,9),FixtureAccounts.snapshot(localAccountId=fresh,snapshotId="new").toDomain(), allowNewRow = true, expectedLocalAccountId = null) }
                 staged.await()
                 val expected=if(existing) "A" else fresh
                 check(resolver.resolveTargetSelection()?.localAccountId?.value==expected)

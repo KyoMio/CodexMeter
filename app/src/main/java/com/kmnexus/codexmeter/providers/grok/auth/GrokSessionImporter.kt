@@ -145,6 +145,7 @@ class GrokSessionImporter(
                 sessionEnvelope = envelope,
                 snapshot = snapshot,
                 allowNewRow = allowNewRow,
+                expectedLocalAccountId = preparedImport.expectedLocalAccountId,
             )
 
             Result.Success(
@@ -177,6 +178,7 @@ class GrokSessionImporter(
             sessionEnvelope: ProviderSessionEnvelope,
             snapshot: QuotaSnapshot,
             allowNewRow: Boolean,
+            expectedLocalAccountId: LocalAccountId?,
         ): CommittedImport
     }
 
@@ -207,6 +209,8 @@ class GrokSessionImporter(
 
     data class PreparedImport(
         val session: GrokSessionPayload,
+        /** Re-login generation binding, injected by the login controller after prepare. */
+        val expectedLocalAccountId: LocalAccountId? = null,
     ) {
         override fun toString(): String = "PreparedImport(session=[REDACTED])"
     }

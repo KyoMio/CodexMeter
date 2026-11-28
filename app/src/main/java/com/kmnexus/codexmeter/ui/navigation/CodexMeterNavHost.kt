@@ -217,7 +217,7 @@ fun CodexMeterNavHost(
         val config = com.kmnexus.codexmeter.providers.ProviderRegistry.configFor(providerId)
         val nextMode = when (config.authKind) {
             com.kmnexus.codexmeter.providers.ProviderAuthKind.OAuthWebView ->
-                AddAccountEntryMode.CodexRelogin(providerAccountId)
+                AddAccountEntryMode.CodexRelogin(providerAccountId, localAccountId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.ApiKeyImport ->
                 AddAccountEntryMode.ApiKeyInput(providerId, reloginAccountId = localAccountId)
             com.kmnexus.codexmeter.providers.ProviderAuthKind.CookieAuth ->

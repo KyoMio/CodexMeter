@@ -110,6 +110,7 @@ class RoomCodexSessionImportPersistence(
         sessionEnvelope: ProviderSessionEnvelope,
         snapshot: QuotaSnapshot,
         allowNewRow: Boolean,
+        expectedLocalAccountId: LocalAccountId?,
     ): CodexSessionImporter.CommittedImport {
         stateGuard.beginEdit()
         try {
@@ -118,6 +119,7 @@ class RoomCodexSessionImportPersistence(
                 sessionEnvelope = sessionEnvelope,
                 snapshot = snapshot,
                 allowNewRow = allowNewRow,
+                expectedLocalAccountId = expectedLocalAccountId,
             )
         } finally {
             stateGuard.endEdit()
@@ -125,39 +127,40 @@ class RoomCodexSessionImportPersistence(
     }
 
     /**
-     * CM-10 R4 ordering protocol — same-account deletion vs late-arriving import writes.
+     * CM-10 R4/R5 ordering protocol — same-account deletion vs late-arriving import writes.
      *
-     * The commit is staged and decided in three parts, with every decision read and every
-     * committed write inside the shared notification-target boundary (the same boundary
-     * [com.kmnexus.codexmeter.data.repository.AccountDeletionRepository] serializes the destructive
-     * delete core through):
-     *
-     *  1. STAGE (outside the lock): the pre-validation identity match is read once, the
-     *     canonical identity derived from it, and the encrypted envelope is written to disk.
-     *     Staging outside the boundary is forced by the audit harness interleavings (a deletion
-     *     must be able to complete while the writer is suspended inside its own save) — the file
-     *     is therefore a REVERSIBLE staged write, and step 3 compensates it inside the lock.
+     *  1. STAGE (outside the lock): the encrypted envelope is written under a random,
+     *     single-use staging key — never under the account's real credential key. The real
+     *     credential file is only written inside the boundary in step 3, after the final local
+     *     id has been verified, so a cancelled or discarded login leaves nothing behind and
+     *     compensation only ever touches writes this operation itself owns. Staging must stay
+     *     outside the boundary because a deletion has to be able to complete while the writer
+     *     is suspended inside its own save.
      *  2. DECIDE (inside the lock, one consistent read): re-read the identity match atomically
-     *     against deletion. [allowNewRow] carries the re-login intent through to persistence:
+     *     against deletion. [allowNewRow] carries the re-login intent:
      *      - re-login (allowNewRow=false): the matched row must still exist; gone → DISCARD.
+     *      - [expectedLocalAccountId] binds the re-login to the original account generation:
+     *        a row re-added under a NEW local id after deletion is not the original row →
+     *        DISCARD, never overwrite the replacement's credential.
      *      - add (allowNewRow=true): a row matched at stage-time but gone now means the account
-     *        was deleted mid-validation → DISCARD (never resurrect it under a new id); a row
-     *        never seen at either read is a genuinely fresh identity → insert.
-     *     The matching flag and the committed identity come from THIS SAME read, never from two
-     *     independent queries.
-     *  3. COMMIT+COMPENSATE (inside the same critical section): selection write, then the Room
-     *     row + snapshot transaction. On failure, reverse only this operation's own writes —
-     *     previous states captured inside the lock. Because deletion serializes through the same
-     *     boundary, compensation can never overwrite a completed deletion; on discard, nothing
-     *     committed is ever restored.
+     *        was deleted mid-validation → DISCARD; never seen at either read → genuine insert.
+     *  3. COMMIT+COMPENSATE (inside the same critical section): consume the staging key,
+     *     capture the previous credential at the final id, write the real credential file,
+     *     write the selection, then the Room row + snapshot. Boundary acquisition stays
+     *     cancellable (a cancelled login must stop), but every exit — failure or cancellation —
+     *     funnels into a cancellation-proof compensation that completes fully. Compensation is
+     *     ownership-guarded by content: it deletes or restores the credential file only when
+     *     the file still holds exactly what this operation wrote — a concurrent committed
+     *     import that superseded it is never undone.
      */
     private suspend fun saveGuarded(
         account: ProviderAccount,
         sessionEnvelope: ProviderSessionEnvelope,
         snapshot: QuotaSnapshot,
         allowNewRow: Boolean,
+        expectedLocalAccountId: LocalAccountId?,
     ): CodexSessionImporter.CommittedImport {
-        // ---- STAGE (outside the boundary) ----
+        // ---- STAGE (outside the boundary): random single-use key, never the real credential key ----
         val preMatch = account.providerAccountId?.let {
             database.providerAccountDao().getByProviderAccountId(
                 providerId = account.providerId.value,
@@ -169,13 +172,33 @@ class RoomCodexSessionImportPersistence(
             localAccountId = stagedAccount.localAccountId.value,
             providerAccountId = stagedAccount.providerAccountId?.value,
         )
-        val previousEnvelope = sessionStore.load(
-            providerId = stagedEnvelope.providerId,
-            localAccountId = stagedEnvelope.localAccountId,
-        )
-        // Staged write: reversible, compensated inside the boundary.
-        sessionStore.save(stagedEnvelope)
+        val stagingKey = "staged-${java.util.UUID.randomUUID()}"
+        val stagingEnvelope = stagedEnvelope.copy(localAccountId = stagingKey)
+        try {
+            sessionStore.save(stagingEnvelope)
+        } catch (throwable: Throwable) {
+            // Cancelled (or failed) mid-write: clean the possibly partial staging file. Cleanup
+            // must complete even under cancellation.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                runCatching {
+                    sessionStore.delete(
+                        providerId = stagingEnvelope.providerId,
+                        localAccountId = stagingKey,
+                    )
+                }
+            }
+            throw throwable
+        }
 
+        // Cancellation contract (CM-10 R5): acquiring the boundary stays cancellable — a login
+        // cancelled while queued must actually stop. Compensation, however, must always complete,
+        // so any failure or cancellation anywhere in the commit pipeline funnels into a
+        // NonCancellable cleanup that reverses only the writes this operation itself owns.
+        var envelopeFileWritten = false
+        var consumedStagingKey: String? = stagingKey
+        var committedForCompensation: CodexSessionImporter.CommittedImport? = null
+        var previousEnvelopeForCompensation: ProviderSessionEnvelope? = null
+        var compensationBaselineValid = false
         try {
             return notificationTargetBoundary.serialize {
                 // ---- DECIDE (one consistent read inside the lock) ----
@@ -188,20 +211,24 @@ class RoomCodexSessionImportPersistence(
 
                 val matchLostInFlight = preMatch != null &&
                     (nowMatch == null || nowMatch.localAccountId != preMatch.localAccountId)
+                val generationLost = expectedLocalAccountId != null &&
+                    nowMatch?.localAccountId != expectedLocalAccountId.value
                 val discard = when {
+                    generationLost -> true
                     !allowNewRow && nowMatch == null -> true
                     allowNewRow && matchLostInFlight -> true
                     else -> false
                 }
                 if (discard) {
-                    // Compensate ONLY the staged write: never restore anything — the account is
-                    // deleted; restoring its old credential would resurrect it.
+                    // Remove ONLY this operation's staging write. Never restore anything — the
+                    // account is deleted (or superseded); restoring old state would resurrect it.
                     runCatching {
                         sessionStore.delete(
-                            providerId = stagedEnvelope.providerId,
-                            localAccountId = stagedEnvelope.localAccountId,
+                            providerId = stagingEnvelope.providerId,
+                            localAccountId = stagingKey,
                         )
                     }
+                    consumedStagingKey = null
                     throw IllegalStateException(
                         "Import discarded: account ${stagedAccount.localAccountId.value} was deleted while the credential was being validated",
                     )
@@ -212,21 +239,34 @@ class RoomCodexSessionImportPersistence(
                     localAccountId = committedAccount.localAccountId.value,
                     providerAccountId = committedAccount.providerAccountId?.value,
                 )
-                if (committedEnvelope.localAccountId != stagedEnvelope.localAccountId) {
-                    // Identity re-resolved between stage and decision (e.g. another import of the
-                    // same provider account committed first): re-key the staged write.
-                    sessionStore.delete(
-                        providerId = stagedEnvelope.providerId,
-                        localAccountId = stagedEnvelope.localAccountId,
-                    )
-                    sessionStore.save(committedEnvelope)
-                }
                 val committedSnapshot = snapshot.copyForAccount(committedAccount)
                 val committed = CodexSessionImporter.CommittedImport(
                     account = committedAccount,
                     sessionEnvelope = committedEnvelope,
                     snapshot = committedSnapshot,
                 )
+
+                // Consume the staging write, then capture the previous credential AT THE FINAL
+                // KEY inside the lock — the only correct compensation baseline. Because the
+                // real file is written here for the first time, nothing outside the lock ever
+                // aliases the live credential key.
+                runCatching {
+                    sessionStore.delete(
+                        providerId = stagingEnvelope.providerId,
+                        localAccountId = stagingKey,
+                    )
+                }
+                consumedStagingKey = null
+                val previousEnvelopeAtFinalKey = sessionStore.load(
+                    providerId = committedEnvelope.providerId,
+                    localAccountId = committedEnvelope.localAccountId,
+                )
+                sessionStore.save(committedEnvelope)
+                envelopeFileWritten = true
+                committedForCompensation = committed
+                previousEnvelopeForCompensation = previousEnvelopeAtFinalKey
+                compensationBaselineValid = true
+
                 val previousSelection = currentAccountStore.currentAccountSelection()
                 var selectionWritten = false
 
@@ -250,24 +290,64 @@ class RoomCodexSessionImportPersistence(
                             currentAccountStore.updateCurrentAccountSelection(previousSelection)
                         }
                     }
-                    runCatching {
-                        if (previousEnvelope == null) {
-                            sessionStore.delete(
-                                providerId = committedEnvelope.providerId,
-                                localAccountId = committedEnvelope.localAccountId,
-                            )
-                        } else {
-                            sessionStore.save(previousEnvelope)
-                        }
-                    }
+                    compensateOwnedEnvelopeWrite(
+                        committedEnvelope = committedEnvelope,
+                        previousEnvelopeAtFinalKey = previousEnvelopeAtFinalKey,
+                    )
+                    envelopeFileWritten = false
                     throw throwable
                 }
 
                 committed
             }
-        } finally {
-            // The staged envelope outside the boundary is always reconciled inside the lock:
-            // discard deletes it, commit keeps it. Nothing further to do here.
+        } catch (throwable: Throwable) {
+            // Reached when the boundary entry or any stage above was cancelled or failed before
+            // its own compensation completed. Cleanup is cancellation-proof and only ever
+            // reverses writes owned by this operation.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                consumedStagingKey?.let { key ->
+                    runCatching {
+                        sessionStore.delete(
+                            providerId = stagingEnvelope.providerId,
+                            localAccountId = key,
+                        )
+                    }
+                }
+                if (envelopeFileWritten && compensationBaselineValid) {
+                    compensateOwnedEnvelopeWrite(
+                        committedEnvelope = committedForCompensation!!.sessionEnvelope,
+                        previousEnvelopeAtFinalKey = previousEnvelopeForCompensation,
+                    )
+                }
+            }
+            throw throwable
+        }
+    }
+
+    /**
+     * Ownership-guarded credential compensation: act only while the file still holds exactly
+     * what THIS operation wrote. A concurrent import that committed over it owns the file now —
+     * undoing it would destroy a successful write (CM-10 R5 merge case).
+     */
+    private suspend fun compensateOwnedEnvelopeWrite(
+        committedEnvelope: ProviderSessionEnvelope,
+        previousEnvelopeAtFinalKey: ProviderSessionEnvelope?,
+    ) {
+        runCatching {
+            val current = sessionStore.load(
+                providerId = committedEnvelope.providerId,
+                localAccountId = committedEnvelope.localAccountId,
+            )
+            if (current != null && envelopeContentEquals(current, committedEnvelope)) {
+                if (previousEnvelopeAtFinalKey == null) {
+                    sessionStore.delete(
+                        providerId = committedEnvelope.providerId,
+                        localAccountId = committedEnvelope.localAccountId,
+                    )
+                } else {
+                    sessionStore.save(previousEnvelopeAtFinalKey)
+                }
+            }
         }
     }
 
@@ -284,6 +364,17 @@ class RoomCodexSessionImportPersistence(
             )
         }
 }
+
+private fun envelopeContentEquals(
+    a: ProviderSessionEnvelope,
+    b: ProviderSessionEnvelope,
+): Boolean =
+    a.providerId == b.providerId &&
+        a.localAccountId == b.localAccountId &&
+        a.providerAccountId == b.providerAccountId &&
+        a.schemaVersion == b.schemaVersion &&
+        a.payloadCiphertext.contentEquals(b.payloadCiphertext) &&
+        a.payloadNonce.contentEquals(b.payloadNonce)
 
 fun ProviderAccount.toEntity(): ProviderAccountEntity =
     ProviderAccountEntity(

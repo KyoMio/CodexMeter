@@ -18,6 +18,18 @@ class CodexDeviceCodeLoginController(
             CodexDeviceCodeLoginMode.Relogin(ProviderAccountId(expectedProviderAccountId)),
         ).toDeviceCodeLoginResult(onSaved)
 
+    override suspend fun startRelogin(
+        expectedProviderAccountId: String,
+        expectedLocalAccountId: String?,
+    ): DeviceCodeLoginResult =
+        useCase.startLogin(
+            CodexDeviceCodeLoginMode.Relogin(
+                expectedProviderAccountId = ProviderAccountId(expectedProviderAccountId),
+                expectedLocalAccountId = expectedLocalAccountId
+                    ?.let { com.kmnexus.codexmeter.domain.model.LocalAccountId(it) },
+            ),
+        ).toDeviceCodeLoginResult(onSaved)
+
     override suspend fun confirmAddAccountFromMismatch(): DeviceCodeLoginResult =
         useCase.confirmAddAccountFromMismatch().toDeviceCodeLoginResult(onSaved)
 

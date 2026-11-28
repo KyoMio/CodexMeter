@@ -662,8 +662,8 @@ class AppContainer private constructor(
             )
             val grokSessionImporter = GrokSessionImporter(
                 billingClient = GrokSessionImporter.BillingClient(grokBillingClient::fetchBilling),
-                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot, allowNewRow ->
-                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot, allowNewRow)
+                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot, allowNewRow, expectedLocalAccountId ->
+                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot, allowNewRow, expectedLocalAccountId)
                     GrokSessionImporter.CommittedImport(
                         account = committed.account,
                         sessionEnvelope = committed.sessionEnvelope,

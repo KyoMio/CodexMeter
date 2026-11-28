@@ -79,7 +79,8 @@ class DeviceCodeLoginViewModel(
         when (entryMode) {
             is AddAccountEntryMode.ProviderSelection -> Unit
             is AddAccountEntryMode.LoginToCodex -> startDeviceCodeLogin()
-            is AddAccountEntryMode.CodexRelogin -> startDeviceCodeRelogin(entryMode.expectedProviderAccountId)
+            is AddAccountEntryMode.CodexRelogin ->
+                startDeviceCodeRelogin(entryMode.expectedProviderAccountId, entryMode.reloginAccountId)
             is AddAccountEntryMode.ApiKeyInput -> Unit // handled by the API-key screen
             is AddAccountEntryMode.WebViewCookieAuth -> Unit // handled by the WebView screen
             is AddAccountEntryMode.WebViewOAuthPkce -> Unit // handled by the WebView screen
@@ -87,7 +88,7 @@ class DeviceCodeLoginViewModel(
             // surfaces as a mismatch decision. Without it (first login) this degrades to a plain
             // login; the two-phase importer still reconciles by the JWT `sub` claim.
             is AddAccountEntryMode.DeviceCodeLogin ->
-                startDeviceCodeRelogin(entryMode.expectedProviderAccountId)
+                startDeviceCodeRelogin(entryMode.expectedProviderAccountId, entryMode.reloginAccountId)
         }
     }
 
@@ -108,14 +109,17 @@ class DeviceCodeLoginViewModel(
      * Re-login for an existing device-code account. When the account's identity is known we ask the
      * controller to flag a different-account sign-in; otherwise it degrades to a plain login.
      */
-    fun startDeviceCodeRelogin(expectedProviderAccountId: String?) {
+    fun startDeviceCodeRelogin(
+        expectedProviderAccountId: String?,
+        reloginAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId? = null,
+    ) {
         pollJob?.cancel()
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
                 val result = if (expectedProviderAccountId.isNullOrBlank()) {
                     controller.startLogin()
                 } else {
-                    controller.startRelogin(expectedProviderAccountId)
+                    controller.startRelogin(expectedProviderAccountId, reloginAccountId?.value)
                 }
                 applyResult(result)
             } catch (exception: CancellationException) {

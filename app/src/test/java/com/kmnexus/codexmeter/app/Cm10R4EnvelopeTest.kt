@@ -41,7 +41,10 @@ class Cm10R4EnvelopeTest {
     @Test fun restoreVsPost() = race(Case.ROLLBACK)
     @Test fun lateReloginVsPost() = race(Case.REL0GIN)
 
-    private fun race(case: Case) = runBlocking {
+    /** Live positive: with no deletion, the wired store must hold the re-imported credential. */
+    @Test fun liveStorePositive() = race(Case.REL0GIN, liveControl = true)
+
+    private fun race(case: Case, liveControl: Boolean = false) = runBlocking {
         withTimeout(25_000) {
             val ctx: Context = RuntimeEnvironment.getApplication()
             val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -106,8 +109,18 @@ class Cm10R4EnvelopeTest {
                 val provider=com.kmnexus.codexmeter.providers.deepseek.auth.DeepSeekSessionImporter(
                     com.kmnexus.codexmeter.providers.deepseek.network.DeepSeekBalanceClient(
                     com.kmnexus.codexmeter.core.network.ProviderHttpClient(http)),cipher,clock)
+                // CM-10 R5: the store MUST be wired like production (AppContainer) — with the
+                // default null the discard path never writes, making the envelope assertion
+                // vacuously green.
                 val login = SessionLoginUseCase(SessionImportRouter(mapOf(ProviderId(aProvider) to provider)),db,db.providerAccountDao(),
-                    db.quotaSnapshotDao(),store,guard,clock, boundary)
+                    db.quotaSnapshotDao(),store,guard,clock, boundary,secureSessionStore=sessions)
+                if(liveControl) {
+                    resumeRelogin.complete(Unit)
+                    check(login.reloginApiKey(LocalAccountId("A"),"fixture").isSuccess)
+                    val persisted = checkNotNull(sessions.load(aProvider,"A"))
+                    check(cipher.decrypt(persisted.payloadCiphertext,persisted.payloadNonce).decodeToString().contains("fixture"))
+                    println("liveStorePositive realOwnerWired=true syntheticCredentialPersisted=true")
+                } else {
                 val atWriter = CompletableDeferred<Unit>()
                 val rowGone = CompletableDeferred<Unit>()
                 val cleanup = object: DeletedAccountStateCleaner {
@@ -149,7 +162,7 @@ class Cm10R4EnvelopeTest {
                         }
                         RoomCodexSessionImportPersistence(db,ss,store,guard,notificationTargetBoundary=boundary).save(
                             b.toDomain(),ProviderSessionEnvelope("codex","B","acct-B",1,byteArrayOf(1),byteArrayOf(2),"now","now"),
-                            FixtureAccounts.snapshot(localAccountId="B",snapshotId="import-B").toDomain(), allowNewRow = true)
+                            FixtureAccounts.snapshot(localAccountId="B",snapshotId="import-B").toDomain(), allowNewRow = true, expectedLocalAccountId = null)
                     }
                     Case.DELETE -> async(Dispatchers.IO) { deleteA() }
                     Case.ROLLBACK -> { resumeDeletion.complete(Unit); earlyDelete!! }
@@ -177,6 +190,7 @@ class Cm10R4EnvelopeTest {
                     check(reason?.startsWith("Re-login discarded:")==true && row==null && snap==null)
                 }
                 check(!completed) { "writer finished inside posting boundary" }
+                }
             } finally { openSink.countDown(); resumeDeletion.complete(Unit); resumeRelogin.complete(Unit); io.close(); db.close() }
             Unit
         }
