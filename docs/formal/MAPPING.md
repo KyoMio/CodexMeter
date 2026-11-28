@@ -72,3 +72,6 @@
 11. **stale 响应单槽位**：第二个孤儿覆盖第一个（观察等价：都只会被丢弃）；多孤儿独立代次未展开。
 12. **write 挂起 lambda 内部的更细粒度交错**：模型粒度为「校验/生效」两段式；生效段内部编辑再插入不新增可观测维度（帧内容在授权时刻已冻结）。
 13. **`InvEpochNeverOverwritesEdit` 代数恒等式**：因 `gen` 单调且 `maxPubGen` 记历史最大值，`published.gen >= maxPubGen` 恒为真（tautology），仅保留在 `RefreshCoordinator.tla` 作观测注解，不列入 `.cfg`。
+
+
+**CM-10 R1 同步（2026-11-28）**：NotificationTargetBoundary 落地——target-recheck 与系统 post 拆分为 `CheckTarget`/`PostPublish` 两步（判决强制要求，忠实「重核与落地非原子」的实现形态），两步共享 `targetHeld` 互斥；`SwitchSelection` 写侧同样在互斥内（`~targetHeld` 前置）。拆步全不变量翻绿：7,236,915 distinct / 深度 35 / exit 0。反向变异（写侧摘掉 `~targetHeld`）第 9 状态 `InvNoCrossAccountPollution` 违规 exit 12——证明绿是互斥语义的绿而非模型形状。锁序约束：commitMutex → boundary（生产实现）；写侧持 boundary 期间不嵌套 commitMutex。
