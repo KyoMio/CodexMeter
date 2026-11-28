@@ -127,6 +127,12 @@ class RoomCodexSessionImportPersistence(
         sessionEnvelope: ProviderSessionEnvelope,
         snapshot: QuotaSnapshot,
     ): CodexSessionImporter.CommittedImport {
+        val matchedExistingAccount = account.providerAccountId?.let {
+            database.providerAccountDao().getByProviderAccountId(
+                providerId = account.providerId.value,
+                providerAccountId = it.value,
+            )
+        } != null
         val committedAccount = committedAccountFor(account)
         val committedEnvelope = sessionEnvelope.copy(
             localAccountId = committedAccount.localAccountId.value,
@@ -156,10 +162,28 @@ class RoomCodexSessionImportPersistence(
                     ),
                 )
             }
-            database.withTransaction {
-                database.providerAccountDao().upsert(committed.account.toEntity())
-                beforeRoomCommit()
-                database.quotaSnapshotDao().insert(committed.snapshot.toEntity())
+            // CM-10 R3: for RE-LOGIN imports the committed account carries an existing localAccountId.
+            // If that account was deleted while the credential was being validated, the upsert would
+            // resurrect the row — a persistence corruption, not just a wrong notification. Re-check
+            // inside the boundary: only update rows that are still alive; discard the late result
+            // otherwise. Fresh imports (new UUID id) are unaffected — a row cannot exist for them.
+            notificationTargetBoundary.serialize {
+                // 仅重登路径需要防复活：解析时匹配到既有行的导入，其 localAccountId 属于
+                // 已有账号——行在提交时消失即「在飞期间被删除」。全新导入没有既有行可匹配，
+                // 其 UUID 行从未存在，不构成复活。
+                val resurrecting = matchedExistingAccount &&
+                    database.providerAccountDao().getById(committed.account.localAccountId.value)
+                        ?.takeIf { !it.status.equals(com.kmnexus.codexmeter.domain.model.AccountStatus.Deleted.name, ignoreCase = true) } == null
+                if (resurrecting) {
+                    throw IllegalStateException(
+                        "Import discarded: account ${committed.account.localAccountId.value} was deleted while the credential was being validated",
+                    )
+                }
+                database.withTransaction {
+                    database.providerAccountDao().upsert(committed.account.toEntity())
+                    beforeRoomCommit()
+                    database.quotaSnapshotDao().insert(committed.snapshot.toEntity())
+                }
             }
         } catch (throwable: Throwable) {
             // CM-10 R2: rollback restores the target — serialize against posts.

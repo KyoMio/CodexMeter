@@ -117,15 +117,35 @@ class SessionLoginUseCase(
 
         stateGuard.beginEdit()
         try {
-            database.withTransaction {
-                accountDao.upsert(account.toEntity())
-                snapshotDao.insert(snapshot.toEntity())
+            // CM-10 R3: the re-login transaction enters the shared notification-target boundary.
+            // The account was read BEFORE the network wait; a deletion landing mid-flight removes
+            // the Room row and moves the notification target away. Re-checking inside the lock:
+            // - row still alive → in-place update (re-login semantics: same id, name, creation time)
+            // - row gone (or soft-deleted) → the late result is DISCARDED: resurrecting a deleted
+            //   account row is a real persistence corruption, not just a wrong notification.
+            // New-account imports keep their own semantics (fresh UUID id, first-login selection
+            // write) — this path never creates rows.
+            return notificationTargetBoundary.serialize {
+                val stillAlive = accountDao.getById(localAccountId.value)
+                    ?.takeIf { !it.status.equals(AccountStatus.Deleted.name, ignoreCase = true) }
+                if (stillAlive == null) {
+                    Result.failure(
+                        IllegalStateException(
+                            "Re-login discarded: account ${localAccountId.value} was deleted while the credential was being validated",
+                        ),
+                    )
+                } else {
+                    database.withTransaction {
+                        accountDao.upsert(account.toEntity())
+                        snapshotDao.insert(snapshot.toEntity())
+                    }
+                    // Re-login never changes which account is current.
+                    Result.success(account)
+                }
             }
         } finally {
             stateGuard.endEdit()
         }
-        // Re-login never changes which account is current.
-        return Result.success(account)
     }
 
     private suspend fun importAndPersist(
