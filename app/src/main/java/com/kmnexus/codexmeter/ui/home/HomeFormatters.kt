@@ -1,5 +1,6 @@
 package com.kmnexus.codexmeter.ui.home
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
@@ -9,15 +10,14 @@ import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 @Composable
 internal fun formattedInstant(instant: Instant): String {
     val locale = LocalConfiguration.current.locales[0]
     return remember(instant, locale) {
+        val pattern = DateFormat.getBestDateTimePattern(locale, "yMdjm")
         DateTimeFormatter
-            .ofLocalizedDateTime(FormatStyle.SHORT)
-            .withLocale(locale)
+            .ofPattern(pattern, locale)
             .withZone(ZoneId.systemDefault())
             .format(instant)
     }

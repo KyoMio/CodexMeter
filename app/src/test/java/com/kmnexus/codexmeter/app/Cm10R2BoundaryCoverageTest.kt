@@ -50,6 +50,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Test
@@ -101,10 +102,39 @@ class Cm10R2BoundaryCoverageTest {
             check(h.target() in setOf("A", "B")) { "unexpected target mid-rollback: ${h.target()}" }
         }
         val post = async(Dispatchers.IO) { h.guard.commitSerialized { h.publisher.publish(h.repo.loadCurrentState()) } }
-        if (h.case == Case.WRITE_FIRST) {
-            verifyWriteFirst(h, post)
+        when (h.case) {
+            Case.WRITE_FIRST -> verifyWriteFirst(h, post)
+            Case.ROLLBACK -> verifyRollbackRace(h, rollback!!, post)
+            else -> verifyConcurrentWriter(h, deletion, post)
+        }
+    }
+
+    private suspend fun verifyRollbackRace(
+        h: BoundaryHarness,
+        rollback: Deferred<Unit>,
+        post: Deferred<Unit>,
+    ) {
+        val reachedSink = select {
+            h.atSink.onAwait { true }
+            post.onJoin { h.atSink.isCompleted }
+        }
+        if (!reachedSink) {
+            post.await()
+            rollback.await()
+            check(h.title() == null) { "stale fallback posted after rollback restored target" }
+            check(h.target() == "A") { "target did not roll back to A: ${h.target()}" }
         } else {
-            verifyConcurrentWriter(h, deletion, rollback, post)
+            check(h.title() == null)
+            h.releasePost.countDown()
+            post.await()
+            rollback.await()
+            val actualTarget = h.sinkTarget.await()
+            val actualTitle = h.sinkTitle.await()
+            println("case=${h.case} atSystemPost=$actualTarget firstTitle=$actualTitle finalTarget=${h.target()}")
+            check(actualTitle?.contains(if (actualTarget == "A") "Audit Alpha" else "Audit Beta") == true) {
+                "notification target=$actualTarget at post, new notification=$actualTitle"
+            }
+            check(h.target() == "A") { "final target after rollback must be A, was ${h.target()}" }
         }
     }
 
@@ -120,11 +150,10 @@ class Cm10R2BoundaryCoverageTest {
     private suspend fun verifyConcurrentWriter(
         h: BoundaryHarness,
         deletion: AccountDeletionRepository,
-        rollback: Deferred<Unit>?,
         post: Deferred<Unit>,
     ) = coroutineScope {
         h.atSink.await()
-        val writer = launchWriter(h, deletion, rollback)
+        val writer = launchWriter(h, deletion)
         val writerCompletedWhilePostHeld = AtomicBoolean(false)
         val targetMovedBeforeCommit = AtomicBoolean(false)
         checkWriterHeldByBoundary(h, writer, writerCompletedWhilePostHeld, targetMovedBeforeCommit)
@@ -152,7 +181,6 @@ class Cm10R2BoundaryCoverageTest {
     private fun kotlinx.coroutines.CoroutineScope.launchWriter(
         h: BoundaryHarness,
         deletion: AccountDeletionRepository,
-        rollback: Deferred<Unit>?,
     ) = async(Dispatchers.IO) {
         when (h.case) {
             Case.SWITCH -> check(h.mutations.persistDefaultAccountSelection(h.provider, LocalAccountId("B")))
@@ -196,10 +224,6 @@ class Cm10R2BoundaryCoverageTest {
                 )
             }
             Case.DELETE_PINNED -> deletion.deleteAccount(h.provider, LocalAccountId("A"))
-            Case.ROLLBACK -> {
-                h.abortDeletion.complete(Unit)
-                rollback!!.await()
-            }
             else -> error("unexpected")
         }
         Unit
@@ -222,7 +246,6 @@ class Cm10R2BoundaryCoverageTest {
                     targetMovedBeforeCommit.set(true)
                 }
             }
-            Case.ROLLBACK -> writer.await()
             else -> {
                 while (h.guard.inFlightEdits == 0 && !writer.isCompleted) delay(1)
                 check(withTimeoutOrNull(250) { writer.await(); true } == null)
@@ -266,7 +289,6 @@ class Cm10R2BoundaryCoverageTest {
             .build()
         private val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val releasePost = CountDownLatch(1)
-        val abortDeletion = CompletableDeferred<Unit>()
         val store = CurrentAccountPreferences.create(File(ctx.filesDir, "${UUID.randomUUID()}.preferences_pb"))
         val prefs = NotificationPreferencesDataStore(store.dataStore)
         val guard = VersionedStateGuard()
@@ -377,7 +399,6 @@ class Cm10R2BoundaryCoverageTest {
 
         fun close() {
             releasePost.countDown()
-            abortDeletion.complete(Unit)
             db.close()
         }
     }

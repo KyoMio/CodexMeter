@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.kmnexus.codexmeter.R
 import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.QuotaWindowId
+import com.kmnexus.codexmeter.ui.home.formattedInstant
 import com.kmnexus.codexmeter.ui.motion.CodexMeterMotion
 import com.kmnexus.codexmeter.ui.motion.rememberCodexMeterAnimatorsEnabled
 import com.kmnexus.codexmeter.ui.theme.CodexMeterTheme
@@ -61,9 +62,6 @@ import com.kmnexus.codexmeter.ui.theme.avatarColor
 import com.kmnexus.codexmeter.ui.theme.avatarInitialColor
 import java.text.NumberFormat
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.Locale
 
 @Composable
@@ -641,18 +639,6 @@ private fun AccountAvatar(account: AccountItemUi, size: Dp) {
                 maxLines = 1,
             )
         }
-    }
-}
-
-@Composable
-private fun formattedInstant(instant: Instant): String {
-    val locale = LocalConfiguration.current.locales[0]
-    return remember(instant, locale) {
-        DateTimeFormatter
-            .ofLocalizedDateTime(FormatStyle.SHORT)
-            .withLocale(locale)
-            .withZone(ZoneId.systemDefault())
-            .format(instant)
     }
 }
 

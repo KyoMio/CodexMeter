@@ -2,7 +2,9 @@ package com.kmnexus.codexmeter.ui
 
 import android.widget.FrameLayout
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -79,23 +81,25 @@ class WidgetGoldenScreenshotTest {
                     .addOption(RoborazziComposeLocaleOption(locale.tag))
                     .build(),
             ) {
-                AndroidView(
-                    factory = { viewContext ->
-                        runBlocking {
-                            val remoteViews = GlanceRemoteViews()
-                                .compose(viewContext, size) {
-                                    CodexMeterWidgetContent(
-                                        context = viewContext,
-                                        state = state,
-                                        widgetSize = size,
-                                        layoutVariant = layoutVariant,
-                                    )
-                                }.remoteViews
-                            remoteViews.apply(viewContext, FrameLayout(viewContext))
-                        }
-                    },
-                    modifier = Modifier.size(widthDp.dp, heightDp.dp),
-                )
+                Surface(color = Color.White) {
+                    AndroidView(
+                        factory = { viewContext ->
+                            runBlocking {
+                                val remoteViews = GlanceRemoteViews()
+                                    .compose(viewContext, size) {
+                                        CodexMeterWidgetContent(
+                                            context = viewContext,
+                                            state = state,
+                                            widgetSize = size,
+                                            layoutVariant = layoutVariant,
+                                        )
+                                    }.remoteViews
+                                remoteViews.apply(viewContext, FrameLayout(viewContext))
+                            }
+                        },
+                        modifier = Modifier.size(widthDp.dp, heightDp.dp),
+                    )
+                }
             }
         }
     }
