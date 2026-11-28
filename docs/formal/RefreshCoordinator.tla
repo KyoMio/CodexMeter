@@ -59,7 +59,7 @@ SnapOf(acct) == IF acct = "A" THEN snapA ELSE snapB
 
 \* ---- 刷新会话（RefreshCoordinator.kt:54-86）----
 \* captureReadToken（VersionedStateGuard.kt:62-63）原子读 generation；
-\* single-flight（57-61 行）同账号最多一个会话。
+\* single-flight（58-68 行）同账号最多一个会话。
 StartRefresh(acct) ==
   /\ Cardinality(sessions) < MaxSessions
   /\ nextVer <= 4   \* 状态数控制：数据版本有界化（版本新鲜度与 epoch 语义正交）
@@ -71,25 +71,28 @@ StartRefresh(acct) ==
                  commitHeld, maxSnapA, maxSnapB, maxPubGen, maxPubEditGen,
                  lastWriteSel, pubViolations>>
 
-\* provider I/O 完成 → 耐久层写（recordSuccess:158-174 / recordFailure:221）。
-\* 成功：快照追加（单调升）；失败：快照不动（recordFailure 只写 attempt——不变量③的机制）。
+\* provider I/O 完成 → 耐久层写（recordSuccess:147-190 / recordFailure:192-232）。
+\* 成功：快照追加（单调升）；失败：快照不动，会话携带的 ver 回退为当前 lastKnownGood
+\* （RefreshCoordinator.kt:199,225-230；recordFailure 只写 attempt——不变量③的机制）。
 FinishIO(s) ==
   /\ s \in sessions
   /\ s.phase = "io"
   /\ \E successOutcome \in BOOLEAN :
        /\ IF successOutcome
-          THEN IF s.account = "A"
-               THEN /\ snapA' = s.ver
-                    /\ maxSnapA' = Max({maxSnapA, s.ver})
-                    /\ snapB' = snapB
-                    /\ maxSnapB' = maxSnapB
-               ELSE /\ snapB' = s.ver
-                    /\ maxSnapB' = Max({maxSnapB, s.ver})
-                    /\ snapA' = snapA
-                    /\ maxSnapA' = maxSnapA
+          THEN /\ IF s.account = "A"
+                  THEN /\ snapA' = s.ver
+                       /\ maxSnapA' = Max({maxSnapA, s.ver})
+                       /\ snapB' = snapB
+                       /\ maxSnapB' = maxSnapB
+                  ELSE /\ snapB' = s.ver
+                       /\ maxSnapB' = Max({maxSnapB, s.ver})
+                       /\ snapA' = snapA
+                       /\ maxSnapA' = maxSnapA
+               /\ sessions' = (sessions \ {s}) \cup {[s EXCEPT !.phase = "durable"]}
           ELSE /\ snapA' = snapA /\ snapB' = snapB
                /\ maxSnapA' = maxSnapA /\ maxSnapB' = maxSnapB
-       /\ sessions' = (sessions \ {s}) \cup {[s EXCEPT !.phase = "durable"]}
+               /\ sessions' = (sessions \ {s}) \cup
+                              {[s EXCEPT !.phase = "durable", !.ver = SnapOf(s.account)]}
        /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, published,
                       commitHeld, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
 
@@ -175,8 +178,11 @@ EndEdit ==
   /\ UNCHANGED <<selected, sessions, nextVer, snapA, snapB, published, commitHeld,
                  maxSnapA, maxSnapB, maxPubGen, maxPubEditGen, lastWriteSel, pubViolations>>
 
-\* 编辑后的补偿重发（CurrentAccountQuotaStateRepublisher.kt:29-72 /
-\* Republishing* 系列）：commitSerialized 不做 epoch 校验，内容按重读耐久层。
+\* 编辑后的补偿重发（RepublishingAccountDeleteUseCase.kt:26-28、
+\* RepublishingNotificationPreferenceStore.kt:30-32、RepublishingQuotaHistoryClearUseCase.kt:27-29、
+\* ImmediateAccountQuotaAlertEvaluationRequester.kt:32-36）：commitSerialized 不做 epoch 校验，
+\* 重读当前耐久层。注：CurrentAccountQuotaStateRepublisher.kt:33,56-71（renameAccount 调用）
+\* 走的是 epoch 校验的 commitIfFresh，而非 commitSerialized；切号则由 HomeViewModel 刷新并触发 refresh。
 \* edit 帧的 capGen 记落地瞬间 gen（重发不携带历史捕获——它就是当前代的表达）。
 EditRepublish ==
   /\ ~editing
@@ -209,7 +215,9 @@ Spec == Init /\ [][Next]_vars
 InvRefreshNeverRegressesEdit ==
   published.kind = "refresh" => published.capGen >= maxPubEditGen
 
-\* ①b（观测水位，保留自初版）：呈现帧 gen 序不倒退。
+\* ①b（代数诊断恒等式，非防退化安全不变量——保留供观测，不列入 .cfg）：
+\*    gen 单调增且 maxPubGen = Max(历史 published.gen)，因此本式恒为真（tautology）。
+\*    真正检「旧帧覆盖已提交编辑帧」的是上方的 InvRefreshNeverRegressesEdit。
 InvEpochNeverOverwritesEdit == published.gen >= maxPubGen
 
 \* ② 旧账号晚返回不污染新账号（落地瞬间账号相符）：

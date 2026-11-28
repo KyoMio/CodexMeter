@@ -159,8 +159,8 @@ DeliverResponse(r) ==
                  staleDiscarded, cfMitigatedLoop, storedSession, startedValid, everValid,
                  hadValidOnCommit, consumed, verifyActive, verifyCount>>
 
-\* R1③：被顶掉/取消的旧 poll 响应照常交付（ProviderHttpClient.kt:35-50
-\* OkHttp execute() 不响应协程取消）。交付独立于任何控制态。
+\* R1③：被顶掉/取消的旧 poll 响应照常交付（ProviderHttpClient.kt:79-99
+\* postJson() 中 OkHttp execute() 不响应协程取消）。交付独立于任何控制态。
 DeliverStaleResponse(r) ==
   /\ staleEpoch # EPOCHNIL
   /\ staleResp = RESPNIL
@@ -246,7 +246,7 @@ FailValidation ==
 \* commit 持锁写入（372-403 + RoomQuotaStores.kt:106-176）：
 \* Codex 版整个持久化在 stateMutex 内——写点不可与 cancel 交错（W2）。
 \* R1④：进入时快照「提交前有无合法会话」——回滚分支的选择依据
-\* （RoomQuotaStores.kt:139-146 previousEnvelope 读取）。
+\* （RoomQuotaStores.kt:139-143 previousEnvelope 读取）。
 CommitWrite ==
   /\ ctrl = "ReadyToValidate"
   /\ ctrl' = "CommitWrite"
@@ -265,11 +265,11 @@ CommitFinish ==
                  staleDiscarded, cfMitigatedLoop, startedValid, hadValidOnCommit,
                  consumed, verifyActive, verifyCount>>
 
-\* R1④：持久化失败回滚（RoomQuotaStores.kt:158-176 catch 分支）：
+\* R1④：持久化失败回滚（RoomQuotaStores.kt:158-173 catch 分支）：
 \* 有旧凭据 → 恢复旧凭据（rollback 后仍是 Valid）；
 \* 无旧凭据 → 删除本次新写入（rollback 后是 None）。
 \* ctrl 落 ValidationFailed——忠实 commitPreparedImport 失败落点
-\* （UseCase.kt:381-386 Result.Failure / :397-400 catch 均写 ValidationFailed）。
+\* （UseCase.kt:382-385 Result.Failure / :399-402 catch 均写 ValidationFailed）。
 CommitFailRollback ==
   /\ ctrl = "CommitWrite"
   /\ ctrl' = "ValidationFailed"

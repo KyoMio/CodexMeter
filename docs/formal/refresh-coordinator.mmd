@@ -22,15 +22,15 @@ stateDiagram-v2
     inEdit --> inEdit: SwitchSelection<br/>selected 翻转
     inEdit --> idle: EndEdit<br/>gen+1, inFlightEdits-1
     note right of inEdit
-      ★ 可在 writing 之前、
-      ValidateEpoch 之后插入——
+      ★ 可在 writing 态内（ValidateEpoch 之后、
+      WritePublish 之前）插入——
       InvNoCrossAccountPollution
       反例的来源交错
     end note
   }
-  state "补偿重发" as republish {
-    [*] --> ser
-    ser --> [*]: EditRepublish<br/>commitSerialized 不校验 epoch
+  state "补偿重发（Republishing*UseCase）" as republish {
+    [*] --> ready
+    ready --> ready: EditRepublish (~editing ∧ ~commitHeld)<br/>commitSerialized 不校验 epoch（可重复触发）
   }
   note left of session
     不变量①a：refresh 帧 capGen ≥ edit 帧水位

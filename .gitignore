@@ -117,3 +117,6 @@ tasks/
 
 # control-codexmeter verification run artifacts
 artifacts/cm-control/
+
+# TLC formal model checker state dumps
+docs/formal/states/

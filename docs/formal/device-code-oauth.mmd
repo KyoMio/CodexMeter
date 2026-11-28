@@ -2,6 +2,12 @@
 title: "Codex device-code 登录轮询（CM-7 R1）"
 ---
 stateDiagram-v2
+  classDef blue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e3a8a
+  classDef orange fill:#ffedd5,stroke:#ea580c,stroke-width:1.5px,color:#7c2d12
+  classDef teal fill:#ccfbf1,stroke:#0d9488,stroke-width:1.5px,color:#134e4a
+  classDef mayBreak fill:#fee2e2,stroke:#dc2626,stroke-width:2.5px,color:#7f1d1d
+  classDef bugPath fill:#fef3c7,stroke:#d97706,stroke-width:2.5px,color:#78350f
+
   state "Legend" as legend {
     lg0: active
     lg1: terminal
@@ -41,13 +47,15 @@ stateDiagram-v2
   s4 --> s1: 重新开始
   s5 --> s1: 重新开始
   s6 --> s1: R1③验证/轮询中重进<br/>旧poll移交stale槽
-  s6 --> s2: pending/transient 回等待
+  s6 --> s2: pending/transient/cfMitigated(bugPath) 回等待
+  s6 --> s3: 用户取消（在飞poll移交stale槽）
   s6 --> s4: cf标记/fatal 终结
   s6 --> s7: success 进入校验
   s7 --> s1: R1③验证中重进
   s7 --> s3: 用户取消
   s7 --> s8: 校验通过
   s7 --> s9: 校验失败
+  s8 --> s1: R1③待落库期间重进StartLogin
   s8 --> s3: 用户取消
   s8 --> s10: CommitWrite(持锁)
   s9 --> s1: 重新开始
@@ -59,19 +67,19 @@ stateDiagram-v2
   s6 --> s12: 取消/顶掉时在飞poll移交
   s12 --> s12: 迟到响应交付
   s12 --> [*]: ProcessStaleResponse<br/>isLatestLocked失败一字不写
-  class s0 blue
-  class s1 blue
-  class s2 blue
-  class s6 blue
+  class s0 bugPath
+  class s1 bugPath
+  class s2 bugPath
+  class s6 mayBreak
   class s7 blue
   class s8 blue
   class s9 blue
   class s10 blue
+  class s12 blue
   class s3 orange
   class s4 orange
   class s5 orange
   class s11 teal
-  class s12 mayBreak
   note right of s6
     ★ 命门（CM-7 finding，CM-8 修复）：
     body 无标记的 cf-mitigated 403

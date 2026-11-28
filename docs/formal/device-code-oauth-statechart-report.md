@@ -1,26 +1,20 @@
 # DeviceCodeOAuth
 
-TLC reached 216 states and 672 steps. The chart draws 12 states and 26 arrows.
-The chart does not draw 285 steps that stay in one chart state.
+Model checked with `tlc -deadlock` using bounded `MaxEpoch = 2`.
+`-deadlock` is required for the bounded model because `MaxEpoch = 2` caps `StartLogin` re-entry, and `VerifySuccess` leaves `consumed = TRUE, verifyCount = 0` (the intended terminal post-success WebView state).
 
-## InvCfBlockedTerminates breaks
-The shortest path has 5 steps:
-0. 未开始
-1. 用户点登录: 申请设备码
-2. 拿到设备码: 等待用户授权
-3. 发起一次轮询: 轮询在飞
-4. 响应送达: 轮询在飞
-5. 轮询响应返回: 等待用户授权
+On `DeviceCodeOAuth-pass.cfg`, TLC explored **12,026** generated states (**2,970** distinct states, **0** left on queue) to search depth **24** and exited **0**.
+The companion diagram `device-code-oauth.mmd` draws **13 states** (`s0`–`s12`, plus 5 legend entries) and **34 arrows** (32 inter-state transitions plus `[*] --> s0` and `s12 --> [*]`).
 
-## NoDeadlock breaks
-The shortest path has 6 steps:
-0. 未开始
-1. 用户点登录: 申请设备码
-2. 用户取消: 已取消
-3. 用户点登录: 申请设备码
-4. 设备码申请失败: 已失败
-5. 提交凭据: 已失败
-6. 校验成功: 已失败
+## Rules that hold (`DeviceCodeOAuth-pass.cfg`)
+`TypeOK`, `InvNoDuplicateSubmit`, `InvSessionPreserved`
 
-## Rules that hold
-TypeOK, InvNoDuplicateSubmit, InvSessionPreserved
+## Rules that break (known findings)
+- **`InvCfBlockedTerminates`** (`DeviceCodeOAuth-finding.cfg`, exit **12** -> tracked as **CM-8**):
+  Cloudflare `cf-mitigated` 403 challenges without body markers (`cf-chl` / `__cf_chl` / `just a moment`) are routed to `Result.Pending` in `CodexDeviceCodeClient.kt:114-121` and return to `Awaiting` instead of terminating in `Failed`. Shortest counterexample (6 states / 5 transitions; 7 states when `StartLogin` re-enters once under multi-worker search):
+  1. `Init`: `ctrl = "Idle"` (`s0`)
+  2. `StartLogin`: `ctrl = "Requesting"` (`s1`)
+  3. `CompleteRequestDeviceCode`: `ctrl = "Awaiting"` (`s2`)
+  4. `StartPoll`: `ctrl = "PollFlight"` (`s6`)
+  5. `DeliverResponse("cfMitigated")`: `ctrl = "PollFlight"`, `inFlightResp = "cfMitigated"` (`s6`)
+  6. `ProcessResponse`: returns to `ctrl = "Awaiting"` (`s2`) with `cfMitigatedLoop = TRUE` -> violates `InvCfBlockedTerminates`.
