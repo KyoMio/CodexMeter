@@ -114,6 +114,38 @@ class CodexDeviceCodeLoginUseCaseTest {
     }
 
     @Test
+    fun `blocked poll terminates into failed state with visible message`() = runTest {
+        // CM-8 终态验收：cf 质询被终结后，轮询不得静默继续——
+        // 状态机必须落 Failed 终态并携带用户可见的 blocked 文案键。
+        val deviceClient = RecordingDeviceCodeClient(
+            requestResults = ArrayDeque(listOf(CodexDeviceCodeClient.Result.Success(challenge()))),
+            pollResults = ArrayDeque(
+                listOf(
+                    CodexDeviceCodeClient.Result.Failure(
+                        QuotaError.Network(
+                            diagnosticsDigest = "codex_device_authorization_blocked",
+                            safeMessageKey = "error_login_blocked",
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val useCase = newUseCase(deviceClient = deviceClient)
+
+        useCase.startLogin()
+        val state = useCase.pollLatest()
+
+        assertEquals(
+            CodexDeviceCodeLoginState.Failed(
+                attemptId = DeviceCodeLoginAttemptId("attempt-1"),
+                safeMessageKey = "error_login_blocked",
+            ),
+            state,
+        )
+        assertEquals(state, useCase.currentState)
+    }
+
+    @Test
     fun `transient network failure while polling keeps awaiting state for next poll`() = runTest {
         val deviceClient = RecordingDeviceCodeClient(
             requestResults = ArrayDeque(listOf(CodexDeviceCodeClient.Result.Success(challenge()))),

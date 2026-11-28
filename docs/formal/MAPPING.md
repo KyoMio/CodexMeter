@@ -30,7 +30,7 @@
 | `StartLogin`（R1 ③扩门控） | `providers/codex/auth/CodexDeviceCodeLoginUseCase.kt:121-134` | ★ R1 修正：**生产没有任何状态门控**——无条件覆盖 activeAttempt（`:126-129`）、`pollInFlightAttemptId=null`（`:130`），申请中/轮询中/验证中重进全部合法。初版只允许空闲/终态/校验失败启动是抽象错误，导致旧轮询晚到分支不可达（御史 `oauth-stale-reachable/run.log` 216 状态无一携带旧代次）。修正后唯一约束是 CommitWrite 持锁期间不可进（stateMutex 同构）。 |
 | `DeliverStaleResponse` / `ProcessStaleResponse`（R1 新增） | 交付机制：`core/network/ProviderHttpClient.kt:79-99` `postJson()` 中 OkHttp `execute()`（`:93-98`）不响应协程取消；丢弃机制：六个 `isLatestLocked` 写点复查 `:188-193, 201-206, 211-213, 266-268, 290-292, 342-345` | ★ 生产真实路径：被顶掉/取消的旧 poll 协程继续跑完，响应回来后重新抢 stateMutex，所有写点因代次不符跳过，**一字不写**。模型用独立 stale 槽位建模，`staleDiscarded` 计数佐证可达（见证轨迹：StartLogin→…→StartPoll→StartLogin(顶掉)→DeliverStaleResponse→ProcessStaleResponse，7 步）。单槽位折叠声明：多孤儿观察等价（都只会被丢弃），见文件头。 |
 | `StartPoll` / `ExpireAtPollEntry` | `:167-182` 入口；`pollInFlightAttemptId` 重入锁 `:170-172`；过期判 `:173-178` | W5：过期只在入口判。折叠调度时序不影响安全不变量。 |
-| `ProcessResponse` fresh 分流 | `providers/codex/auth/CodexDeviceCodeClient.kt:114-138` | ★ 命门不变：`cfMitigated → Result.Pending`（`:114-121`，`isCloudflareChallengeBody` 只查 body 三标记 `:332`，`docs/plans/2026-10-25-issue5-fixes-plan.md:44` 明确不做 header 检测）。不变量①反例保留，修复归 CM-8。 |
+| `ProcessResponse` fresh 分流 | `providers/codex/auth/CodexDeviceCodeClient.kt` | ★ **CM-8 已修复**：`isCloudflareChallenge` 双通道检测（`cf-mitigated` 响应头 + body 三标记），命中任何 cf 质询即终结进 Failed（`cloudflareBlockedError`）。规约从「忠实缺陷现状」翻转为「忠实修复后行为」——`cfMitigated → Failed`，不变量①翻绿（见 §五 CM-8 验收）。CM-7 时期的 Pending 分流已死。 |
 | `CompleteValidation` / `FailValidation` | 成功 `:307-316, 342-347`；失败 `:358-364` | W8：ValidationFailed 驻留可重试。 |
 | `CommitWrite` | `commitPreparedImport` `:372-403`（stateMutex 内）；持久化 `data/repository/RoomQuotaStores.kt:127-176` | ★ R1 ④：进入时快照 `hadValidOnCommit`——对照生产 `:139-143` 写入前读取 `previousSelection` / `previousEnvelope`。 |
 | `CommitFinish` | 成功路径：`RoomQuotaStores.kt:146-157` 三段写入完成 | 覆盖式写 Valid——覆盖不是删除。 |
@@ -72,3 +72,11 @@
 11. **stale 响应单槽位**：第二个孤儿覆盖第一个（观察等价：都只会被丢弃）；多孤儿独立代次未展开。
 12. **write 挂起 lambda 内部的更细粒度交错**：模型粒度为「校验/生效」两段式；生效段内部编辑再插入不新增可观测维度（帧内容在授权时刻已冻结）。
 13. **`InvEpochNeverOverwritesEdit` 代数恒等式**：因 `gen` 单调且 `maxPubGen` 记历史最大值，`published.gen >= maxPubGen` 恒为真（tautology），仅保留在 `RefreshCoordinator.tla` 作观测注解，不列入 `.cfg`。
+
+
+## 五、CM-8 验收同步（2026-11-28）
+
+- **实现修复**：`CodexDeviceCodeClient` 新增 `isCloudflareChallenge(headers, body)` 双通道检测；`ProviderHttpResponse` 透传 response headers（键小写化）。403/404 分流、非 2xx 分支、requestDeviceCode 分支三处统一改用。
+- **TLA+ 同步结果**：`DeviceCodeOAuth-finding.cfg`（含不变量①）修复后 exit 0——**反例消失翻绿**，1491 distinct / 深度 21。回滚变异（cfMitigated 改回 Pending）复红 exit 12，证明翻绿不是「路径变死」而是「终结行为真实生效」。
+- **普通 403 显式语义**（测试钉死）：无 cf 质询特征的 403/404 保持 Pending（部分服务端部署以此承载 authorization_pending）；任何 cf 特征终结。`CodexDeviceCodeClientTest` 六场景钉死。
+- 变异回归：rollback-delete / cancel-delete / no-consumed 三个变异在修复后规约下仍全部被抓。

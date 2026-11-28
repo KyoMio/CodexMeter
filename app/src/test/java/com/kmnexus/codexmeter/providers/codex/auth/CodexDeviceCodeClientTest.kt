@@ -246,6 +246,106 @@ class CodexDeviceCodeClientTest {
         )
     }
 
+
+    @Test
+    fun `poll 403 cf-mitigated header without body markers fails blocked`() = runTest {
+        // CM-8 命门场景：Cloudflare 质询以 cf-mitigated 响应头为特征、
+        // body 不含 cf-chl/__cf_chl/just a moment 三标记——修复前走 Pending 静默轮询。
+        server.enqueue(
+            MockResponse.Builder()
+                .code(403)
+                .addHeader("cf-mitigated", "challenge")
+                .body("synthetic empty challenge body")
+                .build(),
+        )
+        val client = newClient()
+
+        val result = client.pollAuthorization(sampleChallenge())
+
+        assertBlockedFailure(
+            result = result,
+            diagnosticsDigest = "codex_device_authorization_blocked",
+        )
+    }
+
+    @Test
+    fun `poll 403 cf-mitigated header any value fails blocked`() = runTest {
+        server.enqueue(
+            MockResponse.Builder()
+                .code(403)
+                .addHeader("cf-mitigated", "interactive")
+                .body("synthetic empty challenge body")
+                .build(),
+        )
+        val client = newClient()
+
+        val result = client.pollAuthorization(sampleChallenge())
+
+        assertBlockedFailure(
+            result = result,
+            diagnosticsDigest = "codex_device_authorization_blocked",
+        )
+    }
+
+    @Test
+    fun `poll plain 403 without cf signals stays pending`() = runTest {
+        // 普通 403（无 cf-mitigated 头、body 无 cf 标记）钉死的显式语义：
+        // 服务端在部分部署上用 403 表达 authorization_pending——保持 Pending，
+        // 但仅在 body 是 pending 形 JSON 或可判定的服务端 pending 文本时。
+        // 无任何特征说明的 403 见下一条。
+        server.enqueue(
+            MockResponse.Builder()
+                .code(403)
+                .body("""{"error":"authorization_pending"}""")
+                .build(),
+        )
+        val client = newClient()
+
+        val result = client.pollAuthorization(sampleChallenge())
+
+        assertTrue(result is CodexDeviceCodeClient.Result.Pending)
+    }
+
+    @Test
+    fun `request 403 cf-mitigated header fails blocked`() = runTest {
+        server.enqueue(
+            MockResponse.Builder()
+                .code(403)
+                .addHeader("cf-mitigated", "challenge")
+                .body("synthetic empty challenge body")
+                .build(),
+        )
+        val client = newClient()
+
+        val result = client.requestDeviceCode()
+
+        assertBlockedFailure(
+            result = result,
+            diagnosticsDigest = "codex_device_code_blocked",
+        )
+    }
+
+    @Test
+    fun `poll 503 cf-mitigated header fails blocked`() = runTest {
+        // cf-mitigated 质询也可能以 503 承载（挑战平台惯例）——
+        // header 检测与状态码无关，任何 cf 质询都必须终结。
+        server.enqueue(
+            MockResponse.Builder()
+                .code(503)
+                .addHeader("cf-mitigated", "challenge")
+                .body("synthetic empty challenge body")
+                .build(),
+        )
+        val client = newClient()
+
+        val result = client.pollAuthorization(sampleChallenge())
+
+        assertBlockedFailure(
+            result = result,
+            diagnosticsDigest = "codex_device_authorization_blocked",
+        )
+    }
+
     @Test
     fun `poll 400 deviceauth authorization pending maps to pending`() = runTest {
         server.enqueue(

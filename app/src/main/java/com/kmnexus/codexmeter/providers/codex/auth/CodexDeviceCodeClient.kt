@@ -61,7 +61,7 @@ class CodexDeviceCodeClient(
         return when (response.statusCode) {
             in SUCCESS_STATUS_RANGE -> decodeDeviceCodeChallenge(response.body)
             else -> {
-                if (isCloudflareChallengeBody(response.body)) {
+                if (isCloudflareChallenge(response.headers, response.body)) {
                     Result.Failure(cloudflareBlockedError(diagnosticsDigest = "codex_device_code_blocked"))
                 } else {
                     Result.Failure(
@@ -112,11 +112,14 @@ class CodexDeviceCodeClient(
         }
 
         if (response.statusCode == HTTP_FORBIDDEN || response.statusCode == HTTP_NOT_FOUND) {
-            if (isCloudflareChallengeBody(response.body)) {
+            if (isCloudflareChallenge(response.headers, response.body)) {
                 return Result.Failure(
                     cloudflareBlockedError(diagnosticsDigest = "codex_device_authorization_blocked"),
                 )
             }
+            // 显式语义（CM-8 钉死）：普通 403/404（无 cf 质询特征）保持 Pending——
+            // 部分服务端部署以 403/404 承载 authorization_pending。这是有文档依据的
+            // 兼容行为，不是静默兜底：任何 cf 质询特征都在上面被终结。
             return Result.Pending
         }
 
@@ -124,7 +127,7 @@ class CodexDeviceCodeClient(
             in SUCCESS_STATUS_RANGE -> decodeAuthorization(response.body)
             else -> {
                 when {
-                    isCloudflareChallengeBody(response.body) -> Result.Failure(
+                    isCloudflareChallenge(response.headers, response.body) -> Result.Failure(
                         cloudflareBlockedError(diagnosticsDigest = "codex_device_authorization_blocked"),
                     )
                     isPendingStatusBody(response.body) -> Result.Pending
@@ -259,6 +262,20 @@ class CodexDeviceCodeClient(
         return CLOUDFLARE_CHALLENGE_MARKERS.any { marker -> marker in loweredBody }
     }
 
+    /**
+     * CM-8: Cloudflare signals an active challenge with the `cf-mitigated` response header even
+     * when the body carries none of the HTML markers (e.g. empty-body managed challenges). Such a
+     * response must terminate the flow — treating it as authorization_pending polls silently
+     * until device-code expiry (up to 15 minutes). Header names are case-insensitive per HTTP;
+     * [com.kmnexus.codexmeter.core.network.ProviderHttpResponse] already lower-cases them.
+     * Detection is status-code agnostic: the challenge platform may answer with 403 or 503.
+     */
+    private fun hasCloudflareMitigatedHeader(headers: Map<String, String>): Boolean =
+        headers.containsKey(CF_MITIGATED_HEADER)
+
+    private fun isCloudflareChallenge(headers: Map<String, String>, body: String): Boolean =
+        hasCloudflareMitigatedHeader(headers) || isCloudflareChallengeBody(body)
+
     private fun cloudflareBlockedError(diagnosticsDigest: String): QuotaError =
         QuotaError.Network(
             diagnosticsDigest = diagnosticsDigest,
@@ -329,6 +346,7 @@ class CodexDeviceCodeClient(
         private const val HTTP_NOT_FOUND = 404
         private val SUCCESS_STATUS_RANGE = 200..299
         private const val LOGIN_BLOCKED_MESSAGE_KEY = "error_login_blocked"
+        private const val CF_MITIGATED_HEADER = "cf-mitigated"
         private val CLOUDFLARE_CHALLENGE_MARKERS = listOf("cf-chl", "__cf_chl", "just a moment")
         private val PENDING_STATUSES = setOf(
             "authorization_pending",

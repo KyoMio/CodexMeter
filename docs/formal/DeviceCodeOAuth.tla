@@ -41,10 +41,12 @@ TERMINAL == {"Failed", "Expired", "Cancelled", "Saved"}
 \*   pending      —— authorization_pending / 403·404 但 body 无 cf 标记
 \*   transient    —— IOException 类网络抖动（回 Awaiting）
 \*   cfMarker     —— body 命中 cf-chl/__cf_chl/just a moment（任何状态码）→ Failed
-\*   cfMitigated  —— Cloudflare cf-mitigated 质询但 body 不含三标记——
-\*                  ★ 命门：实现里它走 403 分流的 Result.Pending 继续轮询
-\*                  （CodexDeviceCodeClient.kt:114-121），docs/plans 明确不做
-\*                  header 检测。模型按实现如实建模，不变量①给出反例。
+\*   cfMitigated  —— Cloudflare cf-mitigated 质询（header 或 body 特征）——
+\*                  CM-8 已修复：isCloudflareChallenge 双通道检测
+\*                  （CodexDeviceCodeClient.kt cf-mitigated header + body 三标记），
+\*                  命中即终结进 Failed（cloudflareBlockedError）。
+\*                  ★ CM-7 时期它走 403 分流 Result.Pending 继续轮询——
+\*                  不变量①反例来源；修复后该路径已死，模型同步翻转。
 \*   fatal        —— 其他非 2xx 终结
 \*   success      —— 拿到 authorization code
 Responses == {"pending", "transient", "cfMarker", "cfMitigated", "fatal", "success"}
@@ -202,12 +204,12 @@ ProcessResponse ==
                /\ ui' = "AwaitingUserAuthorization"
                /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE IF r = "cfMitigated"
-          THEN \* ★ 按实现如实建模：body 无标记的 cf 质询走 403 分流的
-               \* Result.Pending（CodexDeviceCodeClient.kt:114-121）——回 Awaiting
-               \* 继续轮询，而非终结。影子标记：cf 类封锁响应未终结。
-               /\ ctrl' = "Awaiting"
-               /\ ui' = "AwaitingUserAuthorization"
-               /\ cfMitigatedLoop' = TRUE
+          THEN \* CM-8 修复后：cf-mitigated 质询（任何状态码、header 或 body
+               \* 特征）立即终结进 Failed——isCloudflareChallenge 双通道检测。
+               \* cfMitigatedLoop 影子永不置位（置位即未终结，修复后无此路径）。
+               /\ ctrl' = "Failed"
+               /\ ui' = "Failed"
+               /\ cfMitigatedLoop' = cfMitigatedLoop
           ELSE IF r = "cfMarker"
           THEN \* body 命中 cf 标记：立即终结（cloudflareBlockedError → 195-198）
                /\ ctrl' = "Failed"

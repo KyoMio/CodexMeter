@@ -14,6 +14,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 data class ProviderHttpResponse(
     val statusCode: Int,
     val body: String,
+    /** Response header names lower-cased (HTTP header names are case-insensitive). */
+    val headers: Map<String, String> = emptyMap(),
 )
 
 class ProviderHttpClient(
@@ -45,6 +47,7 @@ class ProviderHttpClient(
                 ProviderHttpResponse(
                     statusCode = response.code,
                     body = response.body.string(),
+                    headers = response.headers.toMap().mapKeys { (name, _) -> name.lowercase() },
                 )
             }
         }
@@ -72,6 +75,7 @@ class ProviderHttpClient(
                 ProviderHttpResponse(
                     statusCode = response.code,
                     body = response.body.string(),
+                    headers = response.headers.toMap().mapKeys { (name, _) -> name.lowercase() },
                 )
             }
         }
@@ -94,6 +98,7 @@ class ProviderHttpClient(
                 ProviderHttpResponse(
                     statusCode = response.code,
                     body = response.body.string(),
+                    headers = response.headers.toMap().mapKeys { (name, _) -> name.lowercase() },
                 )
             }
         }
