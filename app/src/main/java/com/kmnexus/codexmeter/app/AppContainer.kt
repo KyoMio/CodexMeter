@@ -62,6 +62,7 @@ import com.kmnexus.codexmeter.notification.AndroidNotificationSink
 import com.kmnexus.codexmeter.notification.AccountErrorEventReader
 import com.kmnexus.codexmeter.notification.AccountErrorPolicy
 import com.kmnexus.codexmeter.notification.CurrentQuotaNotificationPublisher
+import com.kmnexus.codexmeter.notification.NotificationAccountTargetResolver
 import com.kmnexus.codexmeter.notification.NotificationPreferenceAlertThresholdsReader
 import com.kmnexus.codexmeter.notification.NotificationPreferenceQuotaAlertWindowReader
 import com.kmnexus.codexmeter.providers.SessionImportRouter
@@ -278,6 +279,13 @@ class AppContainer private constructor(
                 exchangeRateReader = exchangeRateRepository,
                 clock = clock,
             )
+            // CM-10: one shared resolver — the loader builds content from it and the publisher
+            // validates against the same implementation at the posting boundary.
+            val notificationTargetResolver = NotificationAccountTargetResolver(
+                notificationPreferenceReader = notificationPreferences,
+                providerAccountDao = database.providerAccountDao(),
+                currentAccountReader = currentAccountPreferences,
+            )
             val currentQuotaStateRepository = CurrentQuotaStateRepository(
                 currentAccountReader = currentAccountPreferences,
                 providerAccountDao = database.providerAccountDao(),
@@ -289,6 +297,7 @@ class AppContainer private constructor(
                 clock = clock,
                 currencyPreferenceReader = currencyPreferences,
                 exchangeRateReader = exchangeRateRepository,
+                notificationTargetResolver = notificationTargetResolver,
             )
             val accountErrorPolicy = AccountErrorPolicy()
 
@@ -521,6 +530,7 @@ class AppContainer private constructor(
                                 notificationPreferenceReader = notificationPreferences,
                             ),
                             statusNotificationStateLoader = currentQuotaStateRepository,
+                            notificationTargetResolver = notificationTargetResolver,
                             accountErrorEventReader = AccountErrorEventReader { state ->
                                 val account = state.account
                                 val consecutiveFailureCount = if (account == null) {

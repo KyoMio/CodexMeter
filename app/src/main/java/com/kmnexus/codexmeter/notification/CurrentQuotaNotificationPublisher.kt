@@ -24,6 +24,7 @@ class CurrentQuotaNotificationPublisher(
         PrimaryQuotaAlertWindowPreferenceReader,
     private val statusNotificationStateLoader: StatusNotificationStateLoader =
         PassthroughStatusNotificationStateLoader,
+    private val notificationTargetResolver: NotificationAccountTargetResolver? = null,
     private val accountErrorEventReader: AccountErrorEventReader = NoopAccountErrorEventReader,
     private val clock: Clock,
     private val currencyPreferenceReader: CurrencyPreferenceReader = NoopCurrencyPreferenceReader,
@@ -42,6 +43,14 @@ class CurrentQuotaNotificationPublisher(
             return
         }
         val statusState = statusNotificationStateLoader.loadStatusNotificationState(refreshedState = state)
+        // CM-10: re-resolve the notification target immediately before posting. Loading the
+        // status state above is a suspendable chain, and an account switch can complete while it
+        // is in flight — the epoch guard clears the write, but the notification content is
+        // re-targeted at the selection, so validation alone cannot see the drift. Dropping here
+        // is safe: the switch's own republish posts the correct target right after.
+        if (!notificationTargetMatchesSelection(statusState)) {
+            return
+        }
         val statusRequests = orchestrator.buildRequests(
             state = statusState,
             options = options.copy(
@@ -50,6 +59,22 @@ class CurrentQuotaNotificationPublisher(
             ),
         )
         statusRequests.forEach(notificationSink::post)
+    }
+
+    /**
+     * CM-10 drop-if-mismatch guard: compares the account the loaded state was built for against
+     * the target resolved fresh at the posting boundary. A null resolver keeps legacy behavior
+     * (tests wiring publishers without a selection store). When the target disappears entirely
+     * (account deleted), the notification is likewise stale content for a gone account — dropped;
+     * the deletion republish path cancels the notification on its own.
+     */
+    private suspend fun notificationTargetMatchesSelection(state: CurrentQuotaState): Boolean {
+        val resolver = notificationTargetResolver ?: return true
+        val target = resolver.resolveTargetSelection()
+        val stateAccount = state.account ?: return target == null
+        return target != null &&
+            target.providerId == stateAccount.providerId &&
+            target.localAccountId == stateAccount.localAccountId
     }
 
     /**

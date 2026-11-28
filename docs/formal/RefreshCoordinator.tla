@@ -125,12 +125,16 @@ ValidateEpoch(s) ==
                  lastWriteSel, pubViolations>>
 
 \* 生效时刻：write 执行（validated=TRUE）或丢弃（FALSE），随后释放锁。
-\* ★ 校验与落地之间不重查——忠实 commitIfFresh 只在授权时刻校验一次的实现。
+\* ★ 校验与落地之间不重查 epoch——忠实 commitIfFresh 只在授权时刻校验一次的实现。
+\* ★ CM-10：但落地前有一道独立的 target-recheck（生产
+\*   CurrentQuotaNotificationPublisher.notificationTargetMatchesSelection）——
+\*   呈现帧的内容按通知目标账号重载，落地瞬间目标已漂移则整帧弃发。
+\*   因此落地帧的 src 恒等于落地瞬间的 selected（重核通过才会落地）。
 \* 帧的 capGen 记捕获 epoch（R1 ①修正）；gen 记落地瞬间世界 gen（呈现序观测）。
 WritePublish(s) ==
   /\ s \in sessions
   /\ s.phase = "writing"
-  /\ IF s.validated
+  /\ IF s.validated /\ (s.account = selected)
      THEN /\ published' = [src |-> s.account, ver |-> s.ver, kind |-> "refresh",
                            gen |-> gen, capGen |-> s.epochGen]
           /\ maxPubGen' = Max({maxPubGen, gen})
@@ -139,7 +143,7 @@ WritePublish(s) ==
      ELSE /\ published' = published
           /\ maxPubGen' = maxPubGen
           /\ lastWriteSel' = lastWriteSel
-          /\ pubViolations' = pubViolations + 1   \* 拦截计数：证明丢弃路径真实存在
+          /\ pubViolations' = pubViolations + 1   \* 拦截计数（epoch 校验失败或 CM-10 目标漂移弃发）
   /\ commitHeld' = FALSE
   /\ sessions' = sessions \ {s}
   /\ UNCHANGED <<gen, inFlightEdits, selected, editing, nextVer, snapA, snapB,
@@ -222,8 +226,8 @@ InvEpochNeverOverwritesEdit == published.gen >= maxPubGen
 
 \* ② 旧账号晚返回不污染新账号（落地瞬间账号相符）：
 \*    refresh 帧落地瞬间其出处账号必等于当时的 selected。
-\*    R1 ②拆步后本性质与①分离报告——校验通过后 SwitchSelection 可插入
-\*    生效时刻之前，「校验时相符」不再蕴含「落地时相符」。
+\*    CM-10 修复后：target-recheck 使落地帧 src 恒等于落地瞬间 selected——
+\*    本性质由「重核机制」而非「校验-落地原子性」保证，应翻绿。
 InvNoCrossAccountPollution ==
   published.kind = "refresh" => published.src = lastWriteSel
 
