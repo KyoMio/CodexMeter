@@ -96,12 +96,15 @@ class Cm10R3LateWriteTest {
                     },notificationTargetResolver=resolver,notificationTargetBoundary=boundary,clock=clock)
                 val atProvider = CompletableDeferred<Unit>()
                 val provider = object: SessionImporter {
-                    override suspend fun importFromApiKey(apiKey: String,account: ProviderAccount,apiBaseUrl: String?): Result<QuotaSnapshot> {
+                    override suspend fun importFromApiKey(apiKey: String,account: ProviderAccount,apiBaseUrl: String?): Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> {
                         atProvider.complete(Unit); resumeRelogin.await()
-                        return Result.success(FixtureAccounts.snapshot(localAccountId="A",snapshotId="renewed").copy(providerId=aProvider).toDomain())
+                        return Result.success(com.kmnexus.codexmeter.providers.ValidatedSessionImport(
+                            FixtureAccounts.snapshot(localAccountId="A",snapshotId="renewed").copy(providerId=aProvider).toDomain(),
+                            ProviderSessionEnvelope(aProvider,"A",null,1,byteArrayOf(1),byteArrayOf(2),"now","now"),
+                        ))
                     }
-                    override suspend fun importFromCookie(cookieJson:String,account:ProviderAccount):Result<QuotaSnapshot> = error("unused")
-                    override suspend fun importFromOAuthPkce(code:String,verifier:String,redirectUri:String,account:ProviderAccount):Result<QuotaSnapshot> = error("unused")
+                    override suspend fun importFromCookie(cookieJson:String,account:ProviderAccount):Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> = error("unused")
+                    override suspend fun importFromOAuthPkce(code:String,verifier:String,redirectUri:String,account:ProviderAccount):Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> = error("unused")
                 }
                 val login = SessionLoginUseCase(SessionImportRouter(mapOf(ProviderId(aProvider) to provider)),db,db.providerAccountDao(),
                     db.quotaSnapshotDao(),store,guard,clock, boundary)
@@ -151,7 +154,7 @@ class Cm10R3LateWriteTest {
                         }
                         RoomCodexSessionImportPersistence(db,ss,store,guard,notificationTargetBoundary=boundary).save(
                             b.toDomain(),ProviderSessionEnvelope("codex","B","acct-B",1,byteArrayOf(1),byteArrayOf(2),"now","now"),
-                            FixtureAccounts.snapshot(localAccountId="B",snapshotId="import-B").toDomain())
+                            FixtureAccounts.snapshot(localAccountId="B",snapshotId="import-B").toDomain(),allowNewRow=true)
                     }
                     Case.DELETE -> async(Dispatchers.IO) { deleteA() }
                     Case.ROLLBACK -> { resumeDeletion.complete(Unit); earlyDelete!! }

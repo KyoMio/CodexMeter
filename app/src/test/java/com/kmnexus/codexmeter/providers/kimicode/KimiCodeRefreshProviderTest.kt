@@ -158,7 +158,6 @@ class KimiCodeSessionImporterTest {
 
     private fun importer() = com.kmnexus.codexmeter.providers.kimicode.auth.KimiCodeSessionImporter(
         usageClient = KimiCodeUsageClient(ProviderHttpClient()),
-        sessionStore = sessionStore,
         payloadCipher = PassthroughPayloadCipher(),
         clock = clock,
     )
@@ -173,32 +172,37 @@ class KimiCodeSessionImporterTest {
     }
 
     @Test
-    fun failedValidationDoesNotPersistSession() = runTest {
+    fun failedValidationYieldsNoImportToCommit() = runTest {
         server.enqueue(MockResponse.Builder().code(401).body("").build())
 
         val result = importer().importFromApiKey("test-key", account(), apiBaseUrl = null)
 
         assertTrue(result.isFailure)
+        // CM-10 R4: importers never write the session store themselves; a failure simply
+        // produces nothing for the caller to commit.
         assertEquals(null, sessionStore.load("kimi_code", "local-1"))
     }
 
     @Test
-    fun successfulImportPersistsEnvelopeWithChosenBaseUrl() = runTest {
+    fun successfulImportReturnsEnvelopeWithChosenBaseUrl() = runTest {
         okEnqueue()
         val chosenBase = server.url("/").toString()
 
         val result = importer().importFromApiKey("test-key", account(), apiBaseUrl = chosenBase)
 
         assertTrue(result.isSuccess)
-        val envelope = sessionStore.load("kimi_code", "local-1")
-        assertNotNull(envelope)
-        assertEquals("kimi_code", envelope!!.providerId)
+        // CM-10 R4: the importer returns the encrypted envelope for the caller to commit
+        // inside the shared boundary — it is NOT written to the store here.
+        assertEquals(null, sessionStore.load("kimi_code", "local-1"))
+        val validated = result.getOrThrow()
+        val envelope = validated.sessionEnvelope
+        assertEquals("kimi_code", envelope.providerId)
         val payload = Json.parseToJsonElement(
             PassthroughPayloadCipher().decrypt(envelope.payloadCiphertext, envelope.payloadNonce).decodeToString(),
         ).jsonObject
         assertEquals("test-key", payload["apiKey"]!!.jsonPrimitive.content)
         assertEquals(chosenBase, payload["apiBaseUrl"]!!.jsonPrimitive.content)
-        val snapshot = result.getOrThrow()
+        val snapshot = validated.snapshot
         assertEquals("kimi_code", snapshot.providerId.value)
         assertEquals(QuotaSnapshotSource.ApiKeyImport, snapshot.source)
     }

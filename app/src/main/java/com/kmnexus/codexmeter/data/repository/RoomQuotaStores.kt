@@ -109,6 +109,7 @@ class RoomCodexSessionImportPersistence(
         account: ProviderAccount,
         sessionEnvelope: ProviderSessionEnvelope,
         snapshot: QuotaSnapshot,
+        allowNewRow: Boolean,
     ): CodexSessionImporter.CommittedImport {
         stateGuard.beginEdit()
         try {
@@ -116,107 +117,165 @@ class RoomCodexSessionImportPersistence(
                 account = account,
                 sessionEnvelope = sessionEnvelope,
                 snapshot = snapshot,
+                allowNewRow = allowNewRow,
             )
         } finally {
             stateGuard.endEdit()
         }
     }
 
+    /**
+     * CM-10 R4 ordering protocol — same-account deletion vs late-arriving import writes.
+     *
+     * The commit is staged and decided in three parts, with every decision read and every
+     * committed write inside the shared notification-target boundary (the same boundary
+     * [com.kmnexus.codexmeter.data.repository.AccountDeletionRepository] serializes the destructive
+     * delete core through):
+     *
+     *  1. STAGE (outside the lock): the pre-validation identity match is read once, the
+     *     canonical identity derived from it, and the encrypted envelope is written to disk.
+     *     Staging outside the boundary is forced by the audit harness interleavings (a deletion
+     *     must be able to complete while the writer is suspended inside its own save) — the file
+     *     is therefore a REVERSIBLE staged write, and step 3 compensates it inside the lock.
+     *  2. DECIDE (inside the lock, one consistent read): re-read the identity match atomically
+     *     against deletion. [allowNewRow] carries the re-login intent through to persistence:
+     *      - re-login (allowNewRow=false): the matched row must still exist; gone → DISCARD.
+     *      - add (allowNewRow=true): a row matched at stage-time but gone now means the account
+     *        was deleted mid-validation → DISCARD (never resurrect it under a new id); a row
+     *        never seen at either read is a genuinely fresh identity → insert.
+     *     The matching flag and the committed identity come from THIS SAME read, never from two
+     *     independent queries.
+     *  3. COMMIT+COMPENSATE (inside the same critical section): selection write, then the Room
+     *     row + snapshot transaction. On failure, reverse only this operation's own writes —
+     *     previous states captured inside the lock. Because deletion serializes through the same
+     *     boundary, compensation can never overwrite a completed deletion; on discard, nothing
+     *     committed is ever restored.
+     */
     private suspend fun saveGuarded(
         account: ProviderAccount,
         sessionEnvelope: ProviderSessionEnvelope,
         snapshot: QuotaSnapshot,
+        allowNewRow: Boolean,
     ): CodexSessionImporter.CommittedImport {
-        val matchedExistingAccount = account.providerAccountId?.let {
+        // ---- STAGE (outside the boundary) ----
+        val preMatch = account.providerAccountId?.let {
             database.providerAccountDao().getByProviderAccountId(
                 providerId = account.providerId.value,
                 providerAccountId = it.value,
             )
-        } != null
-        val committedAccount = committedAccountFor(account)
-        val committedEnvelope = sessionEnvelope.copy(
-            localAccountId = committedAccount.localAccountId.value,
-            providerAccountId = committedAccount.providerAccountId?.value,
+        }
+        val stagedAccount = canonicalAccount(account, preMatch?.toDomain())
+        val stagedEnvelope = sessionEnvelope.copy(
+            localAccountId = stagedAccount.localAccountId.value,
+            providerAccountId = stagedAccount.providerAccountId?.value,
         )
-        val committedSnapshot = snapshot.copyForAccount(committedAccount)
-        val committed = CodexSessionImporter.CommittedImport(
-            account = committedAccount,
-            sessionEnvelope = committedEnvelope,
-            snapshot = committedSnapshot,
-        )
-        val previousSelection = currentAccountStore.currentAccountSelection()
         val previousEnvelope = sessionStore.load(
-            providerId = committed.sessionEnvelope.providerId,
-            localAccountId = committed.sessionEnvelope.localAccountId,
+            providerId = stagedEnvelope.providerId,
+            localAccountId = stagedEnvelope.localAccountId,
         )
+        // Staged write: reversible, compensated inside the boundary.
+        sessionStore.save(stagedEnvelope)
 
         try {
-            sessionStore.save(committed.sessionEnvelope)
-            // CM-10 R2: import re-selects the default account — the notification target moves
-            // (when the pin is dead/absent). Serialize against the posting boundary.
-            notificationTargetBoundary.serialize {
-                currentAccountStore.updateCurrentAccountSelection(
-                    CurrentAccountSelection(
-                        providerId = committed.account.providerId,
-                        localAccountId = committed.account.localAccountId,
-                    ),
-                )
-            }
-            // CM-10 R3: for RE-LOGIN imports the committed account carries an existing localAccountId.
-            // If that account was deleted while the credential was being validated, the upsert would
-            // resurrect the row — a persistence corruption, not just a wrong notification. Re-check
-            // inside the boundary: only update rows that are still alive; discard the late result
-            // otherwise. Fresh imports (new UUID id) are unaffected — a row cannot exist for them.
-            notificationTargetBoundary.serialize {
-                // 仅重登路径需要防复活：解析时匹配到既有行的导入，其 localAccountId 属于
-                // 已有账号——行在提交时消失即「在飞期间被删除」。全新导入没有既有行可匹配，
-                // 其 UUID 行从未存在，不构成复活。
-                val resurrecting = matchedExistingAccount &&
-                    database.providerAccountDao().getById(committed.account.localAccountId.value)
-                        ?.takeIf { !it.status.equals(com.kmnexus.codexmeter.domain.model.AccountStatus.Deleted.name, ignoreCase = true) } == null
-                if (resurrecting) {
-                    throw IllegalStateException(
-                        "Import discarded: account ${committed.account.localAccountId.value} was deleted while the credential was being validated",
+            return notificationTargetBoundary.serialize {
+                // ---- DECIDE (one consistent read inside the lock) ----
+                val nowMatch = account.providerAccountId?.let {
+                    database.providerAccountDao().getByProviderAccountId(
+                        providerId = account.providerId.value,
+                        providerAccountId = it.value,
                     )
-                }
-                database.withTransaction {
-                    database.providerAccountDao().upsert(committed.account.toEntity())
-                    beforeRoomCommit()
-                    database.quotaSnapshotDao().insert(committed.snapshot.toEntity())
-                }
-            }
-        } catch (throwable: Throwable) {
-            // CM-10 R2: rollback restores the target — serialize against posts.
-            runCatching {
-                notificationTargetBoundary.serialize {
-                    currentAccountStore.updateCurrentAccountSelection(previousSelection)
-                }
-            }
-            runCatching {
-                if (previousEnvelope == null) {
-                    sessionStore.delete(
-                        providerId = committed.sessionEnvelope.providerId,
-                        localAccountId = committed.sessionEnvelope.localAccountId,
-                    )
-                } else {
-                    sessionStore.save(previousEnvelope)
-                }
-            }
-            throw throwable
-        }
+                }?.takeIf { !it.status.equals(AccountStatus.Deleted.name, ignoreCase = true) }
 
-        return committed
+                val matchLostInFlight = preMatch != null &&
+                    (nowMatch == null || nowMatch.localAccountId != preMatch.localAccountId)
+                val discard = when {
+                    !allowNewRow && nowMatch == null -> true
+                    allowNewRow && matchLostInFlight -> true
+                    else -> false
+                }
+                if (discard) {
+                    // Compensate ONLY the staged write: never restore anything — the account is
+                    // deleted; restoring its old credential would resurrect it.
+                    runCatching {
+                        sessionStore.delete(
+                            providerId = stagedEnvelope.providerId,
+                            localAccountId = stagedEnvelope.localAccountId,
+                        )
+                    }
+                    throw IllegalStateException(
+                        "Import discarded: account ${stagedAccount.localAccountId.value} was deleted while the credential was being validated",
+                    )
+                }
+
+                val committedAccount = canonicalAccount(account, nowMatch?.toDomain())
+                val committedEnvelope = stagedEnvelope.copy(
+                    localAccountId = committedAccount.localAccountId.value,
+                    providerAccountId = committedAccount.providerAccountId?.value,
+                )
+                if (committedEnvelope.localAccountId != stagedEnvelope.localAccountId) {
+                    // Identity re-resolved between stage and decision (e.g. another import of the
+                    // same provider account committed first): re-key the staged write.
+                    sessionStore.delete(
+                        providerId = stagedEnvelope.providerId,
+                        localAccountId = stagedEnvelope.localAccountId,
+                    )
+                    sessionStore.save(committedEnvelope)
+                }
+                val committedSnapshot = snapshot.copyForAccount(committedAccount)
+                val committed = CodexSessionImporter.CommittedImport(
+                    account = committedAccount,
+                    sessionEnvelope = committedEnvelope,
+                    snapshot = committedSnapshot,
+                )
+                val previousSelection = currentAccountStore.currentAccountSelection()
+                var selectionWritten = false
+
+                // ---- COMMIT + COMPENSATE ----
+                try {
+                    currentAccountStore.updateCurrentAccountSelection(
+                        CurrentAccountSelection(
+                            providerId = committed.account.providerId,
+                            localAccountId = committed.account.localAccountId,
+                        ),
+                    )
+                    selectionWritten = true
+                    database.withTransaction {
+                        database.providerAccountDao().upsert(committed.account.toEntity())
+                        beforeRoomCommit()
+                        database.quotaSnapshotDao().insert(committed.snapshot.toEntity())
+                    }
+                } catch (throwable: Throwable) {
+                    if (selectionWritten) {
+                        runCatching {
+                            currentAccountStore.updateCurrentAccountSelection(previousSelection)
+                        }
+                    }
+                    runCatching {
+                        if (previousEnvelope == null) {
+                            sessionStore.delete(
+                                providerId = committedEnvelope.providerId,
+                                localAccountId = committedEnvelope.localAccountId,
+                            )
+                        } else {
+                            sessionStore.save(previousEnvelope)
+                        }
+                    }
+                    throw throwable
+                }
+
+                committed
+            }
+        } finally {
+            // The staged envelope outside the boundary is always reconciled inside the lock:
+            // discard deletes it, commit keeps it. Nothing further to do here.
+        }
     }
 
-    private suspend fun committedAccountFor(account: ProviderAccount): ProviderAccount {
-        val existingAccount = account.providerAccountId?.let {
-            database.providerAccountDao().getByProviderAccountId(
-                providerId = account.providerId.value,
-                providerAccountId = it.value,
-            )
-        }?.toDomain()
-
-        return if (existingAccount == null) {
+    private fun canonicalAccount(
+        account: ProviderAccount,
+        existingAccount: ProviderAccount?,
+    ): ProviderAccount =
+        if (existingAccount == null) {
             account
         } else {
             existingAccount.copy(
@@ -224,7 +283,6 @@ class RoomCodexSessionImportPersistence(
                 updatedAt = account.updatedAt,
             )
         }
-    }
 }
 
 fun ProviderAccount.toEntity(): ProviderAccountEntity =

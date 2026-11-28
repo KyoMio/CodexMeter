@@ -2,12 +2,12 @@ package com.kmnexus.codexmeter.providers.deepseek.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.deepseek.mapper.DeepSeekBalanceMapper
 import com.kmnexus.codexmeter.providers.deepseek.network.DeepSeekBalanceClient
 import com.kmnexus.codexmeter.providers.deepseek.session.DeepSeekSessionPayload
@@ -16,7 +16,6 @@ import kotlinx.serialization.json.Json
 
 class DeepSeekSessionImporter(
     private val balanceClient: DeepSeekBalanceClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -26,7 +25,7 @@ class DeepSeekSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         val balanceResult = balanceClient.fetchBalance(apiKey)
 
         return when (balanceResult) {
@@ -57,8 +56,6 @@ class DeepSeekSessionImporter(
                     updatedAt = now.toString(),
                 )
 
-                sessionStore.save(envelope)
-
                 val snapshot = DeepSeekBalanceMapper.map(
                     dto = balanceResult.dto,
                     localAccountId = account.localAccountId,
@@ -67,7 +64,7 @@ class DeepSeekSessionImporter(
                     source = QuotaSnapshotSource.ApiKeyImport,
                 )
 
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -75,7 +72,7 @@ class DeepSeekSessionImporter(
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("DeepSeek does not support cookie auth"),
         )
@@ -85,7 +82,7 @@ class DeepSeekSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("DeepSeek does not support OAuth PKCE auth"),
         )

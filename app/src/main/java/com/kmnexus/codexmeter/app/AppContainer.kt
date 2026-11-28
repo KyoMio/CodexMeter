@@ -427,57 +427,48 @@ class AppContainer private constructor(
             )
             val deepseekSessionImporter = DeepSeekSessionImporter(
                 balanceClient = deepseekBalanceClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val minimaxSessionImporter = MiniMaxSessionImporter(
                 usageClient = minimaxUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val zaiSessionImporter = ZaiSessionImporter(
                 client = zaiQuotaClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val cursorSessionImporter = CursorSessionImporter(
                 usageClient = cursorUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val kimiSessionImporter = KimiSessionImporter(
                 client = kimiQuotaClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val kimiCodeSessionImporter = KimiCodeSessionImporter(
                 usageClient = kimiCodeUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val zaiBalanceSessionImporter = ZaiBalanceSessionImporter(
                 client = zaiBalanceClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val claudeSessionImporter = ClaudeSessionImporter(
                 tokenClient = claudeTokenClient,
                 client = claudeUsageClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
             val antigravitySessionImporter = AntigravitySessionImporter(
                 tokenClient = antigravityTokenClient,
                 client = antigravityQuotaClient,
-                sessionStore = sessionStore,
                 payloadCipher = payloadCipher,
                 clock = clock,
             )
@@ -671,8 +662,8 @@ class AppContainer private constructor(
             )
             val grokSessionImporter = GrokSessionImporter(
                 billingClient = GrokSessionImporter.BillingClient(grokBillingClient::fetchBilling),
-                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot ->
-                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot)
+                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot, allowNewRow ->
+                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot, allowNewRow)
                     GrokSessionImporter.CommittedImport(
                         account = committed.account,
                         sessionEnvelope = committed.sessionEnvelope,
@@ -710,6 +701,7 @@ class AppContainer private constructor(
                 stateGuard = sharedStateGuard,
                 clock = clock,
                 notificationTargetBoundary = notificationTargetBoundary,
+                secureSessionStore = sessionStore,
             )
             val codexDeviceCodeClient = CodexDeviceCodeClient(httpClient)
             val codexDeviceCodeLoginUseCase = CodexDeviceCodeLoginUseCase(
@@ -731,8 +723,9 @@ class AppContainer private constructor(
 
                     override suspend fun commitPreparedDeviceCodeSession(
                         preparedImport: CodexSessionImporter.PreparedImport,
+                        allowNewRow: Boolean,
                     ): CodexSessionImporter.Result =
-                        sessionImporter.commitPreparedDeviceCodeSession(preparedImport)
+                        sessionImporter.commitPreparedDeviceCodeSession(preparedImport, allowNewRow)
                 },
                 attemptIdProvider = {
                     DeviceCodeLoginAttemptId("device-${UUID.randomUUID()}")
@@ -764,8 +757,9 @@ class AppContainer private constructor(
 
                     override suspend fun commitPreparedDeviceCodeSession(
                         preparedImport: GrokSessionImporter.PreparedImport,
+                        allowNewRow: Boolean,
                     ): GrokSessionImporter.Result =
-                        grokSessionImporter.commitPreparedDeviceCodeSession(preparedImport)
+                        grokSessionImporter.commitPreparedDeviceCodeSession(preparedImport, allowNewRow)
                 },
                 attemptIdProvider = {
                     GrokDeviceCodeLoginAttemptId("device-${UUID.randomUUID()}")

@@ -150,7 +150,7 @@ class Cm10R2BoundaryCoverageTest {
                             Case.IMPORT, Case.IMPORT_LIVE_PIN -> RoomCodexSessionImportPersistence(db,sessions,store,guard,notificationTargetBoundary=boundary).save(
                                 beta.toDomain(), ProviderSessionEnvelope(providerId="codex",localAccountId="B",providerAccountId="acct-B",schemaVersion=1,
                                     payloadCiphertext=byteArrayOf(1),payloadNonce=byteArrayOf(2),createdAt="2026-01-01T00:00:00Z",updatedAt="2026-01-01T00:00:00Z"),
-                                FixtureAccounts.snapshot(snapshotId="import-B",localAccountId="B").toDomain())
+                                FixtureAccounts.snapshot(snapshotId="import-B",localAccountId="B").toDomain(), allowNewRow = true)
                             Case.DELETE_PINNED -> deletion.deleteAccount(provider,LocalAccountId("A"))
                             Case.ROLLBACK -> { abortDeletion.complete(Unit); rollback!!.await() }
 

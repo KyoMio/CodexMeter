@@ -2,12 +2,12 @@ package com.kmnexus.codexmeter.providers.claude.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.claude.mapper.ClaudeUsageMapper
 import com.kmnexus.codexmeter.providers.claude.network.ClaudeUsageClient
 import com.kmnexus.codexmeter.providers.claude.session.ClaudeSessionPayload
@@ -18,7 +18,6 @@ import kotlinx.serialization.json.Json
 class ClaudeSessionImporter(
     private val tokenClient: OAuthTokenClient,
     private val client: ClaudeUsageClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -29,7 +28,7 @@ class ClaudeSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         // The interceptor passes the callback as `code#state` (Hermes / Claude Code format); the
         // Anthropic token endpoint validates `state`, so split it back out for the exchange.
         val rawCode = code.substringBefore('#')
@@ -54,25 +53,28 @@ class ClaudeSessionImporter(
                 )
                 val jsonBytes = json.encodeToString(ClaudeSessionPayload.serializer(), payload).encodeToByteArray()
                 val encrypted = payloadCipher.encrypt(jsonBytes)
-                sessionStore.save(
-                    ProviderSessionEnvelope(
-                        providerId = CLAUDE_PROVIDER_ID.value,
-                        localAccountId = account.localAccountId.value,
-                        providerAccountId = account.providerAccountId?.value,
-                        schemaVersion = 1,
-                        payloadCiphertext = encrypted.ciphertext,
-                        payloadNonce = encrypted.nonce,
-                        createdAt = now.toString(),
-                        updatedAt = now.toString(),
-                    ),
+                val envelope = ProviderSessionEnvelope(
+                    providerId = CLAUDE_PROVIDER_ID.value,
+                    localAccountId = account.localAccountId.value,
+                    providerAccountId = account.providerAccountId?.value,
+                    schemaVersion = 1,
+                    payloadCiphertext = encrypted.ciphertext,
+                    payloadNonce = encrypted.nonce,
+                    createdAt = now.toString(),
+                    updatedAt = now.toString(),
                 )
+                // CM-10 R4: encrypt-and-prepare only — the caller commits the envelope inside the
+                // shared delete/commit boundary after re-checking the account is still alive.
                 Result.success(
-                    ClaudeUsageMapper.map(
-                        dto = usageResult.dto,
-                        localAccountId = account.localAccountId,
-                        providerAccountId = account.providerAccountId,
-                        fetchedAt = now,
-                        source = QuotaSnapshotSource.OAuthPkceLogin,
+                    ValidatedSessionImport(
+                        snapshot = ClaudeUsageMapper.map(
+                            dto = usageResult.dto,
+                            localAccountId = account.localAccountId,
+                            providerAccountId = account.providerAccountId,
+                            fetchedAt = now,
+                            source = QuotaSnapshotSource.OAuthPkceLogin,
+                        ),
+                        sessionEnvelope = envelope,
                     ),
                 )
             }
@@ -83,13 +85,13 @@ class ClaudeSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("Claude does not support API key auth"))
 
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(UnsupportedOperationException("Claude does not support cookie auth"))
 
     private companion object {

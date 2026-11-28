@@ -30,15 +30,29 @@ class SessionImportRouterTest {
             apiKey: String,
             account: ProviderAccount,
             apiBaseUrl: String?,
-        ) = Result.success(testSnapshot)
+        ) = Result.success(
+            ValidatedSessionImport(
+                snapshot = testSnapshot,
+                sessionEnvelope = com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope(
+                    providerId = "deepseek",
+                    localAccountId = account.localAccountId.value,
+                    providerAccountId = account.providerAccountId?.value,
+                    schemaVersion = 1,
+                    payloadCiphertext = byteArrayOf(1),
+                    payloadNonce = byteArrayOf(2),
+                    createdAt = "fixture",
+                    updatedAt = "fixture",
+                ),
+            ),
+        )
         override suspend fun importFromCookie(cookieJson: String, account: ProviderAccount) =
-            Result.failure<QuotaSnapshot>(UnsupportedOperationException())
+            Result.failure<ValidatedSessionImport>(UnsupportedOperationException())
         override suspend fun importFromOAuthPkce(
             code: String,
             verifier: String,
             redirectUri: String,
             account: ProviderAccount,
-        ) = Result.failure<QuotaSnapshot>(UnsupportedOperationException())
+        ) = Result.failure<ValidatedSessionImport>(UnsupportedOperationException())
     }
 
     @Test

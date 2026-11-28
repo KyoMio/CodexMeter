@@ -12,6 +12,10 @@ import com.kmnexus.codexmeter.providers.SessionImportRouter
 import java.time.Clock
 import java.util.UUID
 
+// CM-10 R4 note: the wired container uses SessionLoginUseCase for all imports (this class only
+// remains as a legacy type). Envelope persistence lives in SessionLoginUseCase's boundary commit;
+// this path does not write credentials to disk and should not be rewired without adopting the
+// same ordering protocol.
 class ApiKeyLoginUseCase(
     private val importRouter: SessionImportRouter,
     private val accountDao: ProviderAccountDao,
@@ -36,14 +40,14 @@ class ApiKeyLoginUseCase(
             now = now,
         )
 
-        val snapshotResult = importRouter.importApiKey(apiKey, account)
-        if (snapshotResult.isFailure) {
+        val importResult = importRouter.importApiKey(apiKey, account)
+        if (importResult.isFailure) {
             return Result.failure(
-                snapshotResult.exceptionOrNull()
+                importResult.exceptionOrNull()
                     ?: RuntimeException("Unknown import error"),
             )
         }
-        val snapshot = snapshotResult.getOrThrow()
+        val snapshot = importResult.getOrThrow().snapshot
 
         accountDao.upsert(account.toEntity())
         snapshotDao.insert(snapshot.toEntity())

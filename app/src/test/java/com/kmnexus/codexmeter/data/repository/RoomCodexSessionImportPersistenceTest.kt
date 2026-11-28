@@ -50,6 +50,7 @@ class RoomCodexSessionImportPersistenceTest {
                 account = account,
                 sessionEnvelope = envelope,
                 snapshot = snapshot,
+                allowNewRow = true,
             )
 
             assertEquals(account.localAccountId, committed.account.localAccountId)
@@ -85,6 +86,7 @@ class RoomCodexSessionImportPersistenceTest {
                 account = account(localAccountId = "local-new"),
                 sessionEnvelope = envelope(localAccountId = "local-new"),
                 snapshot = snapshot(localAccountId = "local-new"),
+                allowNewRow = true,
             )
 
             assertEquals(LocalAccountId("local-1"), committed.account.localAccountId)
@@ -109,6 +111,7 @@ class RoomCodexSessionImportPersistenceTest {
                 account = account(localAccountId = "local-new"),
                 sessionEnvelope = envelope(localAccountId = "local-new"),
                 snapshot = snapshot(localAccountId = "local-new"),
+                allowNewRow = true,
             )
 
             val persisted = database.providerAccountDao().getById("local-1")!!.toDomainAccount()
@@ -127,6 +130,7 @@ class RoomCodexSessionImportPersistenceTest {
                     account = account(localAccountId = "local-1"),
                     sessionEnvelope = envelope(localAccountId = "local-1"),
                     snapshot = snapshot(localAccountId = "local-1"),
+                    allowNewRow = true,
                 )
                 fail("Expected session save failure")
             } catch (_: IllegalStateException) {
@@ -151,6 +155,7 @@ class RoomCodexSessionImportPersistenceTest {
                     account = account(localAccountId = "local-1"),
                     sessionEnvelope = envelope(localAccountId = "local-1"),
                     snapshot = snapshot(localAccountId = "local-1"),
+                    allowNewRow = true,
                 )
                 fail("Expected current account save failure")
             } catch (_: IllegalStateException) {
@@ -177,6 +182,7 @@ class RoomCodexSessionImportPersistenceTest {
                     account = account(localAccountId = "local-1"),
                     sessionEnvelope = envelope(localAccountId = "local-1"),
                     snapshot = snapshot(localAccountId = "local-1"),
+                    allowNewRow = true,
                 )
                 fail("Expected room commit failure")
             } catch (_: IllegalStateException) {
@@ -211,6 +217,7 @@ class RoomCodexSessionImportPersistenceTest {
                     account = account(localAccountId = "local-1"),
                     sessionEnvelope = envelope(localAccountId = "local-1"),
                     snapshot = snapshot(localAccountId = "local-1"),
+                    allowNewRow = true,
                 )
                 fail("Expected room commit failure")
             } catch (_: IllegalStateException) {

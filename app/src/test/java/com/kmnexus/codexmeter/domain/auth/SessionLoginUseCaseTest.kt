@@ -12,7 +12,9 @@ import com.kmnexus.codexmeter.domain.model.SnapshotId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImportRouter
+import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -38,19 +40,21 @@ class SessionLoginUseCaseTest {
             apiKey: String,
             account: ProviderAccount,
             apiBaseUrl: String?,
-        ): Result<QuotaSnapshot> = Result.success(snapshot(account.localAccountId))
+        ): Result<ValidatedSessionImport> = Result.success(
+            ValidatedSessionImport(snapshot(account.localAccountId), envelope(account)),
+        )
 
         override suspend fun importFromCookie(
             cookieJson: String,
             account: ProviderAccount,
-        ) = Result.failure<QuotaSnapshot>(UnsupportedOperationException())
+        ) = Result.failure<ValidatedSessionImport>(UnsupportedOperationException())
 
         override suspend fun importFromOAuthPkce(
             code: String,
             verifier: String,
             redirectUri: String,
             account: ProviderAccount,
-        ) = Result.failure<QuotaSnapshot>(UnsupportedOperationException())
+        ) = Result.failure<ValidatedSessionImport>(UnsupportedOperationException())
     }
 
     // --- "first account becomes current" ----------------------------------------------------
@@ -164,6 +168,18 @@ class SessionLoginUseCaseTest {
             database.close()
         }
     }
+
+    private fun envelope(account: ProviderAccount): ProviderSessionEnvelope =
+        ProviderSessionEnvelope(
+            providerId = providerId.value,
+            localAccountId = account.localAccountId.value,
+            providerAccountId = account.providerAccountId?.value,
+            schemaVersion = 1,
+            payloadCiphertext = byteArrayOf(1),
+            payloadNonce = byteArrayOf(2),
+            createdAt = "fixture",
+            updatedAt = "fixture",
+        )
 
     private fun snapshot(localAccountId: LocalAccountId): QuotaSnapshot =
         QuotaSnapshot(

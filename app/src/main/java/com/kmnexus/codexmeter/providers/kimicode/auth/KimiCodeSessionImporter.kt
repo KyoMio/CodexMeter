@@ -2,12 +2,12 @@ package com.kmnexus.codexmeter.providers.kimicode.auth
 
 import com.kmnexus.codexmeter.data.secure.PayloadCipher
 import com.kmnexus.codexmeter.data.secure.ProviderSessionEnvelope
-import com.kmnexus.codexmeter.data.secure.SecureSessionStore
 import com.kmnexus.codexmeter.domain.model.ProviderAccount
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshot
 import com.kmnexus.codexmeter.domain.quota.QuotaSnapshotSource
 import com.kmnexus.codexmeter.providers.SessionImporter
+import com.kmnexus.codexmeter.providers.ValidatedSessionImport
 import com.kmnexus.codexmeter.providers.kimicode.mapper.KimiCodeUsageMapper
 import com.kmnexus.codexmeter.providers.kimicode.network.KimiCodeUsageClient
 import com.kmnexus.codexmeter.providers.kimicode.session.KimiCodeSessionPayload
@@ -20,7 +20,6 @@ import kotlinx.serialization.json.Json
  */
 class KimiCodeSessionImporter(
     private val usageClient: KimiCodeUsageClient,
-    private val sessionStore: SecureSessionStore,
     private val payloadCipher: PayloadCipher,
     private val clock: Clock = Clock.systemUTC(),
 ) : SessionImporter {
@@ -30,7 +29,7 @@ class KimiCodeSessionImporter(
         apiKey: String,
         account: ProviderAccount,
         apiBaseUrl: String?,
-    ): Result<QuotaSnapshot> {
+    ): Result<ValidatedSessionImport> {
         val baseUrl = apiBaseUrl ?: KimiCodeUsageClient.DEFAULT_BASE_URL
         val usageResult = usageClient.fetchUsage(apiKey, baseUrl)
 
@@ -63,8 +62,6 @@ class KimiCodeSessionImporter(
                     updatedAt = now.toString(),
                 )
 
-                sessionStore.save(envelope)
-
                 val snapshot = KimiCodeUsageMapper.map(
                     dto = usageResult.dto,
                     localAccountId = account.localAccountId,
@@ -73,7 +70,7 @@ class KimiCodeSessionImporter(
                     source = QuotaSnapshotSource.ApiKeyImport,
                 )
 
-                Result.success(snapshot)
+                Result.success(ValidatedSessionImport(snapshot, envelope))
             }
         }
     }
@@ -81,7 +78,7 @@ class KimiCodeSessionImporter(
     override suspend fun importFromCookie(
         cookieJson: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("Kimi Code does not support cookie auth"),
         )
@@ -91,7 +88,7 @@ class KimiCodeSessionImporter(
         verifier: String,
         redirectUri: String,
         account: ProviderAccount,
-    ): Result<QuotaSnapshot> =
+    ): Result<ValidatedSessionImport> =
         Result.failure(
             UnsupportedOperationException("Kimi Code does not support OAuth PKCE auth"),
         )

@@ -231,6 +231,7 @@ class CodexDeviceCodeLoginUseCase(
         return validateAndCommit(
             attemptId = ready.attemptId,
             session = ready.session,
+            allowNewRow = ready.mode !is CodexDeviceCodeLoginMode.Relogin,
         )
     }
 
@@ -246,6 +247,7 @@ class CodexDeviceCodeLoginUseCase(
         return validateAndCommit(
             attemptId = pending.attemptId,
             session = pending.session,
+            allowNewRow = true,
         )
     }
 
@@ -313,6 +315,7 @@ class CodexDeviceCodeLoginUseCase(
         return validateAndCommit(
             attemptId = attempt.attemptId,
             session = session,
+            allowNewRow = attempt.mode !is CodexDeviceCodeLoginMode.Relogin,
         )
     }
 
@@ -338,6 +341,7 @@ class CodexDeviceCodeLoginUseCase(
     private suspend fun validateAndCommit(
         attemptId: DeviceCodeLoginAttemptId,
         session: CodexSessionPayload,
+        allowNewRow: Boolean,
     ): CodexDeviceCodeLoginState {
         stateMutex.withLock {
             if (!isLatestLocked(attemptId)) {
@@ -365,6 +369,7 @@ class CodexDeviceCodeLoginUseCase(
             is CodexSessionImporter.PrepareResult.Success -> commitPreparedImport(
                 attemptId = attemptId,
                 preparedImport = prepared.preparedImport,
+                allowNewRow = allowNewRow,
             )
         }
     }
@@ -372,13 +377,14 @@ class CodexDeviceCodeLoginUseCase(
     private suspend fun commitPreparedImport(
         attemptId: DeviceCodeLoginAttemptId,
         preparedImport: CodexSessionImporter.PreparedImport,
+        allowNewRow: Boolean,
     ): CodexDeviceCodeLoginState =
         stateMutex.withLock {
             if (!isLatestLocked(attemptId)) {
                 return@withLock currentState
             }
             try {
-                when (val result = sessionImporter.commitPreparedDeviceCodeSession(preparedImport)) {
+                when (val result = sessionImporter.commitPreparedDeviceCodeSession(preparedImport, allowNewRow)) {
                     is CodexSessionImporter.Result.Failure -> {
                         currentState = CodexDeviceCodeLoginState.ValidationFailed(attemptId, result.message)
                         currentState
@@ -485,6 +491,7 @@ class CodexDeviceCodeLoginUseCase(
 
         suspend fun commitPreparedDeviceCodeSession(
             preparedImport: CodexSessionImporter.PreparedImport,
+            allowNewRow: Boolean,
         ): CodexSessionImporter.Result
     }
 }
