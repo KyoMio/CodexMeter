@@ -13,6 +13,7 @@ import com.kmnexus.codexmeter.domain.model.LocalAccountId
 import com.kmnexus.codexmeter.domain.model.ProviderId
 import com.kmnexus.codexmeter.domain.settings.NotificationAccountSelection
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceStore
+import com.kmnexus.codexmeter.notification.NotificationTargetBoundary
 
 /**
  * CM-10 R4 ordering protocol — the delete side.
@@ -40,8 +41,7 @@ class AccountDeletionRepository(
     private val localDataDeleter: AccountLocalDataDeleter = RoomAccountLocalDataDeleter(database),
     private val notificationPreferenceStore: NotificationPreferenceStore? = null,
     private val stateGuard: VersionedStateGuard,
-    private val notificationTargetBoundary: com.kmnexus.codexmeter.notification.NotificationTargetBoundary =
-        com.kmnexus.codexmeter.notification.NotificationTargetBoundary(),
+    internal val notificationTargetBoundary: NotificationTargetBoundary = NotificationTargetBoundary(),
 ) {
     suspend fun deleteAccount(
         providerId: ProviderId,
@@ -64,7 +64,6 @@ class AccountDeletionRepository(
         val providerValue = providerId.value
         val localValue = localAccountId.value
 
-        var deletedAccountStateCleanup: DeletedAccountStateCleanup? = null
         var selectionFallbackWritten = false
         var previousSelection: CurrentAccountSelection? = null
         var nextSelection: CurrentAccountSelection? = null
@@ -74,16 +73,12 @@ class AccountDeletionRepository(
         // ordering (it only snapshots state for a possible compensation) and audit choreography
         // depends on it being reachable while the destructive section waits on the boundary.
         // It still runs before anything destructive, so compensation restores pre-delete state.
-        val capturedCleanup = runCatching {
+        val deletedAccountStateCleanup = runCatching {
             deletedAccountStateCleaner.clearDeletedAccountState(
                 providerId = providerId,
                 localAccountId = localAccountId,
             )
-        }
-        if (capturedCleanup.isFailure) {
-            throw capturedCleanup.exceptionOrNull() ?: RuntimeException("delete cleanup capture failed")
-        }
-        deletedAccountStateCleanup = capturedCleanup.getOrNull()
+        }.getOrElse { throw it }
 
         try {
             // CM-10 R4: the destructive core — fallback decision, selection write, credential
@@ -116,38 +111,20 @@ class AccountDeletionRepository(
                 localDataDeleter.deleteLocalData(providerId = providerId, localAccountId = localAccountId)
             }
         } catch (throwable: Throwable) {
-            // Compensation, ownership-guarded per step. Order: state cleanup, credential file,
-            // selection. Each step reverses only what this deletion wrote and nobody superseded.
-            deletedAccountStateCleanup?.let { cleanup ->
-                runCatching { cleanup.restore() }
+            val selectionRollback = if (selectionFallbackWritten) {
+                SelectionRollback(previousSelection = previousSelection, nextSelection = nextSelection)
+            } else {
+                null
             }
-            sessionBeforeDelete?.let { envelopeBeforeDelete ->
-                runCatching {
-                    notificationTargetBoundary.serialize {
-                        val current = secureSessionStore.load(
-                            providerId = providerValue,
-                            localAccountId = localValue,
-                        )
-                        if (current == null) {
-                            // Only restore when no newer credential landed in the meantime —
-                            // compensation must never overwrite a committed re-login.
-                            secureSessionStore.save(envelopeBeforeDelete)
-                        }
-                    }
-                }
-            }
-            if (selectionFallbackWritten) {
-                runCatching {
-                    notificationTargetBoundary.serialize {
-                        val current = currentAccountStore.currentAccountSelection()
-                        if (current == nextSelection) {
-                            // Only restore when the fallback we wrote is still in place — a later
-                            // committed write owns the selection now.
-                            currentAccountStore.updateCurrentAccountSelection(previousSelection)
-                        }
-                    }
-                }
-            }
+            compensateDeleteFailure(
+                DeleteCompensationContext(
+                    providerId = providerValue,
+                    localAccountId = localValue,
+                    deletedAccountStateCleanup = deletedAccountStateCleanup,
+                    sessionBeforeDelete = sessionBeforeDelete,
+                    selectionRollback = selectionRollback,
+                ),
+            )
             throw throwable
         }
 
@@ -156,6 +133,54 @@ class AccountDeletionRepository(
             localAccountId = localAccountId,
         )
     }
+
+    private suspend fun compensateDeleteFailure(context: DeleteCompensationContext) {
+        // Compensation, ownership-guarded per step. Order: state cleanup, credential file,
+        // selection. Each step reverses only what this deletion wrote and nobody superseded.
+        context.deletedAccountStateCleanup?.let { cleanup ->
+            runCatching { cleanup.restore() }
+        }
+        context.sessionBeforeDelete?.let { envelopeBeforeDelete ->
+            runCatching {
+                notificationTargetBoundary.serialize {
+                    val current = secureSessionStore.load(
+                        providerId = context.providerId,
+                        localAccountId = context.localAccountId,
+                    )
+                    if (current == null) {
+                        // Only restore when no newer credential landed in the meantime —
+                        // compensation must never overwrite a committed re-login.
+                        secureSessionStore.save(envelopeBeforeDelete)
+                    }
+                }
+            }
+        }
+        context.selectionRollback?.let { rollback ->
+            runCatching {
+                notificationTargetBoundary.serialize {
+                    val current = currentAccountStore.currentAccountSelection()
+                    if (current == rollback.nextSelection) {
+                        // Only restore when the fallback we wrote is still in place — a later
+                        // committed write owns the selection now.
+                        currentAccountStore.updateCurrentAccountSelection(rollback.previousSelection)
+                    }
+                }
+            }
+        }
+    }
+
+    private class SelectionRollback(
+        val previousSelection: CurrentAccountSelection?,
+        val nextSelection: CurrentAccountSelection?,
+    )
+
+    private class DeleteCompensationContext(
+        val providerId: String,
+        val localAccountId: String,
+        val deletedAccountStateCleanup: DeletedAccountStateCleanup?,
+        val sessionBeforeDelete: ProviderSessionEnvelope?,
+        val selectionRollback: SelectionRollback?,
+    )
 
     /**
      * Notification binding is a concrete account. When that account is deleted, the runtime falls

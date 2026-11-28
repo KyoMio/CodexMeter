@@ -91,10 +91,18 @@ class CurrentQuotaStateRepositoryTest {
                 persistentNotificationWindowId = QuotaWindowId("weekly"),
             ),
         ) { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-1", displayName = "Current"))
-            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-2", displayName = "Configured"))
-            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"))
-            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"))
+            db.providerAccountDao().upsert(
+                FixtureAccounts.account(localAccountId = "local-1", displayName = "Current"),
+            )
+            db.providerAccountDao().upsert(
+                FixtureAccounts.account(localAccountId = "local-2", displayName = "Configured"),
+            )
+            db.quotaSnapshotDao().insert(
+                FixtureAccounts.snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"),
+            )
+            db.quotaSnapshotDao().insert(
+                FixtureAccounts.snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"),
+            )
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadStatusNotificationState(refreshedState = repository.loadCurrentState())
@@ -108,10 +116,18 @@ class CurrentQuotaStateRepositoryTest {
     @Test
     fun `requested account state uses supplied account and window`() = runTest {
         withRepository { db, currentAccountReader, repository ->
-            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-1", displayName = "Current"))
-            db.providerAccountDao().upsert(FixtureAccounts.account(localAccountId = "local-2", displayName = "Requested"))
-            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"))
-            db.quotaSnapshotDao().insert(FixtureAccounts.snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"))
+            db.providerAccountDao().upsert(
+                FixtureAccounts.account(localAccountId = "local-1", displayName = "Current"),
+            )
+            db.providerAccountDao().upsert(
+                FixtureAccounts.account(localAccountId = "local-2", displayName = "Requested"),
+            )
+            db.quotaSnapshotDao().insert(
+                FixtureAccounts.snapshot(snapshotId = "snapshot-1", localAccountId = "local-1"),
+            )
+            db.quotaSnapshotDao().insert(
+                FixtureAccounts.snapshot(snapshotId = "snapshot-2", localAccountId = "local-2"),
+            )
             currentAccountReader.selection = CurrentAccountSelection(ProviderId("codex"), LocalAccountId("local-1"))
 
             val state = repository.loadAccountState(

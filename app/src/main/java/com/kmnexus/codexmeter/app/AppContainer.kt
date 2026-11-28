@@ -477,7 +477,6 @@ class AppContainer private constructor(
             return fromDatabase(
                 appContext = appContext,
                 sharedStateGuard = sharedStateGuard,
-                notificationTargetBoundary = notificationTargetBoundary,
                 database = database,
                 currentAccountReader = currentAccountPreferences,
                 currentAccountPreferences = currentAccountPreferences,
@@ -591,7 +590,6 @@ class AppContainer private constructor(
         private fun fromDatabase(
             appContext: Context,
             sharedStateGuard: VersionedStateGuard,
-            notificationTargetBoundary: NotificationTargetBoundary,
             database: CodexMeterDatabase,
             currentAccountReader: CurrentAccountReader,
             currentAccountPreferences: CurrentAccountPreferences,
@@ -634,6 +632,7 @@ class AppContainer private constructor(
             updatePreferences: UpdatePreferenceStore,
             appUpdateNotifier: AppUpdateNotifier,
         ): AppContainer {
+            val notificationTargetBoundary = accountDeletionRepository.notificationTargetBoundary
             val sessionImporter = CodexSessionImporter(
                 usageClient = CodexSessionImporter.UsageClient(usageClient::fetchUsage),
                 mapper = CodexUsageMapper(),
@@ -662,8 +661,20 @@ class AppContainer private constructor(
             )
             val grokSessionImporter = GrokSessionImporter(
                 billingClient = GrokSessionImporter.BillingClient(grokBillingClient::fetchBilling),
-                importPersistence = GrokSessionImporter.ImportPersistence { account, envelope, snapshot, allowNewRow, expectedLocalAccountId ->
-                    val committed = grokSessionImportPersistence.save(account, envelope, snapshot, allowNewRow, expectedLocalAccountId)
+                importPersistence = GrokSessionImporter.ImportPersistence {
+                        account,
+                        envelope,
+                        snapshot,
+                        allowNewRow,
+                        expectedLocalAccountId,
+                    ->
+                    val committed = grokSessionImportPersistence.save(
+                        account,
+                        envelope,
+                        snapshot,
+                        allowNewRow,
+                        expectedLocalAccountId,
+                    )
                     GrokSessionImporter.CommittedImport(
                         account = committed.account,
                         sessionEnvelope = committed.sessionEnvelope,

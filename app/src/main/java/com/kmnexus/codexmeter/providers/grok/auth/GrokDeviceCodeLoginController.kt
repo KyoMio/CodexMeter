@@ -168,8 +168,7 @@ class GrokDeviceCodeLoginController(
             oauthToken = pending.oauthToken,
             identity = pending.identity,
             tokenEndpoint = pending.tokenEndpoint,
-            allowNewRow = true,
-            expectedLocalAccountId = null,
+            mode = GrokDeviceCodeLoginMode.AddAccount,
         ).toDeviceCodeLoginResult(onSaved)
     }
 
@@ -258,8 +257,7 @@ class GrokDeviceCodeLoginController(
                     oauthToken = oauthToken,
                     identity = identity,
                     tokenEndpoint = awaiting.tokenEndpoint,
-                    allowNewRow = awaiting.mode !is GrokDeviceCodeLoginMode.Relogin,
-                    expectedLocalAccountId = (awaiting.mode as? GrokDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId,
+                    mode = awaiting.mode,
                 )
             }.toDeviceCodeLoginResult(onSaved)
         } finally {
@@ -280,8 +278,7 @@ class GrokDeviceCodeLoginController(
             oauthToken = ready.oauthToken,
             identity = ready.identity,
             tokenEndpoint = ready.tokenEndpoint,
-            allowNewRow = ready.mode !is GrokDeviceCodeLoginMode.Relogin,
-            expectedLocalAccountId = (ready.mode as? GrokDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId,
+            mode = ready.mode,
         ).toDeviceCodeLoginResult(onSaved)
     }
 
@@ -385,36 +382,69 @@ class GrokDeviceCodeLoginController(
         oauthToken: GrokOAuthToken,
         identity: GrokLoginIdentity,
         tokenEndpoint: String,
-        allowNewRow: Boolean,
-        expectedLocalAccountId: com.kmnexus.codexmeter.domain.model.LocalAccountId?,
+        mode: GrokDeviceCodeLoginMode,
     ): GrokDeviceCodeLoginState {
-        stateMutex.withLock {
-            if (!isLatestLocked(attemptId)) {
-                return currentState
+        val isLatest = stateMutex.withLock {
+            if (isLatestLocked(attemptId)) {
+                currentState = GrokDeviceCodeLoginState.ValidatingUsage(attemptId)
+                true
+            } else {
+                false
             }
-            currentState = GrokDeviceCodeLoginState.ValidatingUsage(attemptId)
+        }
+        if (!isLatest) {
+            return stateMutex.withLock { currentState }
         }
 
-        val prepared = try {
-            sessionImporter.prepareDeviceCodeSession(
-                oauthToken = oauthToken,
-                identity = identity,
-                tokenEndpoint = tokenEndpoint,
+        val prepared = prepareDeviceCodeSessionOrFail(
+            attemptId = attemptId,
+            oauthToken = oauthToken,
+            identity = identity,
+            tokenEndpoint = tokenEndpoint,
+        )
+        return if (prepared == null) {
+            stateMutex.withLock { currentState }
+        } else {
+            commitPreparedAndUpdateState(
+                attemptId = attemptId,
+                prepared = prepared,
+                mode = mode,
             )
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (_: Exception) {
-            return stateMutex.withLock {
-                if (isLatestLocked(attemptId)) {
-                    currentState = GrokDeviceCodeLoginState.ValidationFailed(attemptId, "error_network")
-                }
-                currentState
+        }
+    }
+
+    private suspend fun prepareDeviceCodeSessionOrFail(
+        attemptId: GrokDeviceCodeLoginAttemptId,
+        oauthToken: GrokOAuthToken,
+        identity: GrokLoginIdentity,
+        tokenEndpoint: String,
+    ) = try {
+        sessionImporter.prepareDeviceCodeSession(
+            oauthToken = oauthToken,
+            identity = identity,
+            tokenEndpoint = tokenEndpoint,
+        )
+    } catch (exception: CancellationException) {
+        throw exception
+    } catch (_: Exception) {
+        stateMutex.withLock {
+            if (isLatestLocked(attemptId)) {
+                currentState = GrokDeviceCodeLoginState.ValidationFailed(attemptId, "error_network")
             }
         }
+        null
+    }
 
+    private suspend fun commitPreparedAndUpdateState(
+        attemptId: GrokDeviceCodeLoginAttemptId,
+        prepared: GrokSessionImporter.PreparedImport,
+        mode: GrokDeviceCodeLoginMode,
+    ): GrokDeviceCodeLoginState {
         // Commit runs the billing validation network call, so it stays OUTSIDE the state lock —
         // holding the lock across it would block cancelLatest until the call finishes and let a
         // late cancel land as Saved instead of Cancelled. Only the resulting state write is locked.
+        val allowNewRow = mode !is GrokDeviceCodeLoginMode.Relogin
+        val expectedLocalAccountId = (mode as? GrokDeviceCodeLoginMode.Relogin)?.expectedLocalAccountId
         val commitResult = try {
             sessionImporter.commitPreparedDeviceCodeSession(
                 prepared.copy(expectedLocalAccountId = expectedLocalAccountId),

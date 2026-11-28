@@ -236,7 +236,10 @@ class GrokSessionImporter(
     ): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Grok does not support API key auth"))
 
-    override suspend fun importFromCookie(cookieJson: String, account: ProviderAccount): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
+    override suspend fun importFromCookie(
+        cookieJson: String,
+        account: ProviderAccount,
+    ): kotlin.Result<com.kmnexus.codexmeter.providers.ValidatedSessionImport> =
         kotlin.Result.failure(UnsupportedOperationException("Grok does not support cookie auth"))
 
     override suspend fun importFromOAuthPkce(

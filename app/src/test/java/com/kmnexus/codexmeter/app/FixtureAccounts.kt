@@ -38,7 +38,13 @@ object FixtureAccounts {
         fetchedAt = fetchedAt.toEpochMilli(),
         source = "manualRefresh",
         planType = "plus",
-        windowsJson = """[{"windowId":"five_hour","titleKey":"quota_window_five_hour","usedPercent":62,"resetAt":1779555600000,"limitWindowSeconds":18000,"isPrimaryCandidate":true,"availability":"Available"},{"windowId":"weekly","titleKey":"quota_window_weekly","usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,"isPrimaryCandidate":true,"availability":"Available"}]""",
+        windowsJson = "[" +
+            """{"windowId":"five_hour","titleKey":"quota_window_five_hour",""" +
+            """"usedPercent":62,"resetAt":1779555600000,"limitWindowSeconds":18000,""" +
+            """"isPrimaryCandidate":true,"availability":"Available"},""" +
+            """{"windowId":"weekly","titleKey":"quota_window_weekly",""" +
+            """"usedPercent":41,"resetAt":1780012800000,"limitWindowSeconds":604800,""" +
+            """"isPrimaryCandidate":true,"availability":"Available"}]""",
         creditsJson = null,
         responseDigest = "safe-digest",
     )

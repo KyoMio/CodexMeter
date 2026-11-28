@@ -77,12 +77,22 @@ class CurrentQuotaNotificationPublisher(
      * the deletion republish path cancels the notification on its own.
      */
     private suspend fun notificationTargetMatchesSelection(state: CurrentQuotaState): Boolean {
-        val resolver = notificationTargetResolver ?: return true
-        val target = resolver.resolveTargetSelection()
-        val stateAccount = state.account ?: return target == null
-        return target != null &&
-            target.providerId == stateAccount.providerId &&
-            target.localAccountId == stateAccount.localAccountId
+        val resolver = notificationTargetResolver
+        val result: Boolean
+        if (resolver == null) {
+            result = true
+        } else {
+            val target = resolver.resolveTargetSelection()
+            val stateAccount = state.account
+            result = if (stateAccount == null) {
+                target == null
+            } else {
+                target != null &&
+                    target.providerId == stateAccount.providerId &&
+                    target.localAccountId == stateAccount.localAccountId
+            }
+        }
+        return result
     }
 
     /**

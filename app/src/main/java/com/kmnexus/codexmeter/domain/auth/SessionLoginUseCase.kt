@@ -119,48 +119,45 @@ class SessionLoginUseCase(
             ?: return Result.failure(IllegalStateException("Account not found for re-login: ${localAccountId.value}"))
         // Reuse identity/display name; clearing NeedsReauth is the whole point of re-login.
         val account = existing.copy(status = AccountStatus.Active, updatedAt = clock.instant())
-
         val importResult = importFn(account)
+        val result: Result<ProviderAccount>
         if (importResult.isFailure) {
             // Validation failed before any envelope write, so the old session stays intact.
-            return Result.failure(
-                importResult.exceptionOrNull() ?: RuntimeException("Unknown import error"),
-            )
-        }
-        val validated = importResult.getOrThrow()
-        val snapshot = validated.snapshot
-        val envelope = validated.sessionEnvelope
-
-        stateGuard.beginEdit()
-        try {
-            return notificationTargetBoundary.serialize {
-                val stillAlive = accountDao.getById(localAccountId.value)
-                    ?.takeIf { !it.status.equals(AccountStatus.Deleted.name, ignoreCase = true) }
-                if (stillAlive == null) {
-                    // The delete won the race while the credential validated. Discard without
-                    // writing anything: the credential file never touches disk.
-                    Result.failure(
-                        IllegalStateException(
-                            "Re-login discarded: account ${localAccountId.value} was deleted while the credential was being validated",
-                        ),
-                    )
-                } else {
-                    commitWithCompensation(
-                        envelope = envelope,
-                        writeRows = {
-                            database.withTransaction {
-                                accountDao.upsert(account.toEntity())
-                                snapshotDao.insert(snapshot.toEntity())
-                            }
-                        },
-                        writeSelection = null,
-                    )
-                    Result.success(account)
+            result = Result.failure(importResult.exceptionOrNull() ?: RuntimeException("Unknown import error"))
+        } else {
+            val validated = importResult.getOrThrow()
+            stateGuard.beginEdit()
+            try {
+                result = notificationTargetBoundary.serialize {
+                    val stillAlive = accountDao.getById(localAccountId.value)
+                        ?.takeIf { !it.status.equals(AccountStatus.Deleted.name, ignoreCase = true) }
+                    if (stillAlive == null) {
+                        // The delete won the race while the credential validated. Discard without writing.
+                        Result.failure(
+                            IllegalStateException(
+                                "Re-login discarded: account ${localAccountId.value} " +
+                                    "was deleted while the credential was being validated",
+                            ),
+                        )
+                    } else {
+                        commitWithCompensation(
+                            envelope = validated.sessionEnvelope,
+                            writeRows = {
+                                database.withTransaction {
+                                    accountDao.upsert(account.toEntity())
+                                    snapshotDao.insert(validated.snapshot.toEntity())
+                                }
+                            },
+                            writeSelection = null,
+                        )
+                        Result.success(account)
+                    }
                 }
+            } finally {
+                stateGuard.endEdit()
             }
-        } finally {
-            stateGuard.endEdit()
         }
+        return result
     }
 
     private suspend fun importAndPersist(
@@ -242,7 +239,7 @@ class SessionLoginUseCase(
         var selectionWritten = false
         val previousSelection = currentAccountStore.currentAccountSelection()
 
-        try {
+        val commitResult = runCatching {
             if (store != null) {
                 previousEnvelope = store.load(
                     providerId = envelope.providerId,
@@ -256,7 +253,8 @@ class SessionLoginUseCase(
                 selectionWritten = true
             }
             writeRows()
-        } catch (throwable: Throwable) {
+        }
+        commitResult.exceptionOrNull()?.let { throwable ->
             if (selectionWritten) {
                 runCatching { currentAccountStore.updateCurrentAccountSelection(previousSelection) }
             }

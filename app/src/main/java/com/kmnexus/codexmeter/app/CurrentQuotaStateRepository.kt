@@ -23,6 +23,7 @@ import com.kmnexus.codexmeter.domain.settings.DefaultPrimaryQuotaWindowPreferenc
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferenceReader
 import com.kmnexus.codexmeter.domain.settings.NotificationPreferences
 import com.kmnexus.codexmeter.domain.settings.PrimaryQuotaWindowPreferenceReader
+import com.kmnexus.codexmeter.notification.NotificationAccountTargetResolver
 import com.kmnexus.codexmeter.notification.StatusNotificationStateLoader
 import com.kmnexus.codexmeter.ui.home.HomeCurrentQuotaStateLoader
 import java.time.Clock
@@ -40,7 +41,7 @@ internal class CurrentQuotaStateRepository(
     private val clock: Clock,
     private val currencyPreferenceReader: CurrencyPreferenceReader = DefaultCurrencyPreferenceReader,
     private val exchangeRateReader: ExchangeRateReader = DefaultExchangeRateReader,
-    private val notificationTargetResolver: com.kmnexus.codexmeter.notification.NotificationAccountTargetResolver? = null,
+    private val notificationTargetResolver: NotificationAccountTargetResolver? = null,
 ) : HomeCurrentQuotaStateLoader, StatusNotificationStateLoader {
     override suspend fun loadCurrentState(): CurrentQuotaState {
         val selection = currentAccountReader.currentAccountSelection()
